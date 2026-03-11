@@ -1,9 +1,11 @@
+
 import request from 'supertest';
 import app from '../app';
 import { prisma } from '../config/database';
 import { generateToken } from '../utils/jwt';
 import bcrypt from 'bcryptjs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { v4 as uuidv4 } from 'uuid';
 
 describe('Medicos and Agendamentos endpoints', () => {
   let user: any;
@@ -14,7 +16,7 @@ describe('Medicos and Agendamentos endpoints', () => {
 
   beforeAll(async () => {
     // create a user
-    const unique = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+    const unique = uuidv4();
     const hash = await bcrypt.hash('userpass', 8);
     user = await prisma.usuario.create({ data: { nome: 'User Test', email: `user-${unique}@example.com`, cpf: `333${unique}`, telefone: '912345678', senha: hash, tipo: 'paciente' } });
 
@@ -47,7 +49,12 @@ describe('Medicos and Agendamentos endpoints', () => {
   });
 
   it('should return agendamentos for authenticated user', async () => {
-    const res = await request(app).get('/api/agendamentos').set('Authorization', `Bearer ${token}`).expect(200);
+    const res = await request(app).get('/api/agendamentos').set('Authorization', `Bearer ${token}`);
+    if (res.status !== 200) {
+      // Exibe o corpo da resposta de erro para diagnóstico
+      console.error('Erro na resposta:', res.body);
+    }
+    expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
     // look for any confirmed appointment with a medico name — robust to ordering and parallel runs
     const found = res.body.find((a: any) => a.status === 'confirmado' && !!a.medico);

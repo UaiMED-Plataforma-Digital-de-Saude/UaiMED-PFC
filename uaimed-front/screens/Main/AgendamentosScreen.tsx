@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from '../../navigation/types';
 import uaiMedApi from '../../api/uaiMedApi';
@@ -25,6 +25,11 @@ const AgendamentosScreen: React.FC<AgendamentosScreenProps> = ({ navigation }) =
   const [isLoading, setIsLoading] = useState(true);
   // Estado para controlar qual Tab interna está ativa (Futuros/Anteriores)
   const [activeTab, setActiveTab] = useState<'futuros' | 'anteriores'>('futuros');
+
+  // Filtros avançados
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [especialidadeFilter, setEspecialidadeFilter] = useState<string>('');
+  const [dataFilter, setDataFilter] = useState<string>(''); // formato: yyyy-mm-dd
 
   // SIMULAÇÃO DE DADOS (Substitua pela chamada real)
   const simulatedData: Agendamento[] = [
@@ -67,10 +72,15 @@ const AgendamentosScreen: React.FC<AgendamentosScreenProps> = ({ navigation }) =
     fetchAgendamentos();
   }, []);
 
-  // Filtra os agendamentos com base na aba ativa
+  // Filtra os agendamentos com base na aba ativa e filtros avançados
   const filteredAgendamentos = agendamentos.filter(agendamento => {
     const isFuture = new Date(agendamento.data) > new Date();
-    return activeTab === 'futuros' ? isFuture : !isFuture;
+    if (activeTab === 'futuros' && !isFuture) return false;
+    if (activeTab === 'anteriores' && isFuture) return false;
+    if (statusFilter && agendamento.status !== statusFilter) return false;
+    if (especialidadeFilter && !agendamento.especialidade.toLowerCase().includes(especialidadeFilter.toLowerCase())) return false;
+    if (dataFilter && !agendamento.data.startsWith(dataFilter)) return false;
+    return true;
   });
 
   // Componente de renderização de cada item da lista
@@ -107,6 +117,28 @@ const AgendamentosScreen: React.FC<AgendamentosScreenProps> = ({ navigation }) =
         </TouchableOpacity>
       </View>
 
+      {/* Filtros Avançados */}
+      <View style={{ flexDirection: 'row', padding: 10, backgroundColor: '#FFF', alignItems: 'center', gap: 8 }}>
+        <TextInput
+          style={{ flex: 1, backgroundColor: '#F5F5F5', borderRadius: 8, paddingHorizontal: 8, marginRight: 4, height: 36 }}
+          placeholder="Filtrar por especialidade"
+          value={especialidadeFilter}
+          onChangeText={setEspecialidadeFilter}
+        />
+        <TextInput
+          style={{ width: 90, backgroundColor: '#F5F5F5', borderRadius: 8, paddingHorizontal: 8, marginRight: 4, height: 36 }}
+          placeholder="Data (aaaa-mm-dd)"
+          value={dataFilter}
+          onChangeText={setDataFilter}
+        />
+        <TextInput
+          style={{ width: 100, backgroundColor: '#F5F5F5', borderRadius: 8, paddingHorizontal: 8, height: 36 }}
+          placeholder="Status"
+          value={statusFilter}
+          onChangeText={setStatusFilter}
+        />
+      </View>
+
       {isLoading ? (
         <ActivityIndicator size="large" color="#4CAF50" style={{ marginTop: 50 }} />
       ) : (
@@ -118,7 +150,7 @@ const AgendamentosScreen: React.FC<AgendamentosScreenProps> = ({ navigation }) =
           contentContainerStyle={{ paddingBottom: 20 }}
         />
       )}
-      
+
       {/* Botão Flutuante para Novo Agendamento */}
       <TouchableOpacity 
         style={styles.floatingButton} 

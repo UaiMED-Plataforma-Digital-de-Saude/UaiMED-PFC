@@ -1,8 +1,10 @@
+
 import request from 'supertest';
 import app from '../app';
 import { prisma } from '../config/database';
 import { generateToken } from '../utils/jwt';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { v4 as uuidv4 } from 'uuid';
 
 describe('Professional summary endpoint', () => {
   let medUser: any;
@@ -11,7 +13,7 @@ describe('Professional summary endpoint', () => {
   let createdPatientId: string | null = null;
 
   beforeAll(async () => {
-    const unique = Date.now();
+    const unique = uuidv4();
     const medEmail = `drme-${unique}@test.local`;
     medUser = await prisma.usuario.create({ data: { nome: 'Dr Me', email: medEmail, cpf: `22222222222${unique}`, telefone: '11977777777', senha: 'h', tipo: 'medico' } });
     prof = await prisma.profissional.create({ data: { usuarioId: medUser.id, especialidade: 'Test', crm: `CRM2-${unique}`, dataFormacao: new Date(), endereco: 'Rua', cidade: 'C', estado: 'E', cep: '11111-111' } });

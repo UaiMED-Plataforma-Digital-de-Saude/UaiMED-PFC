@@ -1,16 +1,18 @@
+
 import request from 'supertest';
 import app from '../app';
 import { prisma } from '../config/database';
 import { generateToken } from '../utils/jwt';
 import bcrypt from 'bcryptjs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { v4 as uuidv4 } from 'uuid';
 
 describe('Auth / Notifications endpoints', () => {
   let user: any;
   let token: string;
 
   beforeAll(async () => {
-    const unique = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+    const unique = uuidv4();
     const hash = await bcrypt.hash('oldpass', 8);
     user = await prisma.usuario.create({ data: { nome: 'Auth Test', email: `authtest-${unique}@example.com`, cpf: `999${unique}`, telefone: '90000000', senha: hash, tipo: 'paciente' } });
     token = generateToken({ id: user.id, email: user.email, tipo: user.tipo });

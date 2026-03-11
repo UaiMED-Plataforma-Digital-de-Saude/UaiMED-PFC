@@ -1,9 +1,11 @@
+
 import request from 'supertest';
 import app from '../app';
 import { prisma } from '../config/database';
 import { generateToken } from '../utils/jwt';
 import bcrypt from 'bcryptjs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { v4 as uuidv4 } from 'uuid';
 
 describe('Contatos API', () => {
   let user: any;
@@ -13,7 +15,7 @@ describe('Contatos API', () => {
 
   beforeAll(async () => {
     // create user
-    const unique = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+    const unique = uuidv4();
     const passwordHash = await bcrypt.hash('testpass', 8);
     user = await prisma.usuario.create({ data: { nome: 'Test User', email: `testuser-${unique}@example.com`, cpf: `000${unique}`, telefone: '99999999', senha: passwordHash, tipo: 'paciente' } });
 

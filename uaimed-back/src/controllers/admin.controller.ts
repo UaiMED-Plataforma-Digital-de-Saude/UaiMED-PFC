@@ -4,10 +4,13 @@ import { prisma } from "../config/database";
 class AdminController {
   async summary(req: Request, res: Response) {
     try {
-      // Basic counts
-      const totalUsuarios = await prisma.usuario.count();
-      const totalPacientes = await prisma.usuario.count({ where: { tipo: 'paciente' } });
-      const totalMedicos = await prisma.profissional.count();
+    // Basic counts
+    const totalUsuarios = await prisma.usuario.count();
+    const totalPacientes = await prisma.usuario.count({ where: { tipo: 'paciente' } });
+    const totalMedicos = await prisma.profissional.count();
+
+    // Contatos pendentes
+    const totalContatosPendentes = await prisma.contato.count({ where: { status: 'nao_lido' } });
 
       // Agendamentos hoje
       const start = new Date();
@@ -58,6 +61,7 @@ class AdminController {
         totalPacientes,
         totalMedicos,
         totalAgendamentosHoje,
+        totalContatosPendentes,
         agendamentosPorStatus: agendPorStatusRaw,
         topProfissionais,
         appointmentsByDay,

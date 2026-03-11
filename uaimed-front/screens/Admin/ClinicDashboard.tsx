@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, FlatList, Dimensions, ScrollView } from 'react-native';
+import { LineChart } from 'react-native-chart-kit';
 import uaiMedApi from '../../api/uaiMedApi';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -29,7 +30,7 @@ const ClinicDashboard: React.FC = () => {
   if (!user) return <View style={styles.container}><Text>Usuário não autenticado.</Text></View>;
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Text style={styles.title}>Dashboard da Clínica</Text>
       {loading ? <ActivityIndicator /> : (
         <View>
@@ -43,9 +44,45 @@ const ClinicDashboard: React.FC = () => {
               </View>
 
               <View style={styles.card}>
+                <Text style={styles.cardTitle}>Contatos Pendentes</Text>
+                <Text>{summary.totalContatosPendentes}</Text>
+              </View>
+
+              <View style={styles.card}>
                 <Text style={styles.cardTitle}>Agendamentos Hoje</Text>
                 <Text>{summary.totalAgendamentosHoje}</Text>
               </View>
+
+              {/* Gráfico de agendamentos por dia */}
+              {summary.appointmentsByDay && (
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>Agendamentos por Dia</Text>
+                  <LineChart
+                    data={{
+                      labels: summary.appointmentsByDay.map((d: any) => d.day.slice(5)),
+                      datasets: [
+                        { data: summary.appointmentsByDay.map((d: any) => d.count) }
+                      ]
+                    }}
+                    width={Dimensions.get('window').width - 48}
+                    height={180}
+                    yAxisLabel=""
+                    yAxisSuffix=""
+                    chartConfig={{
+                      backgroundColor: '#fff',
+                      backgroundGradientFrom: '#fff',
+                      backgroundGradientTo: '#fff',
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`,
+                      labelColor: (opacity = 1) => `rgba(51, 51, 51, ${opacity})`,
+                      style: { borderRadius: 8 },
+                      propsForDots: { r: '5', strokeWidth: '2', stroke: '#388E3C' },
+                    }}
+                    bezier
+                    style={{ marginVertical: 8, borderRadius: 8 }}
+                  />
+                </View>
+              )}
 
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>Top Profissionais</Text>
@@ -66,7 +103,7 @@ const ClinicDashboard: React.FC = () => {
           )}
         </View>
       )}
-    </View>
+    </ScrollView>
   );
 };
 

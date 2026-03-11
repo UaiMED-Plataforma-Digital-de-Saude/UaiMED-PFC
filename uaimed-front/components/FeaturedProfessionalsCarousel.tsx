@@ -18,13 +18,7 @@ import { useAvaliacoes } from '../hooks/useAvaliacoes';
 
 const { width } = Dimensions.get('window');
 
-// Dados de exemplo — em produção, buscar via API
-const SAMPLE_PROFISSIONAIS = [
-  { id: 'med-001', nome: 'Dr. João Silva', especialidade: 'Cardiologia', imagem: null },
-  { id: 'med-002', nome: 'Dra. Ana Costa', especialidade: 'Dermatologia', imagem: null },
-  { id: 'med-003', nome: 'Dr. Carlos Lima', especialidade: 'Ortopedia', imagem: null },
-  { id: 'med-004', nome: 'Dra. Marina Rocha', especialidade: 'Pediatria', imagem: null },
-];
+
 
 const CARD_WIDTH = Math.min(320, width * 0.78);
 
@@ -78,29 +72,53 @@ const ProfessionalCard: React.FC<{ item: any; onContact: (id: string) => void }>
   );
 };
 
+
+import uaiMedApi from '../api/uaiMedApi';
+import { useEffect } from 'react';
+
 const FeaturedProfessionalsCarousel: React.FC = () => {
-  // Como este componente está dentro da aba `Home` (Tab), precisamos
-  // navegar para a tela aninhada dentro da aba `Agendamentos`.
   const navigation = useNavigation<any>();
+  const [profissionais, setProfissionais] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetch = async () => {
+      setLoading(true);
+      try {
+        const res = await uaiMedApi.get('/medicos/recomendados');
+        if (mounted) setProfissionais(res.data);
+      } catch (e) {
+        setProfissionais([]);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    fetch();
+    return () => { mounted = false; };
+  }, []);
 
   const handleContact = (medicoId: string) => {
-    // Navegação para tela aninhada: tab -> stack -> screen
     navigation.navigate('Agendamentos', { screen: 'ContatoProfissional', params: { medicoId } });
   };
 
   const renderItem = ({ item }: any) => (
     <ProfessionalCard item={item} onContact={handleContact} />
-  );  return (
+  );
+
+  return (
     <View style={styles.container}>
       <Text style={styles.title}>Profissionais em destaque</Text>
-      <FlatList
-        data={SAMPLE_PROFISSIONAIS}
-        keyExtractor={(i) => i.id}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.list}
-        renderItem={renderItem}
-      />
+      {loading ? <ActivityIndicator /> : (
+        <FlatList
+          data={profissionais}
+          keyExtractor={(i) => i.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.list}
+          renderItem={renderItem}
+        />
+      )}
     </View>
   );
 };
