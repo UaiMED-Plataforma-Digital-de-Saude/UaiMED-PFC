@@ -1,8 +1,3 @@
-e gerenciarem sua conta.
-
-> listados.
-> que o projeto evolui.
-
 # Relatório Técnico Executivo — UaiMED
 
 ## Visão Geral
