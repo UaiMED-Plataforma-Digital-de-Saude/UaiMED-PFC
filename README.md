@@ -47,7 +47,7 @@ O UaiMED é uma plataforma digital de saúde composta por backend (Node.js/TypeS
 1. Clone o repositório e entre na pasta:
 
 ```bash
-git clone <url> uaimed
+git clone https://github.com/UaiMED-Plataforma-Digital-de-Saude/UaiMED-PFC.git uaimed
 cd uaimed
 ```
 
