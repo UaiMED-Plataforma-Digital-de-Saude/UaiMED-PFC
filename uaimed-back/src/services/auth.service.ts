@@ -31,41 +31,48 @@ class AuthService {
     if (existing) throw new Error("Email já cadastrado");
 
     const senhaHash = await hashPassword(data.senha);
+    const tipo = data.tipo || 'paciente';
 
-    const usuario = await prisma.usuario.create({
-      data: {
-        nome: data.nome,
-        email: data.email,
-        cpf: data.cpf,
-        telefone: data.telefone,
-        senha: senhaHash,
-        tipo: data.tipo || "paciente",
-      },
-      select: { id: true, nome: true, email: true, tipo: true },
-    });
-
-    // Se for um usuário do tipo 'medico', crie também o registro em Profissional
-    if ((data.tipo || 'paciente') === 'medico') {
-      // Validações mínimas para campos de profissional
+    // Se for médico, valida campos obrigatórios antes de criar qualquer registro
+    if (tipo === 'medico') {
       if (!data.especialidade || !data.crm) {
         throw new Error('Especialidade e CRM são obrigatórios para cadastro de profissional');
       }
-
-      await prisma.profissional.create({
-        data: {
-          usuarioId: usuario.id,
-          especialidade: data.especialidade,
-          crm: data.crm,
-          dataFormacao: data.dataFormacao ? new Date(data.dataFormacao) : new Date(),
-          endereco: data.endereco || '',
-          cidade: data.cidade || '',
-          estado: data.estado || '',
-          cep: data.cep || '',
-        },
-      });
     }
 
-    const token = generateToken({ id: usuario.id, email: usuario.email, tipo: usuario.tipo });
+    // Usa transação para garantir atomicidade: usuário + profissional criados juntos
+    const { usuario, token } = await prisma.$transaction(async (tx) => {
+      const usuario = await tx.usuario.create({
+        data: {
+          nome: data.nome,
+          email: data.email,
+          cpf: data.cpf,
+          telefone: data.telefone,
+          senha: senhaHash,
+          tipo,
+        },
+        select: { id: true, nome: true, email: true, tipo: true },
+      });
+
+      if (tipo === 'medico') {
+        await tx.profissional.create({
+          data: {
+            usuarioId: usuario.id,
+            especialidade: data.especialidade!,
+            crm: data.crm!,
+            dataFormacao: data.dataFormacao ? new Date(data.dataFormacao) : new Date(),
+            endereco: data.endereco || '',
+            cidade: data.cidade || '',
+            estado: data.estado || '',
+            cep: data.cep || '',
+          },
+        });
+      }
+
+      const token = generateToken({ id: usuario.id, email: usuario.email, tipo: usuario.tipo });
+      return { usuario, token };
+    });
+
     logger.success(`Novo usuário: ${usuario.email}`);
 
     return { usuario, token };

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/database";
+import logger from "../utils/logger";
 
 class AdminController {
   async summary(req: Request, res: Response) {
@@ -67,7 +68,7 @@ class AdminController {
         appointmentsByDay,
       });
     } catch (err) {
-      console.error('Admin summary error', err);
+      logger.error('Admin summary error', err);
       return res.status(500).json({ error: 'Erro ao gerar resumo' });
     }
   }

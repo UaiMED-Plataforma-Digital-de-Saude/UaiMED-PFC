@@ -33,10 +33,11 @@ describe('Medicos and Agendamentos endpoints', () => {
   });
 
   afterAll(async () => {
-    await prisma.agendamento.deleteMany({ where: { usuarioId: user.id } }).catch(() => {});
-    await prisma.profissional.deleteMany({ where: { id: profissional.id } }).catch(() => {});
-    await prisma.usuario.deleteMany({ where: { email: { contains: 'user-' } } }).catch(() => {});
-    await prisma.usuario.deleteMany({ where: { email: { contains: 'prof-' } } }).catch(() => {});
+    // Limpeza específica por ID
+    if (user?.id) await prisma.agendamento.deleteMany({ where: { usuarioId: user.id } }).catch(() => {});
+    if (profissional?.id) await prisma.profissional.deleteMany({ where: { id: profissional.id } }).catch(() => {});
+    if (profUsuario?.id) await prisma.usuario.deleteMany({ where: { id: profUsuario.id } }).catch(() => {});
+    if (user?.id) await prisma.usuario.deleteMany({ where: { id: user.id } }).catch(() => {});
     await prisma.$disconnect();
   });
 

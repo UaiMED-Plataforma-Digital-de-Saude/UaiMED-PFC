@@ -56,7 +56,6 @@ export const AuthContext = createContext<AuthContextData>({} as AuthContextData)
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState<string | null>(null);
 
   /**
    * Efeito para carregar token e usuário armazenados ao iniciar a app
@@ -70,7 +69,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (storedToken && storedUser) {
           // Se houver token salvo, restaura a sessão
-          setToken(storedToken);
           setUser(JSON.parse(storedUser));
           
           // Configura o header de autorização na API
@@ -102,7 +100,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { user: userData, token: authToken } = response.data;
 
       // Salva dados no estado local
-      setToken(authToken);
       setUser(userData);
 
       // Persiste os dados no AsyncStorage
@@ -157,7 +154,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Limpa o estado local
       setUser(null);
-      setToken(null);
 
       // Remove o header de autorização da API
       delete uaiMedApi.defaults.headers.common['Authorization'];

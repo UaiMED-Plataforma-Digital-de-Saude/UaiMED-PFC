@@ -13,7 +13,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Dimensions,
-  Image,
 } from 'react-native';
 import type { StackScreenProps } from '@react-navigation/stack';
 import type { AuthStackParamList } from '../../navigation/types';

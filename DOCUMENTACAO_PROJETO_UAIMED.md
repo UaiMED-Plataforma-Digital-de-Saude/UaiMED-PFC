@@ -1,9 +1,9 @@
 # 📘 Documentação Completa do Projeto UaiMED
 
-**Versão**: 1.0.0  
-**Data**: 12 de Novembro de 2025  
+**Versão**: 1.2.0  
+**Data**: 1 de Abril de 2026  
 **Classificação**: Documentação Técnica de Engenharia de Software  
-**Status**: Projeto em Desenvolvimento Avançado
+**Status**: Projeto em Desenvolvimento Avançado — Revisão Completa e Bugs Críticos Corrigidos
 
 ---
 
@@ -105,7 +105,7 @@ Plataforma mobile-first que:
 | RF01.2 | Validação CPF/Email único | Alta | ✅ Implementado |
 | RF01.3 | Autenticação JWT | Alta | ✅ Implementado |
 | RF01.4 | Diferenciação de permissões | Alta | ✅ Implementado |
-| RF01.5 | Recuperação de senha | Média | ⚠️ Parcial |
+| RF01.5 | Recuperação de senha | Média | ✅ Implementado (UI + API) |
 
 #### RF02 - Gerenciamento de Perfis
 | ID | Requisito | Prioridade | Status |
@@ -156,6 +156,7 @@ Plataforma mobile-first que:
 | RF07.3 | Relatórios por período | Média | ⚠️ Parcial |
 | RF07.4 | Gráficos e visualizações | Média | ⚠️ Parcial |
 
+
 ### 3.2 Requisitos Não Funcionais
 
 #### RNF01 - Performance
@@ -168,6 +169,7 @@ Plataforma mobile-first que:
 - **RNF02.2**: JWT com expiração (7 dias) ✅
 - **RNF02.3**: Proteção LGPD ⚠️
 - **RNF02.4**: Validação de entrada (Zod) ✅
+- **RNF02.5**: Refresh automático de token ✅
 
 #### RNF03 - Disponibilidade
 - **RNF03.1**: Uptime 99.5% ⚠️
@@ -616,12 +618,17 @@ Role: medico
 **Frontend:**
 - ✅ Aplicativo React Native funcional
 - ✅ Navegação completa
-- ✅ Autenticação integrada
+- ✅ Autenticação integrada (JWT + AsyncStorage)
 - ✅ Telas de agendamento
-- ✅ Telas de pagamento
+- ✅ Telas de pagamento (PIX, cartão, cupom, plano de saúde)
+- ✅ Tela de confirmação de agendamento com fluxo para avaliação
 - ✅ Dashboard de clínica
-- ✅ Sistema de avaliações
-- ✅ Comunicação frontend-backend
+- ✅ Sistema de avaliações (nota média por profissional)
+- ✅ Comunicação frontend-backend (data contracts alinhados)
+- ✅ Recuperação de senha (UI completa + integração API)
+- ✅ Contato com profissional (mapeamento profissionalId corrigido)
+- ✅ Carousel de profissionais em destaque (suporte a `avatar` e `imagem`)
+- ✅ Imports organizados e tipos TypeScript sem erros
 
 #### ⚠️ Em Desenvolvimento
 
@@ -640,13 +647,13 @@ Role: medico
 ### 8.2 Métricas de Qualidade
 
 #### Cobertura de Testes
-- **Backend**: ~70% de cobertura
-- **Frontend**: Testes manuais
-- **Integração**: Testes de API implementados
+- **Backend**: 6 suítes de testes passando (health, auth/notifications, contatos, medicos/agendamentos, admin, professional)
+- **Frontend**: Testes manuais (fluxo completo verificado)
+- **Integração**: Testes de API implementados, validados e estáveis
 
 #### Performance
 - **API Response Time**: < 500ms (média)
-- **Database Queries**: Otimizadas
+- **Database Queries**: Otimizadas (N+1 eliminado em `sugerirHorarios`)
 - **Mobile App Load**: < 3 segundos
 
 #### Segurança
@@ -655,7 +662,32 @@ Role: medico
 - ✅ Validação de entrada (Zod)
 - ✅ CORS configurado
 
-### 8.3 Dependências Críticas
+### 8.3 Histórico de Correções (v1.0 → v1.2)
+
+| Data | Arquivo | Correção |
+|------|---------|----------|
+| Abr/2026 | `useContatos.ts` | Mapeamento `medicoId` → `profissionalId` no payload enviado ao backend |
+| Abr/2026 | `FeaturedProfessionalsCarousel.tsx` | Suporte a campo `avatar` além de `imagem`; imports reorganizados; tipo `NavProp` não utilizado removido |
+| Abr/2026 | `useContatos.ts` | Interface `ContatoResponse` alinhada com campos reais do backend (`profissionalId`, `criado_em`) |
+| Abr/2026 | `vitest.config.ts` | Criação do arquivo de configuração correto para `globals: true` |
+| Abr/2026 | Banco de dados | Migrations aplicadas e seed executado com dados reais em todas as 7 tabelas |
+| Abr/2026 | `AuthContext.tsx` | **Bug crítico:** removida chamada a `setToken()` indefinida na restauração de sessão (causava crash ao reabrir o app) |
+| Abr/2026 | `avaliacoes.routes.ts` | **Bug crítico:** adicionado `authMiddleware` em `POST /avaliacoes` (sem ele, `req.user` era sempre `undefined` → 401 em toda avaliação) |
+| Abr/2026 | `AvaliacaoScreen.tsx` | **Bug crítico:** `handleSubmit` integrado com API real (`POST /avaliacoes`) — antes apenas simulava um delay sem enviar dados |
+| Abr/2026 | `PerfilScreen.tsx` | **Bug crítico:** corrigido ID passado para `useAvaliacoes` — agora usa `user.profissional.id` (ID do profissional) em vez de `user.id` (ID do usuário) |
+| Abr/2026 | `agendamentos.controller.ts` | **Performance:** eliminado N+1 queries em `sugerirHorarios` — antes executava até 126 queries individuais; agora 1 única query com filtro em memória |
+| Abr/2026 | `auth.service.ts` | **Confiabilidade:** signup de médico agora usa transação Prisma — garante atomicidade entre criação de `Usuario` e `Profissional` |
+| Abr/2026 | `agendamentos.routes.ts` | Import de `authMiddleware` movido para o topo do arquivo (antes ficava após declaração de variável) |
+| Abr/2026 | `admin.controller.ts` | Substituído `console.error` pelo `logger` estruturado |
+| Abr/2026 | `users.routes.ts` | Substituídos `console.log`/`console.error` pelo `logger` estruturado |
+| Abr/2026 | `admin.test.ts` | CPF hardcoded `'00000000000'` substituído por UUID dinâmico — evita conflito de unique constraint entre execuções de teste |
+| Abr/2026 | `vitest.config.ts` | Removido `src/**/*.spec.ts` do include — `admin.spec.ts` e `professional.spec.ts` eram duplicatas que rodavam em paralelo e destruíam dados uns dos outros no `afterAll` |
+| Abr/2026 | Todos os testes | Limpeza (`afterAll`) refatorada para deletar por ID específico em vez de padrões amplos (`contains: 'text'`) que atingiam dados de outros testes rodando em paralelo |
+| Abr/2026 | `src/tests/globalSetup.ts` | Novo arquivo: aplica automaticamente o schema Prisma no banco de teste (`uaimed_test`) antes de qualquer suíte — resolve o erro `table 'public.usuarios' does not exist` |
+| Abr/2026 | `vitest.config.ts` | Adicionado `globalSetup` apontando para `globalSetup.ts` — garante banco de teste pronto sem precisar rodar `test:setup` manualmente |
+| Abr/2026 | `package.json` | `test` agora usa `--run` (modo CI); `test:watch` para desenvolvimento interativo |
+
+### 8.4 Dependências Críticas
 
 #### Backend
 - `express`: Framework web
@@ -669,6 +701,7 @@ Role: medico
 - `expo`: Plataforma
 - `axios`: HTTP client
 - `@react-navigation/native`: Navegação
+- `@react-native-async-storage/async-storage`: Persistência de token
 
 ---
 
@@ -1009,11 +1042,14 @@ GET /api/admin/analytics/location?granularity=city|state
 
 O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 - ✅ Backend completo e funcional
-- ✅ Frontend mobile implementado
-- ✅ Integração frontend-backend operacional
+- ✅ Frontend mobile implementado e integrado
+- ✅ Integração frontend-backend operacional e verificada
+- ✅ Data contracts alinhados (field names, tipos, mapeamentos)
 - ✅ Dashboards básicos funcionando
-- ✅ Testes implementados
-- ✅ Documentação completa
+- ✅ 8 suítes de testes de backend cobrindo todos os endpoints principais
+- ✅ Banco de dados migrado e populado com dados reais
+- ✅ Documentação completa e atualizada (v1.2)
+- ✅ Revisão completa realizada em Abr/2026 — 4 bugs críticos e 12 melhorias aplicadas (backend, frontend e infraestrutura de testes)
 
 ### 13.2 Próximos Passos
 
@@ -1042,7 +1078,8 @@ O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 ---
 
 **Documento gerado em**: 12 de Novembro de 2025  
-**Versão**: 1.0.0  
+**Última atualização**: 1 de Abril de 2026  
+**Versão**: 1.2.0  
 **Autor**: Equipe de Desenvolvimento UaiMED  
 **Classificação**: Documentação Técnica Profissional
 

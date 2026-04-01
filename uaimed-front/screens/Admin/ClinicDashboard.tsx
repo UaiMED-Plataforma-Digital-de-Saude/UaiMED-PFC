@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, FlatList, Dimensions, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Dimensions, ScrollView } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import uaiMedApi from '../../api/uaiMedApi';
 import { useAuth } from '../../hooks/useAuth';
@@ -86,16 +86,12 @@ const ClinicDashboard: React.FC = () => {
 
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>Top Profissionais</Text>
-                <FlatList
-                  data={summary.topProfissionais || []}
-                  keyExtractor={(i: any) => i.id}
-                  renderItem={({ item }) => (
-                    <View style={{ paddingVertical: 6 }}>
-                      <Text style={{ fontWeight: '700' }}>{item.nome}</Text>
-                      <Text style={{ color: '#666' }}>{item.especialidade} — {item.total} agend.</Text>
-                    </View>
-                  )}
-                />
+                {(summary.topProfissionais || []).map((item: any) => (
+                  <View key={item.id} style={{ paddingVertical: 6 }}>
+                    <Text style={{ fontWeight: '700' }}>{item.nome}</Text>
+                    <Text style={{ color: '#666' }}>{item.especialidade} — {item.total} agend.</Text>
+                  </View>
+                ))}
               </View>
             </>
           ) : (
@@ -109,7 +105,7 @@ const ClinicDashboard: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 12, backgroundColor: '#FAFAFA' },
-  title: { fontSize: 22, fontWeight: '700', marginBottom: 12 },
+  title: { fontSize: 22, fontWeight: '700', marginTop: 8, marginBottom: 12 },
   card: { backgroundColor: '#FFF', padding: 12, borderRadius: 8, marginBottom: 10, borderWidth: 1, borderColor: '#F5F5F5' },
   cardTitle: { fontWeight: '700', marginBottom: 8 },
 });

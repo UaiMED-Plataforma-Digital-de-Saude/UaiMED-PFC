@@ -29,11 +29,11 @@ describe('Contatos API', () => {
   });
 
   afterAll(async () => {
-    // cleanup created records
-    await prisma.contato.deleteMany({ where: { usuarioId: user.id } });
-    await prisma.profissional.delete({ where: { id: profissional.id } }).catch(() => {});
-    await prisma.usuario.deleteMany({ where: { email: { contains: 'testuser-' } } }).catch(() => {});
-    await prisma.usuario.deleteMany({ where: { email: { contains: 'drtest-' } } }).catch(() => {});
+    // Limpeza específica por ID
+    if (user?.id) await prisma.contato.deleteMany({ where: { usuarioId: user.id } }).catch(() => {});
+    if (profissional?.id) await prisma.profissional.delete({ where: { id: profissional.id } }).catch(() => {});
+    if (profissionalUsuario?.id) await prisma.usuario.deleteMany({ where: { id: profissionalUsuario.id } }).catch(() => {});
+    if (user?.id) await prisma.usuario.deleteMany({ where: { id: user.id } }).catch(() => {});
     await prisma.$disconnect();
   });
 

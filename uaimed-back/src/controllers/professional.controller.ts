@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/database";
+import logger from "../utils/logger";
 
 class ProfessionalController {
   async meSummary(req: Request, res: Response) {
@@ -53,7 +54,7 @@ class ProfessionalController {
         pendingContacts,
       });
     } catch (err) {
-      console.error('Professional summary error', err);
+      logger.error('Professional summary error', err);
       return res.status(500).json({ error: 'Erro ao gerar resumo do profissional' });
     }
   }

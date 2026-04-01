@@ -19,8 +19,9 @@ describe('Auth / Notifications endpoints', () => {
   });
 
   afterAll(async () => {
-    await prisma.contato.deleteMany({ where: { usuarioId: user.id } }).catch(() => {});
-    await prisma.usuario.deleteMany({ where: { email: { contains: 'authtest-' } } }).catch(() => {});
+    // Limpeza específica por ID
+    if (user?.id) await prisma.contato.deleteMany({ where: { usuarioId: user.id } }).catch(() => {});
+    if (user?.id) await prisma.usuario.deleteMany({ where: { id: user.id } }).catch(() => {});
     await prisma.$disconnect();
   });
 

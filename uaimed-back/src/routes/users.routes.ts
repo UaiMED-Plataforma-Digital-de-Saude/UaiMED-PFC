@@ -1,5 +1,6 @@
 import { Router } from "express";
 import authMiddleware from "../middleware/auth";
+import logger from "../utils/logger";
 
 const router = Router();
 
@@ -11,11 +12,11 @@ router.post('/users/me/notifications', authMiddleware, async (req, res) => {
 
     const { email, push } = req.body as any;
     // Não temos tabela para armazenar preferências; aqui apenas simulamos e retornamos sucesso.
-    console.log(`Salvando preferências de notificação para ${userId}: email=${email}, push=${push}`);
+    logger.info(`Salvando preferências de notificação para ${userId}: email=${email}, push=${push}`);
 
     return res.json({ message: 'Preferências salvas', data: { email, push } });
   } catch (err) {
-    console.error('Erro ao salvar notificações', err);
+    logger.error('Erro ao salvar notificações', err);
     return res.status(500).json({ error: 'Erro ao salvar notificações' });
   }
 });

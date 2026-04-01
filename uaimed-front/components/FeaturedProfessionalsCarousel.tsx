@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,17 +12,13 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { AgendamentoStackParamList } from '../navigation/types';
 import { useAvaliacoes } from '../hooks/useAvaliacoes';
+import uaiMedApi from '../api/uaiMedApi';
 
 const { width } = Dimensions.get('window');
 
-
-
 const CARD_WIDTH = Math.min(320, width * 0.78);
 
-type NavProp = StackNavigationProp<AgendamentoStackParamList>;
 
 const ProfessionalCard: React.FC<{ item: any; onContact: (id: string) => void }> = ({ item, onContact }) => {
   // Usa o hook para carregar a nota média do profissional
@@ -73,8 +69,6 @@ const ProfessionalCard: React.FC<{ item: any; onContact: (id: string) => void }>
 };
 
 
-import uaiMedApi from '../api/uaiMedApi';
-import { useEffect } from 'react';
 
 const FeaturedProfessionalsCarousel: React.FC = () => {
   const navigation = useNavigation<any>();

@@ -2,6 +2,11 @@ import { Router, Request, Response } from "express";
 import AuthController from "../controllers/auth.controller";
 import { signupSchemaValidated as signupSchema, signinSchema } from "../schemas/auth.schema";
 import { validateBody } from "../middleware/validate";
+import authMiddleware from "../middleware/auth";
+import { prisma } from "../config/database";
+import bcrypt from "bcryptjs";
+import ENV from "../config/env";
+import logger from "../utils/logger";
 
 const router = Router();
 
@@ -11,39 +16,33 @@ router.post("/usuarios", validateBody(signupSchema), (req: Request, res: Respons
 // POST /api/sessions
 router.post("/sessions", validateBody(signinSchema), (req: Request, res: Response) => AuthController.signin(req, res));
 
-// POST /api/auth/change-password
-router.post("/auth/change-password", async (req: Request, res: Response) => {
-	// Delegate to AuthController.changePassword if implemented there, otherwise handle inline
-	try {
-		const { oldPassword, newPassword } = req.body;
-		// Basic validation
-		if (!oldPassword || !newPassword) return res.status(400).json({ error: "oldPassword and newPassword are required" });
+// POST /api/auth/change-password — protegido por authMiddleware
+router.post("/auth/change-password", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ error: "oldPassword e newPassword são obrigatórios" });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: "A nova senha deve ter no mínimo 6 caracteres" });
+    }
 
-		// If no auth header, return 401
-		const token = req.headers.authorization?.replace("Bearer ", "");
-		if (!token) return res.status(401).json({ error: "Token não fornecido" });
+    const userId = (req as any).user?.id;
+    const user = await prisma.usuario.findUnique({ where: { id: userId } });
+    if (!user) return res.status(404).json({ error: "Usuário não encontrado" });
 
-		const { verifyToken } = await import("../utils/jwt");
-		const decoded = verifyToken(token as string) as any;
-		if (!decoded) return res.status(401).json({ error: "Token inválido" });
+    const match = await bcrypt.compare(oldPassword, user.senha);
+    if (!match) return res.status(400).json({ error: "Senha atual incorreta" });
 
-		const { prisma } = await import("../config/database");
-		const bcrypt = await import("bcryptjs");
+    const hashed = await bcrypt.hash(newPassword, ENV.BCRYPT_ROUNDS);
+    await prisma.usuario.update({ where: { id: user.id }, data: { senha: hashed } });
 
-		const user = await prisma.usuario.findUnique({ where: { id: decoded.id } });
-		if (!user) return res.status(404).json({ error: "Usuário não encontrado" });
-
-		const match = await bcrypt.compare(oldPassword, user.senha);
-		if (!match) return res.status(400).json({ error: "Senha atual incorreta" });
-
-		const hashed = await bcrypt.hash(newPassword, 10);
-		await prisma.usuario.update({ where: { id: user.id }, data: { senha: hashed } });
-
-		return res.json({ message: "Senha alterada com sucesso" });
-	} catch (err) {
-		console.error(err);
-		return res.status(500).json({ error: "Erro ao alterar senha" });
-	}
+    logger.info(`Senha alterada para usuário: ${user.email}`);
+    return res.json({ message: "Senha alterada com sucesso" });
+  } catch (err) {
+    logger.error("Erro ao alterar senha", err);
+    return res.status(500).json({ error: "Erro ao alterar senha" });
+  }
 });
 
 export default router;

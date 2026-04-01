@@ -14,6 +14,7 @@ import {
 import { StackScreenProps } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { AgendamentoStackParamList } from '../../navigation/types';
+import uaiMedApi from '../../api/uaiMedApi';
 
 /**
  * Tela de Avaliação de Consulta
@@ -32,7 +33,9 @@ interface AvaliacaoFormData {
   melhorias: string;
 }
 
-export const AvaliacaoScreen: React.FC<Props> = ({ navigation }) => {
+export const AvaliacaoScreen: React.FC<Props> = ({ route, navigation }) => {
+  // Extrai medicoId dos parâmetros de navegação
+  const { medicoId } = route.params ?? { medicoId: undefined };
   const [form, setForm] = useState<AvaliacaoFormData>({
     notaAtendimento: 0,
     notaPuntualidade: 0,
@@ -116,10 +119,24 @@ export const AvaliacaoScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
+    if (!medicoId) {
+      Alert.alert('Erro', 'ID do profissional não foi fornecido.');
+      return;
+    }
+
     setLoading(true);
     try {
-      // Simula envio para API
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Calcula a nota média das 4 dimensões e arredonda para o inteiro mais próximo
+      const notaMedia = Math.round(
+        (form.notaAtendimento + form.notaPuntualidade + form.notaClinica + form.notaComuni) / 4
+      );
+
+      // Envia a avaliação para o backend
+      await uaiMedApi.post('/avaliacoes', {
+        profissionalId: medicoId,
+        nota: notaMedia,
+        comentario: form.comentario,
+      });
 
       Alert.alert('Sucesso', 'Obrigado por avaliar seu atendimento!', [
         {
@@ -127,8 +144,9 @@ export const AvaliacaoScreen: React.FC<Props> = ({ navigation }) => {
           onPress: () => navigation.goBack(),
         },
       ]);
-    } catch (error) {
-      Alert.alert('Erro', 'Falha ao enviar avaliação. Tente novamente.');
+    } catch (error: any) {
+      const msg = error?.response?.data?.error || 'Falha ao enviar avaliação. Tente novamente.';
+      Alert.alert('Erro', msg);
     } finally {
       setLoading(false);
     }

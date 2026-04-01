@@ -48,7 +48,9 @@ const ActionItem: React.FC<{
  */
 const PerfilScreen: React.FC<PerfilScreenProps> = () => {
   const { user, signOut } = useAuth();
-  const { notaMedia, loading: loadingAvaliacoes } = useAvaliacoes(user?.id);
+  // Para médicos, usa o ID do profissional (não o ID do usuário) para buscar avaliações
+  const profissionalId = user?.tipo === 'medico' ? user?.profissional?.id : undefined;
+  const { notaMedia, loading: loadingAvaliacoes } = useAvaliacoes(profissionalId);
   const [showChangePwd, setShowChangePwd] = React.useState(false);
   const [pwdLoading, setPwdLoading] = React.useState(false);
   const [oldPassword, setOldPassword] = React.useState('');
@@ -228,6 +230,7 @@ const styles = StyleSheet.create({
     fontWeight: '700', 
     padding: 20, 
     paddingTop: 56,
+    marginTop: 8,
     backgroundColor: '#FFF',
     marginBottom: 2,
   },

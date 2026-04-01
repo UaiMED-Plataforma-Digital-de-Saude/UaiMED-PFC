@@ -24,7 +24,19 @@ class ContatosController {
       const usuarioId = (req as any).user?.id;
       if (!usuarioId) return res.status(401).json({ error: "Usuário não autenticado" });
 
-      const contatos = await prisma.contato.findMany({ where: { OR: [{ usuarioId }, { profissionalId: usuarioId }] }, orderBy: { criado_em: "desc" } });
+      // Busca o profissional vinculado ao usuário (caso seja médico)
+      const profissional = await prisma.profissional.findUnique({ where: { usuarioId } });
+
+      const contatos = await prisma.contato.findMany({
+        where: {
+          OR: [
+            { usuarioId },
+            // Se o usuário é um profissional, mostra também os contatos recebidos
+            ...(profissional ? [{ profissionalId: profissional.id }] : []),
+          ],
+        },
+        orderBy: { criado_em: "desc" },
+      });
       return res.json(contatos);
     } catch (err) {
       logger.error("Erro ao listar contatos", err);

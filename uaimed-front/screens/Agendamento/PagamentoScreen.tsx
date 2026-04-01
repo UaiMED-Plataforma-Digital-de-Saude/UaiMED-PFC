@@ -157,7 +157,7 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF' },
   content: { padding: 16 },
-  title: { fontSize: 20, fontWeight: '700', marginBottom: 6 },
+  title: { fontSize: 20, fontWeight: '700', marginTop: 8, marginBottom: 6 },
   subtitle: { color: '#666', marginBottom: 12 },
   section: { marginBottom: 14 },
   sectionTitle: { fontWeight: '700', marginBottom: 8 },

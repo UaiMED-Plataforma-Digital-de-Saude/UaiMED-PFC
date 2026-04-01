@@ -13,22 +13,16 @@ export const useAvaliacoes = (medicoId?: string) => {
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * Carrega a média de avaliação de um profissional específico
+   * Carrega a média de avaliação de um profissional específico da API real
    */
   const carregarMediaAvaliacoes = useCallback(async (id: string) => {
     setLoading(true);
     setError(null);
     try {
-      // Em produção: await uaiMedApi.get(`/avaliacoes/medico/${id}/media`);
-      // Por enquanto, simular com dados aleatórios
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Mock: gerar nota média entre 3.5 e 5
-      const nota = Math.random() * 1.5 + 3.5;
-      const notaArredondada = parseFloat(nota.toFixed(1));
-      setNotaMedia(notaArredondada);
-
-      return notaArredondada;
+      const res = await uaiMedApi.get(`/avaliacoes/medico/${id}/media`);
+      const nota: number = res.data?.notaMedia ?? 0;
+      setNotaMedia(nota);
+      return nota;
     } catch (err: any) {
       const message = err.response?.data?.message || 'Erro ao carregar avaliações.';
       setError(message);
@@ -69,22 +63,19 @@ export const useAvaliacoes = (medicoId?: string) => {
   }, [medicoId, carregarMediaAvaliacoes]);
 
   /**
-   * Cria uma nova avaliação
+   * Cria uma nova avaliação via API
    */
   const criarAvaliacao = useCallback(
     async (agendamentoId: string, dados: any) => {
       setLoading(true);
       setError(null);
       try {
-        // TODO: Integrar com API real
-        // const response = await uaiMedApi.post('/avaliacoes', {
-        //   agendamentoId,
-        //   ...dados,
-        // });
-        // setAvaliacoes([...avaliacoes, response.data]);
-        // return response.data;
-        
-        return null;
+        const response = await uaiMedApi.post('/avaliacoes', {
+          agendamentoId,
+          ...dados,
+        });
+        setAvaliacoes((prev) => [...prev, response.data]);
+        return response.data;
       } catch (err: any) {
         setError(err.message || 'Erro ao criar avaliação');
         throw err;
@@ -92,7 +83,7 @@ export const useAvaliacoes = (medicoId?: string) => {
         setLoading(false);
       }
     },
-    [avaliacoes],
+    [],
   );
 
   /**

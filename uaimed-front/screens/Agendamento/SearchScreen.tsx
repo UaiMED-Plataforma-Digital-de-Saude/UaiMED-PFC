@@ -111,7 +111,8 @@ const styles = StyleSheet.create({
   headerTitle: { 
     fontSize: 24, 
     fontWeight: 'bold', 
-    marginVertical: 20 
+    marginTop: 8,
+    marginBottom: 20,
   },
 
   // Busca

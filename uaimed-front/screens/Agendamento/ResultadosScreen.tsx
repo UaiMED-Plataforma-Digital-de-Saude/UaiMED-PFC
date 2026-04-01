@@ -58,7 +58,7 @@ const ResultadosScreen: React.FC<Props> = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF', padding: 16 },
-  title: { fontSize: 20, fontWeight: '700', marginBottom: 12 },
+  title: { fontSize: 20, fontWeight: '700', marginTop: 8, marginBottom: 12 },
   card: { padding: 12, borderBottomWidth: 1, borderColor: '#EEE' },
   name: { fontSize: 16, fontWeight: '700' },
   specialty: { fontSize: 14, color: 'gray' },

@@ -1,11 +1,9 @@
 import app from "./app";
-import dotenv from "dotenv";
 import logger from "./utils/logger";
 import ENV from "./config/env";
 
-dotenv.config();
-
-const PORT = ENV.PORT || Number(process.env.PORT) || 3333;
+// ENV já carrega o .env via config/env.ts (dotenv.config é chamado lá)
+const PORT = ENV.PORT;
 
 app.listen(PORT, () => {
   logger.success(`🚀 Backend UaiMED iniciado em http://localhost:${PORT} (env=${ENV.NODE_ENV})`);

@@ -8,4 +8,8 @@ services:
       POSTGRES_DB: uaimed
     ports:
       - "5432:5432"
-      
+    volumes:
+      # Cria automaticamente o banco uaimed_test ao iniciar o container
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    restart: unless-stopped
+

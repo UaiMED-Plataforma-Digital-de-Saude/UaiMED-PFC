@@ -1,42 +1,44 @@
 import axios, { AxiosInstance } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import CONFIG, { logNetwork, logError, getApiBaseUrl } from '../config/index';
+import CONFIG, { logNetwork, logError } from '../config/index';
 
-// 1. Função para obter URL base - FORÇA ANDROID para React Native
+// 1. Função para obter URL base - detecta plataforma automaticamente
 function getBaseUrl(): string {
-  return 'http://10.0.2.2:3333/api';
-
-
-  // Se estiver em produção/staging, usa a URL específica
-  // if (CONFIG.ENVIRONMENT === 'production') {
-  //   return CONFIG.API.production;
-  // }
-  // if (CONFIG.ENVIRONMENT === 'staging') {
-  //   return CONFIG.API.staging;
-  // }
-  
-  // Para development
-  // Se não tem window, está no React Native (Android ou iOS)
-  if (typeof window === 'undefined') {
-    // FORÇA ANDROID - mais comum e funciona sempre
-    const androidUrl = CONFIG.API.android;
-    console.log(`📱 [getBaseUrl] React Native detectado - FORÇANDO Android: ${androidUrl}`);
-    
-    // Tenta detectar plataforma para log, mas sempre usa Android
-    try {
-      const { Platform } = require('react-native');
-      console.log(`📱 [getBaseUrl] Plataforma real: ${Platform.OS}`);
-    } catch (e) {
-      // Ignora erro
-    }
-    
-    return androidUrl; // http://10.0.2.2:3333/api
+  // Para produção/staging usa a URL específica
+  if (CONFIG.ENVIRONMENT === 'production') {
+    return CONFIG.API.production;
   }
-  
-  // Web/navegador - tem window
-  const webUrl = CONFIG.API.development;
-  console.log(`✅ [getBaseUrl] Web detectado: ${webUrl}`);
-  return webUrl; // http://localhost:3333/api
+  if (CONFIG.ENVIRONMENT === 'staging') {
+    return CONFIG.API.staging;
+  }
+
+  // Detectar React Native (Expo) vs Web
+  let isReactNative = false;
+  let platform = 'web';
+
+  try {
+    // Método 1: Verificar se React Native está disponível
+    const Platform = require('react-native').Platform;
+    isReactNative = true;
+    platform = Platform.OS; // 'android' ou 'ios'
+    console.log(`📱 [getBaseUrl] React Native detectado: ${platform}`);
+  } catch (e) {
+    // Não é React Native, é web
+    isReactNative = false;
+    console.log(`✅ [getBaseUrl] Ambiente web detectado`);
+  }
+
+  // Para development
+  if (isReactNative) {
+    if (platform === 'ios') {
+      return CONFIG.API.ios; // http://localhost:3333/api
+    }
+    // Android Simulator sempre usa 10.0.0.2 (ou 10.0.2.2)
+    return CONFIG.API.android; // http://10.0.2.2:3333/api
+  }
+
+  // Web/navegador
+  return CONFIG.API.development; // http://localhost:3333/api
 }
 
 // 2. Cria a instância do Axios com URL dinâmica
@@ -113,12 +115,11 @@ uaiMedApi.interceptors.response.use(
           console.error(`   Para Android Simulator, deve ser: http://10.0.2.2:3333/api`);
         }
         
-        // Exemplo de tratamento para token expirado ou inválido (código 401)
+        // Tratamento para token expirado ou inválido (código 401)
         if (error.response && error.response.status === 401) {
-            logError('Sessão expirada (401)');
-            // **TODO:** Aqui você deve forçar o logout do usuário
-            // Ex: AsyncStorage.clear(); 
-            // Ex: Redirecionar para tela de Login
+            logError('Sessão expirada (401) — limpando credenciais');
+            // Limpa token e usuário do storage para forçar novo login
+            AsyncStorage.multiRemove([CONFIG.STORAGE_KEYS.token, CONFIG.STORAGE_KEYS.user]).catch(() => {});
         }
         
         logError('Erro em resposta:', errorDetails);

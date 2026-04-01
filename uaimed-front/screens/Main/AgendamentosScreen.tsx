@@ -164,7 +164,7 @@ const AgendamentosScreen: React.FC<AgendamentosScreenProps> = ({ navigation }) =
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAFAFA', paddingTop: 0, marginTop: 12 },
-  headerTitle: { fontSize: 26, fontWeight: '700', padding: 20, paddingTop: 56, backgroundColor: '#FFF', marginBottom: 2 },
+  headerTitle: { fontSize: 26, fontWeight: '700', padding: 20, paddingTop: 56, marginTop: 8, backgroundColor: '#FFF', marginBottom: 2 },
   tabContainer: { flexDirection: 'row', backgroundColor: '#FFF', paddingHorizontal: 0, borderBottomWidth: 1, borderColor: '#F0F0F0' },
   tabButton: { flex: 1, paddingVertical: 16, alignItems: 'center', backgroundColor: '#FFF' },
   tabActive: { borderBottomWidth: 3, borderColor: '#4CAF50' },

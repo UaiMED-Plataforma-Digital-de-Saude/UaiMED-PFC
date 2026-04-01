@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   container: { flexGrow: 1, backgroundColor: '#FAFAFA', paddingHorizontal: 12, paddingTop: 12 },
   headerRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingTop: 44, paddingHorizontal: 6 },
   menuButton: { padding: 8, marginRight: 6 },
-  greetingText: { fontSize: 22, fontWeight: '700', textAlign: 'left', flex: 1, color: '#222' },
+  greetingText: { fontSize: 22, fontWeight: '700', textAlign: 'left', flex: 1, color: '#222', marginTop: 6 },
   searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderRadius: 10, padding: 12, marginVertical: 16, marginHorizontal: 4, elevation: 1, borderWidth: 1, borderColor: '#F5F5F5' },
   searchInput: { flex: 1, fontSize: 14, color: '#333' },
   sectionTitle: { fontSize: 16, fontWeight: '700', marginVertical: 16, marginHorizontal: 4, color: '#222' },

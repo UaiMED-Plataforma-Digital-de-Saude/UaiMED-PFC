@@ -91,8 +91,8 @@ const ContatoProfissionalScreen: React.FC<Props> = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF' },
-  content: { padding: 16 },
-  title: { fontSize: 20, fontWeight: '700', color: '#333', marginBottom: 6 },
+  content: { padding: 16, paddingTop: 32 },
+  title: { fontSize: 20, fontWeight: '700', color: '#333', marginTop: 8, marginBottom: 6 },
   subtitle: { fontSize: 13, color: '#666', marginBottom: 16 },
   field: { marginBottom: 12 },
   label: { fontSize: 13, fontWeight: '600', marginBottom: 6, color: '#333' },

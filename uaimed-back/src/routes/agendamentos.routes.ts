@@ -1,8 +1,8 @@
 import { Router } from "express";
+import authMiddleware from "../middleware/auth";
 import AgendamentosController from "../controllers/agendamentos.controller";
 
 const agendamentosController = new AgendamentosController();
-import authMiddleware from "../middleware/auth";
 
 const router = Router();
 
