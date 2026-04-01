@@ -9,11 +9,12 @@ import {
   Alert, 
   ActivityIndicator, 
   StyleSheet,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   Dimensions,
+  Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import type { StackScreenProps } from '@react-navigation/stack';
 import type { AuthStackParamList } from '../../navigation/types';
 import { useAuth } from '../../hooks/useAuth';
@@ -56,11 +57,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         style={styles.keyboardAvoid}
       >
         <View style={styles.content}>
-          {/* Logo/Header Section - Mais espaçoso */}
+          {/* Logo/Header Section */}
           <View style={styles.logoSection}>
-            <View style={styles.logoBackground}>
-              <Ionicons name="medical" size={60} color="#4CAF50" />
-            </View>
+            <Image
+              source={require('../../assets/logo.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
             <Text style={styles.appTitle}>UaiMED</Text>
             <Text style={styles.appSubtitle}>Saúde Digital</Text>
           </View>
@@ -160,21 +163,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   
-  // Logo Section - Melhorado
+  // Logo Section
   logoSection: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 32,
     borderBottomWidth: 1,
     borderBottomColor: '#EEE',
   },
-  logoBackground: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#F0F7F0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
+  logoImage: {
+    width: 110,
+    height: 110,
+    borderRadius: 22,
+    marginBottom: 16,
   },
   appTitle: {
     fontSize: 36,

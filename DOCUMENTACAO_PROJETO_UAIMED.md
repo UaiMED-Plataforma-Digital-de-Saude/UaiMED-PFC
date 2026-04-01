@@ -1,9 +1,9 @@
 # 📘 Documentação Completa do Projeto UaiMED
 
-**Versão**: 1.2.0  
+**Versão**: 1.3.0  
 **Data**: 1 de Abril de 2026  
 **Classificação**: Documentação Técnica de Engenharia de Software  
-**Status**: Projeto em Desenvolvimento Avançado — Revisão Completa e Bugs Críticos Corrigidos
+**Status**: Projeto em Desenvolvimento Avançado — Fluxo de Agendamento Completo, Bugs Críticos Corrigidos e Identidade Visual Aplicada
 
 ---
 
@@ -21,6 +21,8 @@
 10. [Engenharia de Dados](#10-engenharia-de-dados)
 11. [Aspectos Analíticos](#11-aspectos-analíticos)
 12. [Aspectos Comunicacionais](#12-aspectos-comunicacionais)
+13. [Conclusão](#13-conclusão)
+14. [Changelog](#14-changelog)
 
 ---
 
@@ -121,8 +123,9 @@ Plataforma mobile-first que:
 | RF03.1 | Busca de profissionais | Alta | ✅ Implementado |
 | RF03.2 | Exibição de disponibilidade | Alta | ✅ Implementado |
 | RF03.3 | Criação de agendamento | Alta | ✅ Implementado |
-| RF03.4 | Cancelamento | Alta | ✅ Implementado |
+| RF03.4 | Cancelamento | Alta | ⚠️ Parcial (backend OK, frontend pendente) |
 | RF03.5 | Visualização de agenda | Alta | ✅ Implementado |
+| RF03.6 | Fluxo completo Busca→Confirmação→Pagamento→Avaliação | Alta | ✅ Implementado (v1.3.0) |
 
 #### RF04 - Sistema de Pagamentos
 | ID | Requisito | Prioridade | Status |
@@ -131,15 +134,17 @@ Plataforma mobile-first que:
 | RF04.2 | Pagamento via cartão | Alta | ✅ Implementado |
 | RF04.3 | Aplicação de cupons | Alta | ✅ Implementado |
 | RF04.4 | Cobertura de plano de saúde | Alta | ✅ Implementado |
-| RF04.5 | Comprovantes | Média | ✅ Implementado |
+| RF04.5 | Comprovantes | Média | ⚠️ Parcial (Alert pós-pagamento; tela dedicada pendente) |
+| RF04.6 | Status de pagamento visível no agendamento | Alta | ⚠️ Pendente (KANBAN) |
 
 #### RF05 - Sistema de Avaliações
 | ID | Requisito | Prioridade | Status |
 |----|-----------|------------|--------|
 | RF05.1 | Avaliar profissionais | Alta | ✅ Implementado |
 | RF05.2 | Cálculo de média | Alta | ✅ Implementado |
-| RF05.3 | Histórico de avaliações | Média | ✅ Implementado |
+| RF05.3 | Histórico de avaliações | Média | ⚠️ Parcial (dados simulados) |
 | RF05.4 | Comentários | Média | ✅ Implementado |
+| RF05.5 | Avaliação pós-consulta via agenda | Alta | ⚠️ Pendente (KANBAN) |
 
 #### RF06 - Comunicação
 | ID | Requisito | Prioridade | Status |
@@ -156,6 +161,14 @@ Plataforma mobile-first que:
 | RF07.3 | Relatórios por período | Média | ⚠️ Parcial |
 | RF07.4 | Gráficos e visualizações | Média | ⚠️ Parcial |
 
+#### RF08 - Notificações e Confirmações
+| ID | Requisito | Prioridade | Status |
+|----|-----------|------------|--------|
+| RF08.1 | Notificação local pós-agendamento | Alta | ⚠️ Parcial (infra pronta, push remoto bloqueado Expo Go) |
+| RF08.2 | E-mail de confirmação de horário | Alta | ⚠️ Pendente (KANBAN) |
+| RF08.3 | E-mail de comprovante de pagamento | Alta | ⚠️ Pendente (KANBAN) |
+| RF08.4 | Lembrete 1h antes da consulta | Média | ⚠️ Pendente |
+
 
 ### 3.2 Requisitos Não Funcionais
 
@@ -169,7 +182,7 @@ Plataforma mobile-first que:
 - **RNF02.2**: JWT com expiração (7 dias) ✅
 - **RNF02.3**: Proteção LGPD ⚠️
 - **RNF02.4**: Validação de entrada (Zod) ✅
-- **RNF02.5**: Refresh automático de token ✅
+- **RNF02.5**: Refresh automático de token ⚠️ (interceptor no axios; endpoint refresh pendente)
 
 #### RNF03 - Disponibilidade
 - **RNF03.1**: Uptime 99.5% ⚠️
@@ -617,24 +630,33 @@ Role: medico
 
 **Frontend:**
 - ✅ Aplicativo React Native funcional
-- ✅ Navegação completa
+- ✅ Navegação completa por stack e tabs
 - ✅ Autenticação integrada (JWT + AsyncStorage)
-- ✅ Telas de agendamento
-- ✅ Telas de pagamento (PIX, cartão, cupom, plano de saúde)
-- ✅ Tela de confirmação de agendamento com fluxo para avaliação
-- ✅ Dashboard de clínica
-- ✅ Sistema de avaliações (nota média por profissional)
+- ✅ **Fluxo de agendamento completo**: DetalhesMedico → SelecaoHorario → Confirmacao → Pagamento → Avaliacao → Busca (v1.3.0)
+- ✅ `POST /agendamentos` criado com verificação de conflito de horário (v1.3.0)
+- ✅ Telas de pagamento (PIX, cartão, cupom, plano de saúde) integradas ao fluxo
+- ✅ `ConfirmacaoScreen` redesenhada com card de detalhes e botão "Ir para Pagamento"
+- ✅ `AvaliacaoScreen` navega para início após enviar avaliação (v1.3.0)
+- ✅ **Logo real do projeto** na `LoginScreen` — `icon.png` via `<Image>` (v1.3.0)
+- ✅ `SafeAreaView` migrado para `react-native-safe-area-context` em todas as telas
+- ✅ Dashboard de clínica e painel do médico (`MedicoAgendaScreen`) com KPIs
+- ✅ Sistema de avaliações com 4 dimensões de nota + média calculada
 - ✅ Comunicação frontend-backend (data contracts alinhados)
 - ✅ Recuperação de senha (UI completa + integração API)
-- ✅ Contato com profissional (mapeamento profissionalId corrigido)
-- ✅ Carousel de profissionais em destaque (suporte a `avatar` e `imagem`)
-- ✅ Imports organizados e tipos TypeScript sem erros
+- ✅ Contato com profissional funcionando
+- ✅ Carousel de profissionais em destaque
 
 #### ⚠️ Em Desenvolvimento
 
-- ⚠️ Notificações push
+- ⚠️ Notificações push remotas (requer development build — bloqueado pelo Expo Go SDK 53+)
+- ⚠️ E-mail de confirmação de agendamento e pagamento
+- ⚠️ Tela dedicada de comprovante de pagamento
+- ⚠️ Status de pagamento visível na lista de agendamentos
+- ⚠️ `MedicoDetalhesScreen` com dados reais (atualmente placeholder)
+- ⚠️ `ResultadosScreen` com busca real na API
+- ⚠️ `HistoricoAvaliacoesScreen` com dados reais
+- ⚠️ Cancelamento de agendamento pelo paciente (frontend)
 - ⚠️ Geolocalização avançada
-- ⚠️ Filtros avançados
 - ⚠️ Relatórios exportáveis
 
 #### ❌ Não Implementado (Fase 1)
@@ -648,7 +670,8 @@ Role: medico
 
 #### Cobertura de Testes
 - **Backend**: 6 suítes de testes passando (health, auth/notifications, contatos, medicos/agendamentos, admin, professional)
-- **Frontend**: Testes manuais (fluxo completo verificado)
+- **Novos endpoints v1.3.0**: `POST /agendamentos` — testes a adicionar na próxima sprint (ver KANBAN_MELHORIAS.md)
+- **Frontend**: Testes manuais (fluxo completo verificado — DetalhesMedico até Avaliacao)
 - **Integração**: Testes de API implementados, validados e estáveis
 
 #### Performance
@@ -1041,32 +1064,39 @@ GET /api/admin/analytics/location?granularity=city|state
 ### 13.1 Status Atual
 
 O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
-- ✅ Backend completo e funcional
+- ✅ Backend completo e funcional com novo endpoint `POST /agendamentos`
 - ✅ Frontend mobile implementado e integrado
+- ✅ **Fluxo de agendamento ponta-a-ponta funcionando**: busca → seleção → criação → confirmação → pagamento → avaliação → início
+- ✅ **Identidade visual aplicada**: logo real na `LoginScreen` (`icon.png`)
+- ✅ Bugs críticos corrigidos: `SafeAreaView` deprecado, comentários `//` em JSX, `notaMedia.toFixed()`, `setNotificationHandler` fora de componente
 - ✅ Integração frontend-backend operacional e verificada
 - ✅ Data contracts alinhados (field names, tipos, mapeamentos)
-- ✅ Dashboards básicos funcionando
-- ✅ 8 suítes de testes de backend cobrindo todos os endpoints principais
+- ✅ Dashboards básicos funcionando (clínica e médico)
+- ✅ 6 suítes de testes de backend cobrindo endpoints principais
 - ✅ Banco de dados migrado e populado com dados reais
-- ✅ Documentação completa e atualizada (v1.2)
-- ✅ Revisão completa realizada em Abr/2026 — 4 bugs críticos e 12 melhorias aplicadas (backend, frontend e infraestrutura de testes)
+- ✅ Documentação completa e atualizada (v1.3)
+- ✅ Kanban de melhorias criado (`KANBAN_MELHORIAS.md`) com 34 itens rastreados
 
 ### 13.2 Próximos Passos
 
-1. **Curto Prazo** (1-2 meses):
-   - Melhorar dashboards com gráficos
-   - Implementar filtros avançados
-   - Adicionar notificações push
+1. **Curto Prazo** (Sprint 2 — ~1 semana):
+   - `MedicoDetalhesScreen` com dados reais da API
+   - `ResultadosScreen` consumindo `GET /medicos` com filtros
+   - `AgendamentosScreen` — dados reais + botão "Avaliar" em consultas concluídas
+   - Status de pagamento visível no card de agendamento
 
-2. **Médio Prazo** (3-6 meses):
-   - Painel de categorias
-   - Análise por localização
-   - Relatórios exportáveis
+2. **Médio Prazo** (Sprint 3-4 — ~2 semanas):
+   - E-mail de confirmação de agendamento e pagamento (Nodemailer)
+   - Tela dedicada de comprovante pós-pagamento
+   - Cancelamento de agendamento pelo paciente
+   - Development build (`npx expo run:android`) para push remoto
+   - Rate limiting em endpoints de autenticação
 
-3. **Longo Prazo** (6-12 meses):
-   - Machine Learning para previsões
-   - Integrações com sistemas externos
-   - Expansão de funcionalidades
+3. **Longo Prazo** (Sprint 5 — entrega PFC):
+   - Polimento visual completo
+   - Testes automatizados para novos endpoints
+   - Documentação final e apresentação
+   - Machine Learning para recomendação de profissionais (pós-PFC)
 
 ### 13.3 Métricas de Sucesso
 
@@ -1079,7 +1109,54 @@ O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 
 **Documento gerado em**: 12 de Novembro de 2025  
 **Última atualização**: 1 de Abril de 2026  
-**Versão**: 1.2.0  
+**Versão**: 1.3.0  
 **Autor**: Equipe de Desenvolvimento UaiMED  
-**Classificação**: Documentação Técnica Profissional
+**Classificação**: Documentação Técnica Profissional  
+**Kanban de melhorias**: ver [`KANBAN_MELHORIAS.md`](./KANBAN_MELHORIAS.md)
 
+---
+
+## 14. Changelog
+
+### v1.3.0 — 1 de Abril de 2026
+
+#### 🟢 Implementado
+
+**Backend:**
+- `POST /agendamentos` — novo endpoint para criação de agendamento com validação de profissional e verificação de conflito de horário (arquivo: `agendamentos.controller.ts`, `agendamentos.routes.ts`)
+
+**Frontend:**
+- **Fluxo de agendamento completo conectado** — `DetalhesMedico → SelecaoHorario → Confirmacao → Pagamento → Avaliacao → Busca`
+- `SelecaoHorarioScreen` — chama `POST /agendamentos` ao selecionar horário, passa `agendamentoId` real para `Confirmacao`
+- `ConfirmacaoScreen` — redesenhada com card de detalhes (data/hora, número do agendamento, valor) e botão "Ir para Pagamento"
+- `PagamentoScreen` — recebe `medicoId` dos params; após pagamento oferece "Avaliar Consulta" → navega para `AvaliacaoScreen`
+- `AvaliacaoScreen` — após enviar avaliação, navega para `Busca` (início) em vez de `goBack()` que retornava para `Pagamento`
+- **Logo real na LoginScreen** — substituído ícone genérico `Ionicons "medical"` por `<Image source={require('../../assets/icon.png')} />` com `borderRadius: 22`
+- `SafeAreaView` migrado para `react-native-safe-area-context` em `LoginScreen`, `PagamentoScreen` e `AvaliacaoScreen`
+- `navigation/types.ts` — parâmetros `amount` e `medicoId` propagados por todo o `AgendamentoStack`
+
+**Bugs Corrigidos:**
+- `App.tsx` — `setNotificationHandler` movido para `useEffect`; props inválidas `shouldShowBanner/shouldShowList` removidas; `alert()` trocado por `Alert.alert()`
+- `PerfilScreen.tsx` — comentários `//` dentro de expressões JSX removidos (causavam `ERROR Text strings must be rendered within a <Text>`)
+- `PerfilScreen.tsx` — `notaMedia.toFixed()` protegido com `Number()`; guarda trocada de `notaMedia ?` para `notaMedia !== null`
+- `useAvaliacoes.ts` — `Number(res.data?.notaMedia ?? 0)` garante tipo numérico mesmo se API retornar string
+
+**Documentação:**
+- `KANBAN_MELHORIAS.md` criado — Kanban Ágil com 34 itens rastreados (concluídos, a fazer, backlog, bloqueado)
+
+---
+
+### v1.2.0 — 1 de Abril de 2026
+- Revisão completa do projeto — 4 bugs críticos e 12 melhorias aplicadas (backend, frontend e infraestrutura de testes)
+- Data contracts alinhados entre frontend e backend
+- Integração frontend-backend verificada ponta-a-ponta
+
+### v1.1.0 — Março de 2026
+- Implementação inicial dos dashboards de clínica e médico
+- Sistema de avaliações com média por profissional
+- Comunicação (contatos) entre paciente e profissional
+
+### v1.0.0 — Novembro de 2025
+- Documento inicial criado
+- Arquitetura definida
+- Requisitos levantados

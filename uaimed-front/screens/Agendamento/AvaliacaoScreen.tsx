@@ -5,12 +5,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
   KeyboardAvoidingView,
   TextInput,
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackScreenProps } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { AgendamentoStackParamList } from '../../navigation/types';
@@ -141,7 +141,7 @@ export const AvaliacaoScreen: React.FC<Props> = ({ route, navigation }) => {
       Alert.alert('Sucesso', 'Obrigado por avaliar seu atendimento!', [
         {
           text: 'OK',
-          onPress: () => navigation.goBack(),
+          onPress: () => navigation.navigate('Busca'),
         },
       ]);
     } catch (error: any) {

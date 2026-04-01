@@ -20,7 +20,8 @@ export const useAvaliacoes = (medicoId?: string) => {
     setError(null);
     try {
       const res = await uaiMedApi.get(`/avaliacoes/medico/${id}/media`);
-      const nota: number = res.data?.notaMedia ?? 0;
+      // ✅ Number() garante conversão caso a API retorne string (ex: "4.5")
+      const nota: number = Number(res.data?.notaMedia ?? 0);
       setNotaMedia(nota);
       return nota;
     } catch (err: any) {

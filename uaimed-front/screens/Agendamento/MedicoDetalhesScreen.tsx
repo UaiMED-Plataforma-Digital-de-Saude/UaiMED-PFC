@@ -6,15 +6,25 @@ import { AgendamentoStackParamList } from '../../navigation/types';
 type Props = StackScreenProps<AgendamentoStackParamList, 'DetalhesMedico'>;
 
 const MedicoDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { medicoId } = route.params ?? { medicoId: undefined };
+  const { medicoId, amount } = route.params ?? {};
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Detalhes do Médico</Text>
       <Text style={styles.label}>ID: {medicoId}</Text>
-      <Text style={styles.paragraph}>Dados do médico serão exibidos aqui (nome, especialidade, local de atendimento, horários disponíveis, avaliações).</Text>
+      <Text style={styles.paragraph}>
+        Dados do médico serão exibidos aqui (nome, especialidade, local de atendimento, horários disponíveis, avaliações).
+      </Text>
 
-      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('SelecaoHorario', { medicoId: medicoId ?? '' })}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() =>
+          navigation.navigate('SelecaoHorario', {
+            medicoId: medicoId ?? '',
+            amount,
+          })
+        }
+      >
         <Text style={styles.buttonText}>Escolher Horário</Text>
       </TouchableOpacity>
     </View>

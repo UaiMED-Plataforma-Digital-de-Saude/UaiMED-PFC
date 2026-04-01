@@ -110,7 +110,9 @@ const PerfilScreen: React.FC<PerfilScreenProps> = () => {
                   {loadingAvaliacoes ? (
                     <ActivityIndicator size="small" color="#4B73B2" />
                   ) : (
-                    <Text style={styles.infoValue}>{notaMedia ? `${notaMedia.toFixed(1)} / 5` : 'Sem avaliações'}</Text>
+                    <Text style={styles.infoValue}>
+                      {notaMedia !== null ? `${Number(notaMedia).toFixed(1)} / 5` : 'Sem avaliações'}
+                    </Text>
                   )}
                 </View>
               </View>

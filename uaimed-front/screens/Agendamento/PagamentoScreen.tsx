@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  SafeAreaView,
   StyleSheet,
   TouchableOpacity,
   TextInput,
@@ -10,6 +9,7 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackScreenProps } from '@react-navigation/stack';
 import { AgendamentoStackParamList } from '../../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +19,8 @@ type Props = StackScreenProps<AgendamentoStackParamList, 'Pagamento'>;
 
 const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
   const amount = route.params?.amount ?? 0;
+  const agendamentoId = route.params?.agendamentoId;
+  const medicoId = route.params?.medicoId;
   const { processarPagamento, loading, validarCupom, calcularValorFinal } = usePayments();
   
   const [method, setMethod] = useState<'pix' | 'card' | 'cash'>('pix');
@@ -66,13 +68,31 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
       cvv,
       usingPlan,
       promoCode: promo,
-      agendamentoId: (route.params as any)?.agendamentoId,
+      agendamentoId,
     });
 
     if (resultado) {
-      Alert.alert('Pagamento realizado', `Valor cobrado: R$ ${resultado.amount.toFixed(2)}\nID: ${resultado.id}`, [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      Alert.alert(
+        'Pagamento realizado ✅',
+        `Valor cobrado: R$ ${resultado.amount.toFixed(2)}\nID: ${resultado.id}`,
+        [
+          {
+            text: 'Avaliar Consulta',
+            onPress: () => {
+              if (agendamentoId && medicoId) {
+                navigation.navigate('Avaliacao', { agendamentoId, medicoId });
+              } else {
+                navigation.navigate('Busca');
+              }
+            },
+          },
+          {
+            text: 'Início',
+            style: 'cancel',
+            onPress: () => navigation.navigate('Busca'),
+          },
+        ],
+      );
     } else {
       Alert.alert('Erro', 'Falha no processamento do pagamento.');
     }
@@ -157,7 +177,7 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF' },
   content: { padding: 16 },
-  title: { fontSize: 20, fontWeight: '700', marginTop: 8, marginBottom: 6 },
+  title: { fontSize: 20, fontWeight: '700', marginTop: 20, marginBottom: 6 },
   subtitle: { color: '#666', marginBottom: 12 },
   section: { marginBottom: 14 },
   sectionTitle: { fontWeight: '700', marginBottom: 8 },

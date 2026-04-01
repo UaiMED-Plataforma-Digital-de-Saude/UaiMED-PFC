@@ -25,12 +25,12 @@ export type AgendamentoStackParamList = {
     especialidade?: string;
     query?: string;
   };
-  DetalhesMedico?: { medicoId: string };
-  SelecaoHorario?: { medicoId: string };
-  Confirmacao?: { horario?: string; medicoId?: string; agendamentoId?: string };
+  DetalhesMedico?: { medicoId: string; amount?: number };
+  SelecaoHorario?: { medicoId: string; amount?: number };
+  Confirmacao?: { horario?: string; medicoId?: string; agendamentoId?: string; amount?: number };
   Avaliacao?: { agendamentoId: string; medicoId: string };
   HistoricoAvaliacoes?: undefined;
-  Pagamento?: { amount?: number; agendamentoId?: string };
+  Pagamento?: { amount?: number; agendamentoId?: string; medicoId?: string };
   ContatoProfissional?: { medicoId: string };
 };
 

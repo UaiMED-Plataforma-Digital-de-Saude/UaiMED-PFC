@@ -74,7 +74,7 @@ const MedicoAgendaScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 12, backgroundColor: '#FAFAFA' },
-  title: { fontSize: 22, fontWeight: '700', marginTop: 8, marginBottom: 12 },
+  title: { fontSize: 22, fontWeight: '700', marginTop: 22, marginBottom: 12 },
   kpisRow: { flexDirection: 'row', justifyContent: 'space-between' },
   kpiCard: { backgroundColor: '#FFF', padding: 10, borderRadius: 8, flex: 1, alignItems: 'center', marginHorizontal: 4, borderWidth: 1, borderColor: '#F5F5F5' },
   kpiLabel: { fontSize: 12, color: '#777' },

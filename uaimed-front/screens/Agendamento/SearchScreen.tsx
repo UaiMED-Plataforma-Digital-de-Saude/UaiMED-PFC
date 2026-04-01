@@ -59,7 +59,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation }) => {
         <Ionicons name="search" size={24} color="#666" style={{ marginRight: 10 }} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Busque por médico, clínica ou especialidade"
+          placeholder="Busque por médicos e clínicas"
           value={searchQuery}
           onChangeText={setSearchQuery}
           onSubmitEditing={() => handleSearch(searchQuery)}
