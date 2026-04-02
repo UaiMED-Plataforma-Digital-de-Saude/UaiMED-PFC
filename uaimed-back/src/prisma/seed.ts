@@ -26,8 +26,8 @@ function fakeTelefone(): string {
 }
 
 /** Pega elemento aleatório de um array */
-function pick<T>(arr: T[]): T {
-  return faker.helpers.arrayElement(arr);
+function pick<T>(arr: ReadonlyArray<T>): T {
+  return faker.helpers.arrayElement(arr as T[]);
 }
 
 // ── Constantes ────────────────────────────────────────────────────────────────
@@ -142,7 +142,7 @@ async function main() {
       prisma.usuario.create({
         data: {
           nome:     faker.person.fullName(),
-          email:    faker.internet.email().toLowerCase(),
+          email:    faker.internet.email({ firstName: faker.person.firstName(), lastName: faker.person.lastName() }).toLowerCase(),
           cpf:      fakeCpf(cpfIdx++),
           telefone: fakeTelefone(),
           senha,
@@ -202,7 +202,7 @@ async function main() {
           data: {
             usuarioId:    u.id,
             especialidade,
-            crm:          `${faker.string.numeric(6)}/${estado}`,
+            crm:          `${String(localCpfIdx).padStart(6, "0")}/${estado}`,
             dataFormacao: faker.date.between({ from: "2000-01-01", to: "2018-12-31" }),
             endereco:     faker.location.streetAddress(),
             cidade:       ESTADOS_CIDADES[estado],
@@ -249,7 +249,7 @@ async function main() {
           dataHora:       daysFromNow(diasOffset, pick(HORAS_CONSULTA), 0),
           duracao:        pick(DURACOES),
           status,
-          observacoes:    faker.datatype.boolean(0.6) ? faker.lorem.sentence() : undefined,
+          observacoes:    faker.datatype.boolean({ probability: 0.6 }) ? faker.lorem.sentence() : undefined,
         },
       });
     })
