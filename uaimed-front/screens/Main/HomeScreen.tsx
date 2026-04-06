@@ -4,19 +4,34 @@ import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from '../../navigation/types';
 import { useAuth } from '../../hooks/useAuth';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import FeaturedProfessionalsCarousel from '../../components/FeaturedProfessionalsCarousel';
+import LocationModal, { LocationValue } from '../../components/LocationModal';
 import uaiMedApi from '../../api/uaiMedApi';
 import NextAppointmentCard from '../../components/NextAppointmentCard';
+
+const LOCATION_STORAGE_KEY = '@uaimed:location';
 
 type HomeScreenProps = BottomTabScreenProps<MainTabParamList, 'Home'>;
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const { user, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [locationModalVisible, setLocationModalVisible] = useState(false);
+  const [location, setLocation] = useState<LocationValue>({ uf: '', estado: '', cidade: '' });
 
   const rotation = useRef(new Animated.Value(0)).current;
   const menuAnim = useRef(new Animated.Value(0)).current;
   const itemAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+
+  // Carrega localização persistida
+  useEffect(() => {
+    AsyncStorage.getItem(LOCATION_STORAGE_KEY).then((val) => {
+      if (val) {
+        try { setLocation(JSON.parse(val)); } catch { /* ignore */ }
+      }
+    });
+  }, []);
 
   useEffect(() => {
     Animated.timing(rotation, {
@@ -41,6 +56,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       Animated.parallel(seq).start();
     }
   }, [menuOpen, rotation, menuAnim, itemAnims]);
+
+  const handleLocationConfirm = async (loc: LocationValue) => {
+    setLocation(loc);
+    await AsyncStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(loc));
+  };
+
+  const locationLabel = location.uf
+    ? `${location.cidade ? location.cidade + ', ' : ''}${location.uf}`
+    : 'Brasil';
 
   // Next appointment
   const [nextAppointment, setNextAppointment] = useState<any | null>(null);
@@ -129,7 +153,31 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         </TouchableOpacity>
       )}
 
-      <FeaturedProfessionalsCarousel />
+      <Text style={styles.sectionTitle}>Profissionais em destaque</Text>
+
+      {/* Filtro de região — entre o título e o carrossel */}
+      <TouchableOpacity
+        style={[styles.locationBar, (location.uf || location.cidade) && styles.locationBarActive]}
+        onPress={() => setLocationModalVisible(true)}
+        activeOpacity={0.7}
+      >
+        <Ionicons
+          name="location-outline"
+          size={18}
+          color={(location.uf || location.cidade) ? '#2E7D32' : '#888'}
+          style={{ marginRight: 8 }}
+        />
+        <Text style={[styles.locationText, (location.uf || location.cidade) && styles.locationTextActive]}>
+          {location.uf ? `${location.cidade ? location.cidade + ', ' : ''}${location.uf}` : 'Qualquer localização'}
+        </Text>
+        <Ionicons
+          name="chevron-down-outline"
+          size={16}
+          color={(location.uf || location.cidade) ? '#2E7D32' : '#888'}
+        />
+      </TouchableOpacity>
+
+      <FeaturedProfessionalsCarousel estado={location.uf || undefined} cidade={location.cidade || undefined} />
 
       <View style={styles.searchContainer}>
         <Ionicons name="search" size={20} color="gray" style={{ marginRight: 10 }} />
@@ -164,24 +212,52 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
+      {/* Modal de Localização */}
+      <LocationModal
+        visible={locationModalVisible}
+        onClose={() => setLocationModalVisible(false)}
+        onConfirm={handleLocationConfirm}
+        initialUF={location.uf}
+        initialCidade={location.cidade}
+      />
+
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: '#FAFAFA', paddingHorizontal: 12, paddingTop: 12 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingTop: 44, paddingHorizontal: 6 },
+  container: { flexGrow: 1, backgroundColor: '#FAFAFA', paddingHorizontal: 12, paddingTop: 0 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingTop: 28, paddingHorizontal: 6 },
   menuButton: { padding: 8, marginRight: 6 },
-  greetingText: { fontSize: 22, fontWeight: '700', textAlign: 'left', flex: 1, color: '#222', marginTop: 6 },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderRadius: 10, padding: 12, marginVertical: 16, marginHorizontal: 4, elevation: 1, borderWidth: 1, borderColor: '#F5F5F5' },
+  greetingText: { fontSize: 20, fontWeight: '700', textAlign: 'left', flex: 1, color: '#222', marginTop: 6 },
+  // Filtro de localização — igual ao SearchScreen de Agendamento
+  locationBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F7F7F7',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    marginHorizontal: 4,
+  },
+  locationBarActive: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#A5D6A7',
+  },
+  locationText: { flex: 1, fontSize: 14, color: '#888', fontWeight: '500' },
+  locationTextActive: { color: '#2E7D32', fontWeight: '600' },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderRadius: 10, padding: 12, marginVertical: 8, marginHorizontal: 4, elevation: 1, borderWidth: 1, borderColor: '#F5F5F5' },
   searchInput: { flex: 1, fontSize: 14, color: '#333' },
-  sectionTitle: { fontSize: 16, fontWeight: '700', marginVertical: 16, marginHorizontal: 4, color: '#222' },
+  sectionTitle: { fontSize: 16, fontWeight: '700', marginTop: 8, marginBottom: 6, marginHorizontal: 4, color: '#222' },
   card: { backgroundColor: '#FFF', borderRadius: 10, padding: 15, borderWidth: 1, borderColor: '#F5F5F5' },
   cardTitle: { fontSize: 16, fontWeight: '600' },
   cardSubtitle: { fontSize: 14, color: '#666', marginVertical: 5 },
   detailButton: { marginTop: 10, alignSelf: 'flex-start' },
   detailButtonText: { color: '#4B73B2', fontWeight: '600' },
-  shortcutsContainer: { flexDirection: 'row', justifyContent: 'space-around', marginVertical: 12, marginHorizontal: 4 },
+  shortcutsContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 6, marginBottom: 16, marginHorizontal: 4 },
   shortcutItem: { alignItems: 'center' },
   shortcutText: { fontSize: 12, marginTop: 6, fontWeight: '500', color: '#555' },
   menuOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.25)', zIndex: 50 },

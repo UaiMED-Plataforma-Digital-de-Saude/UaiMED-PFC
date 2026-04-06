@@ -1,7 +1,7 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.4.0  
-**Data**: 1 de Abril de 2026  
+**Versão**: 1.6.0  
+**Data**: 6 de Abril de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
 
@@ -31,7 +31,7 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
 
 ---
 
-## 🟢 CONCLUÍDO — Sprint Atual (01/04/2026)
+## 🟢 CONCLUÍDO — Sprint Atual (01/04/2026 → 06/04/2026)
 
 > Itens finalizados nesta sessão de desenvolvimento.
 
@@ -213,6 +213,22 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
   - [ ] `GET /medicos?especialidade=xxx&nome=yyy` com paginação
   - [ ] Card do médico exibe nome, especialidade, avaliação média e valor da consulta
   - [ ] Navegar para `DetalhesMedico` passando `medicoId` e `amount`
+
+---
+
+### ✅ [FEATURE] Filtro de Localização Regional (Estado + Município) na busca
+- **Área**: Frontend + Backend
+- **Prioridade**: 🟠 Alto
+- **Esforço**: 3
+- **Descrição**: O usuário não conseguia filtrar profissionais por localização geográfica.
+- **Resolução**:
+  - **Backend**: `MedicosController.listar()` e `recomendados()` agora filtram por `?estado=MG&cidade=Uberlândia` (case-insensitive, `contains`)
+  - **Componente**: Criado `LocationModal.tsx` reutilizável — bottom sheet com lista dos 27 estados brasileiros + busca + campo de município
+  - **SearchScreen**: Barra de localização abaixo do campo de busca; ao confirmar, `estado` e `cidade` são incluídos nos params de `Resultados`
+  - **ResultadosScreen**: Lê `cidade` e `estado` dos params, passa para a API e exibe badge de localização ativa + estado vazio amigável
+  - **HomeScreen**: Badge `📍 Cidade, UF` no topo do header (persistido via AsyncStorage); ao confirmar, filtra o `FeaturedProfessionalsCarousel`
+  - **FeaturedProfessionalsCarousel**: Agora aceita props opcionais `estado` e `cidade` que são passadas para `GET /medicos/recomendados`
+  - **types.ts**: `cidade?: string` e `estado?: string` adicionados a `AgendamentoStackParamList.Resultados`
 
 ---
 
@@ -443,11 +459,11 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
 
 | Coluna | Quantidade |
 |---|---|
-| 🟢 Concluído (esta sessão) | 9 itens |
+| 🟢 Concluído (esta sessão) | 10 itens |
 | 🔵 A Fazer (próxima sprint) | 11 itens |
 | 🗃️ Backlog | 12 itens |
 | ⏸️ Bloqueado | 2 itens |
-| **Total** | **34 itens** |
+| **Total** | **35 itens** |
 
 ---
 
@@ -476,6 +492,8 @@ Sprint 5 (entrega PFC)
 |---|---|---|
 | 01/04/2026 | 1.3.0 | Documento criado — sprint de correções e fluxo de agendamento completo |
 | 01/04/2026 | 1.4.0 | Logo real na LoginScreen; cards de confirmação de horário, pagamento e status adicionados |
+| 06/04/2026 | 1.5.0 | Feature de Filtro de Localização Regional adicionada ao "A Fazer" com critérios de aceite detalhados |
+| 06/04/2026 | 1.6.0 | Feature implementada e movida para Concluído — LocationModal, SearchScreen, ResultadosScreen, HomeScreen, FeaturedProfessionalsCarousel e backend atualizados |
 
 ---
 

@@ -24,6 +24,8 @@ export type AgendamentoStackParamList = {
   Resultados?: {
     especialidade?: string;
     query?: string;
+    cidade?: string;
+    estado?: string;
   };
   DetalhesMedico?: { medicoId: string; amount?: number };
   SelecaoHorario?: { medicoId: string; amount?: number };

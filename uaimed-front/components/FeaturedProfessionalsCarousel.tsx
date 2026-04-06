@@ -70,17 +70,28 @@ const ProfessionalCard: React.FC<{ item: any; onContact: (id: string) => void }>
 
 
 
-const FeaturedProfessionalsCarousel: React.FC = () => {
+interface FeaturedProps {
+  /** Filtrar carrossel por estado (UF, ex: 'MG') */
+  estado?: string;
+  /** Filtrar carrossel por cidade */
+  cidade?: string;
+}
+
+const FeaturedProfessionalsCarousel: React.FC<FeaturedProps> = ({ estado, cidade }) => {
   const navigation = useNavigation<any>();
   const [profissionais, setProfissionais] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
-    const fetch = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
-        const res = await uaiMedApi.get('/medicos/recomendados');
+        const params: Record<string, string> = {};
+        if (estado) params.estado = estado;
+        if (cidade) params.cidade = cidade;
+
+        const res = await uaiMedApi.get('/medicos/recomendados', { params });
         if (mounted) setProfissionais(res.data);
       } catch (e) {
         setProfissionais([]);
@@ -88,9 +99,9 @@ const FeaturedProfessionalsCarousel: React.FC = () => {
         if (mounted) setLoading(false);
       }
     };
-    fetch();
+    fetchData();
     return () => { mounted = false; };
-  }, []);
+  }, [estado, cidade]);
 
   const handleContact = (medicoId: string) => {
     navigation.navigate('Agendamentos', { screen: 'ContatoProfissional', params: { medicoId } });
@@ -102,7 +113,6 @@ const FeaturedProfessionalsCarousel: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Profissionais em destaque</Text>
       {loading ? <ActivityIndicator /> : (
         <FlatList
           data={profissionais}
@@ -118,7 +128,7 @@ const FeaturedProfessionalsCarousel: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { marginVertical: 12 },
+  container: { marginTop: 4, marginBottom: 8 },
   title: { fontSize: 16, fontWeight: '700', marginBottom: 8, marginLeft: 4 },
   list: { paddingLeft: 6, paddingRight: 12 },
   card: {

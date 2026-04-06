@@ -5,7 +5,18 @@ import logger from "../utils/logger";
 class MedicosController {
   async recomendados(req: Request, res: Response) {
     try {
+      const { cidade, estado } = req.query as { cidade?: string; estado?: string };
+      const where: any = {};
+
+      if (estado) {
+        where.estado = { contains: estado, mode: 'insensitive' };
+      }
+      if (cidade) {
+        where.cidade = { contains: cidade, mode: 'insensitive' };
+      }
+
       const profs = await prisma.profissional.findMany({
+        where,
         include: {
           usuario: true,
           _count: { select: { agendamentos: true } },
@@ -34,13 +45,23 @@ class MedicosController {
 
   async listar(req: Request, res: Response) {
     try {
-      const { query, especialidade } = req.query as { query?: string; especialidade?: string };
+      const { query, especialidade, cidade, estado } = req.query as {
+        query?: string;
+        especialidade?: string;
+        cidade?: string;
+        estado?: string;
+      };
       const where: any = {};
 
       if (especialidade) {
         where.especialidade = { contains: especialidade, mode: 'insensitive' };
       }
-
+      if (estado) {
+        where.estado = { contains: estado, mode: 'insensitive' };
+      }
+      if (cidade) {
+        where.cidade = { contains: cidade, mode: 'insensitive' };
+      }
       // Filtra pelo nome do usuário se ?query= for fornecido
       if (query) {
         where.usuario = { nome: { contains: query, mode: 'insensitive' } };
