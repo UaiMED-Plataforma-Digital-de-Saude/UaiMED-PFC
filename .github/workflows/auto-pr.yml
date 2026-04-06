@@ -1,0 +1,89 @@
+name: Auto PR — develop → main
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  auto-create-pr:
+    name: Criar PR automática com log de commits
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gerar log de commits desde o último merge na main
+        id: log
+        run: |
+          LOG=$(git log origin/main..HEAD --pretty=format:"- %s" --no-merges)
+          if [ -z "$LOG" ]; then
+            LOG="_Nenhum commit novo desde o último merge._"
+          fi
+          echo "log<<EOF" >> $GITHUB_OUTPUT
+          echo "$LOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Extrair referências de issues nos commits
+        id: issues
+        run: |
+          REFS=$(git log origin/main..HEAD --pretty=format:"%s %b" --no-merges \
+            | grep -oP '#\d+' | sort -u | sed 's/#/Closes #/g')
+          echo "refs<<EOF" >> $GITHUB_OUTPUT
+          echo "$REFS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Criar ou atualizar PR automática
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const log  = `${{ steps.log.outputs.log }}`;
+            const refs = `${{ steps.issues.outputs.refs }}`.trim();
+            const date = new Date().toLocaleDateString('pt-BR');
+
+            const body = [
+              `## 📦 Entrega — ${date}`,
+              '',
+              '### Commits incluídos',
+              log,
+              '',
+              ...(refs ? ['### Issues relacionadas', refs, ''] : []),
+              '---',
+              '_PR gerada automaticamente a partir do push em `develop`._',
+            ].join('\n');
+
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              head: `${context.repo.owner}:develop`,
+              base: 'main',
+            });
+
+            if (prs.length > 0) {
+              const pr = prs[0];
+              await github.rest.pulls.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+                body,
+              });
+              console.log(`✅ PR #${pr.number} atualizada: ${pr.html_url}`);
+            } else {
+              const { data: pr } = await github.rest.pulls.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `🚀 Entrega — ${date}`,
+                head: 'develop',
+                base: 'main',
+                body,
+              });
+              console.log(`✅ PR criada: ${pr.html_url}`);
+            }
+
