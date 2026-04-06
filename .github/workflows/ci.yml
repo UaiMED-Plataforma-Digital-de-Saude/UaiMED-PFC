@@ -1,30 +1,18 @@
-name: CI
+name: CI — Backend Tests & TypeScript Check
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, develop]
   pull_request:
-    branches: [main, master]
+    branches: [main, develop]
 
 jobs:
-  test:
+  # ─────────────────────────────────────────
+  # 1. Verificação de tipos TypeScript
+  # ─────────────────────────────────────────
+  typecheck:
+    name: TypeScript Check
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: docker
-          POSTGRES_PASSWORD: docker
-          POSTGRES_DB: uaimed
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U docker -d uaimed"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    env:
-      DATABASE_URL: postgresql://docker:docker@localhost:5432/uaimed
     defaults:
       run:
         working-directory: uaimed-back
@@ -32,15 +20,78 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Use Node.js 22
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
-          cache-dependency-path: "uaimed-back/package-lock.json"
+          cache: 'npm'
+          cache-dependency-path: uaimed-back/package-lock.json
 
-      - name: Install dependencies
+      - name: Instalar dependências
         run: npm ci
 
-      - name: Run tests (CI script)
-        run: npm run test:ci
+      - name: Gerar Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: postgresql://docker:docker@localhost:5432/uaimed_test
+
+      - name: Checar tipos (tsc --noEmit)
+        run: npx tsc --noEmit
+
+  # ─────────────────────────────────────────
+  # 2. Testes com PostgreSQL
+  # ─────────────────────────────────────────
+  backend-tests:
+    name: Backend Tests (Vitest)
+    runs-on: ubuntu-latest
+    needs: typecheck
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: docker
+          POSTGRES_PASSWORD: docker
+          POSTGRES_DB: uaimed_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://docker:docker@localhost:5432/uaimed_test
+      JWT_SECRET: uaimed-jwt-secret-test-only
+      JWT_EXPIRE_IN: 1d
+      PORT: 3334
+      NODE_ENV: test
+      BCRYPT_ROUNDS: 4
+      FRONTEND_URL: http://localhost:19000
+
+    defaults:
+      run:
+        working-directory: uaimed-back
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: uaimed-back/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Gerar Prisma Client
+        run: npx prisma generate
+
+      - name: Aplicar migrações no banco de teste
+        run: npx prisma migrate deploy
+
+      - name: Rodar testes
+        run: npm run test

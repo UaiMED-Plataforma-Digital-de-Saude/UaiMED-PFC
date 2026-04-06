@@ -1,0 +1,47 @@
+name: Branch Name Check
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, reopened, synchronize]
+
+jobs:
+  validate-branch:
+    name: Validar Nome da Branch
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checar padrão do nome da branch
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          echo "🔍 Branch recebida: $BRANCH"
+
+          # Padrões permitidos:
+          # feat/descricao
+          # fix/descricao
+          # hotfix/descricao
+          # chore/descricao
+          # docs/descricao
+          # refactor/descricao
+          # test/descricao
+
+          PATTERN="^(feat|fix|hotfix|chore|docs|refactor|test)\/[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+
+          if [[ "$BRANCH" =~ $PATTERN ]]; then
+            echo "✅ Nome da branch válido: $BRANCH"
+          else
+            echo ""
+            echo "❌ Nome da branch inválido: '$BRANCH'"
+            echo ""
+            echo "📋 Padrão esperado: <tipo>/<descricao>"
+            echo ""
+            echo "   Exemplos válidos:"
+            echo "   ✅ feat/home-filtro-localizacao"
+            echo "   ✅ fix/corrige-login-401"
+            echo "   ✅ chore/atualiza-dependencias"
+            echo "   ✅ docs/readme-setup"
+            echo ""
+            echo "   Tipos permitidos: feat | fix | hotfix | chore | docs | refactor | test"
+            echo ""
+            exit 1
+          fi
