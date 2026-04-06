@@ -1,9 +1,9 @@
 # 📘 Documentação Completa do Projeto UaiMED
 
-**Versão**: 1.3.0  
-**Data**: 1 de Abril de 2026  
+**Versão**: 1.4.0  
+**Data**: 6 de Abril de 2026  
 **Classificação**: Documentação Técnica de Engenharia de Software  
-**Status**: Projeto em Desenvolvimento Avançado — Fluxo de Agendamento Completo, Bugs Críticos Corrigidos e Identidade Visual Aplicada
+**Status**: Projeto em Desenvolvimento Avançado — Pipeline CI/CD, GitHub Actions e UX da HomeScreen otimizados
 
 ---
 
@@ -1108,8 +1108,8 @@ O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 ---
 
 **Documento gerado em**: 12 de Novembro de 2025  
-**Última atualização**: 1 de Abril de 2026  
-**Versão**: 1.3.0  
+**Última atualização**: 6 de Abril de 2026  
+**Versão**: 1.4.0  
 **Autor**: Equipe de Desenvolvimento UaiMED  
 **Classificação**: Documentação Técnica Profissional  
 **Kanban de melhorias**: ver [`KANBAN_MELHORIAS.md`](./KANBAN_MELHORIAS.md)
@@ -1117,6 +1117,28 @@ O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 ---
 
 ## 14. Changelog
+
+### v1.4.0 — 6 de Abril de 2026
+
+#### 🟢 Implementado
+
+**CI/CD — GitHub Actions:**
+- `ci.yml` — Pipeline de integração contínua com dois jobs: `typecheck` (TypeScript sem erros) e `backend-tests` (Vitest + PostgreSQL isolado)
+- `branch-check.yml` — Valida padrão de nome de branch (`feat/descricao`, `fix/descricao`, etc.) em toda PR aberta
+- `auto-link-pr.yml` — Verifica se PR menciona issue; comenta lembrete automático caso não mencione
+- `auto-pr.yml` — Ao dar push na branch `develop`, cria/atualiza PR automática para `main` com log de commits e referências de issues extraídas automaticamente
+- `.github/PULL_REQUEST_TEMPLATE.md` — Template padrão de PR com seções: Descrição, Issue relacionada (`Fixes #N`), Tipo de mudança, Checklist, DeskCheck e Notas para revisor
+
+**Frontend — HomeScreen:**
+- Filtro de localização reposicionado: saiu do cabeçalho e foi posicionado entre o título "Profissionais em destaque" e o carrossel
+- Estilo do filtro padronizado com o `locationBar` do `SearchScreen` de agendamento (mesmo visual, mesma UX)
+- Título "Profissionais em destaque" movido do componente `FeaturedProfessionalsCarousel` para `HomeScreen` para permitir inserção do filtro entre título e carrossel
+- Espaçamentos compactados: `paddingTop`, `marginVertical` de seções e carrossel reduzidos para layout mais próximo e fluido
+
+**Backend — Correção TypeScript:**
+- `middleware/validate.ts` — tipo alterado de `AnyZodObject` para `ZodTypeAny`, permitindo que schemas com `.refine()` (`ZodEffects`) sejam passados sem erro de compilação
+
+---
 
 ### v1.3.0 — 1 de Abril de 2026
 
