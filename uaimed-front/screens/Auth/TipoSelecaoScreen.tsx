@@ -4,13 +4,14 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   ScrollView,
-  Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackScreenProps } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthStackParamList } from '../../navigation/types';
+import AppModal from '../../components/AppModal';
+import { useModal } from '../../hooks/useModal';
 
 /**
  * Tela de Seleção de Tipo de Usuário
@@ -72,14 +73,13 @@ const TIPOS_USUARIO: TipoUsuario[] = [
 
 export const TipoSelecaoScreen: React.FC<Props> = ({ navigation }) => {
   const [tipoSelecionado, setTipoSelecionado] = useState<string | null>(null);
+  const { modal, showModal, hideModal } = useModal();
 
   const handleProxima = () => {
     if (!tipoSelecionado) {
-      Alert.alert('Atenção', 'Por favor, selecione um tipo de usuário para continuar!');
+      showModal('Seleção obrigatória', 'Por favor, selecione um tipo de usuário para continuar.', { type: 'warning' });
       return;
     }
-
-    // Navega para Cadastro passando o tipo selecionado
     navigation.navigate('Cadastro', {
       tipoUsuario: tipoSelecionado as 'paciente' | 'medico' | 'clinica',
     });
@@ -197,6 +197,7 @@ export const TipoSelecaoScreen: React.FC<Props> = ({ navigation }) => {
           <Ionicons name="arrow-forward" size={20} color="#FFF" />
         </TouchableOpacity>
       </View>
+      <AppModal {...modal} onClose={hideModal} />
     </SafeAreaView>
   );
 };

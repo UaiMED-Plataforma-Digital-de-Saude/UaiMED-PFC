@@ -1,13 +1,10 @@
-// src/screens/Auth/LoginScreen.tsx (Implementação do Login)
-
 import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   TextInput, 
   TouchableOpacity, 
-  Alert, 
-  ActivityIndicator, 
+  ActivityIndicator,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
@@ -19,6 +16,8 @@ import type { StackScreenProps } from '@react-navigation/stack';
 import type { AuthStackParamList } from '../../navigation/types';
 import { useAuth } from '../../hooks/useAuth';
 import { Ionicons } from '@expo/vector-icons';
+import AppModal from '../../components/AppModal';
+import { useModal } from '../../hooks/useModal';
 
 // Tipagem das Props
 type LoginScreenProps = StackScreenProps<AuthStackParamList, 'Login'>;
@@ -30,24 +29,19 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const { modal, showModal, hideModal } = useModal();
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Erro', 'Preencha e-mail e senha.');
+      showModal('Campos obrigatórios', 'Preencha e-mail e senha.', { type: 'warning' });
       return;
     }
-
-    // Valida formato de email básico
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      Alert.alert('Erro', 'E-mail inválido.');
+      showModal('E-mail inválido', 'Verifique o e-mail informado.', { type: 'error' });
       return;
     }
-
-    // Chama a função do Context que faz a requisição à API
     await signIn(email, password);
-    // Após o signIn, o AuthContext irá atualizar o 'signed' para true,
-    // e o AppNavigator fará o switch para a tela 'Main' automaticamente.
   };
 
   return (
@@ -143,6 +137,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           </View>
         </View>
       </KeyboardAvoidingView>
+      <AppModal {...modal} onClose={hideModal} />
     </SafeAreaView>
   );
 };

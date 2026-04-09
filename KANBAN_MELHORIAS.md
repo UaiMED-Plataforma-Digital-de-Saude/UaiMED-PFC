@@ -1,7 +1,7 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.6.0  
-**Data**: 6 de Abril de 2026  
+**Versão**: 1.7.0  
+**Data**: 9 de Abril de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
 
@@ -31,9 +31,32 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
 
 ---
 
-## 🟢 CONCLUÍDO — Sprint Atual (01/04/2026 → 06/04/2026)
+## 🟢 CONCLUÍDO — Sprint Atual (01/04/2026 → 09/04/2026)
 
 > Itens finalizados nesta sessão de desenvolvimento.
+
+---
+
+### ✅ [IMPROVEMENT] `SelecaoHorarioScreen` — Calendário mensal com seleção de data e grade de horários
+- **Área**: Frontend + Backend
+- **Prioridade**: 🟠 Alto
+- **Esforço**: 3
+- **Descrição**: Tela de seleção de horários exibia apenas uma `FlatList` plana com até 10 slots misturados de vários dias, sem contexto de data. Usuário não conseguia visualizar a disponibilidade por dia.
+- **Resolução**:
+  - **Frontend**: `SelecaoHorarioScreen` reescrita com calendário mensal customizado (sem dependência externa):
+    - Navegação de mês com botões `‹` `›`
+    - Grid de 7 colunas (Dom → Sáb) com dias do mês
+    - Datas passadas e além de 30 dias exibidas com opacidade reduzida (não selecionáveis)
+    - Hoje destacado com borda verde (`#4CAF50`)
+    - Dia selecionado preenchido em verde
+    - Legenda: Selecionado / Hoje / Indisponível
+    - Ao tocar em uma data, busca os horários daquele dia via API e exibe em grade flexível de botões (`08:00` → `16:30`, intervalos de 30 min)
+    - Estado vazio com ícone e instrução amigável
+    - Card de prompt inicial orientando o usuário antes de qualquer seleção
+  - **Backend**: `AgendamentosController.sugerirHorarios()` atualizado para aceitar parâmetro opcional `?data=YYYY-MM-DD`:
+    - Quando `data` é fornecido: retorna **todos os slots livres do dia** (sem limite de 10)
+    - Data parseada em **tempo local** (`new Date(year, month-1, day, ...)`) para evitar bug de fuso UTC
+    - Sem `data`: comportamento original preservado (próximos 7 dias, até 10 slots)
 
 ---
 
@@ -459,11 +482,11 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
 
 | Coluna | Quantidade |
 |---|---|
-| 🟢 Concluído (esta sessão) | 10 itens |
+| 🟢 Concluído (esta sessão) | 11 itens |
 | 🔵 A Fazer (próxima sprint) | 11 itens |
 | 🗃️ Backlog | 12 itens |
 | ⏸️ Bloqueado | 2 itens |
-| **Total** | **35 itens** |
+| **Total** | **36 itens** |
 
 ---
 
@@ -494,6 +517,7 @@ Sprint 5 (entrega PFC)
 | 01/04/2026 | 1.4.0 | Logo real na LoginScreen; cards de confirmação de horário, pagamento e status adicionados |
 | 06/04/2026 | 1.5.0 | Feature de Filtro de Localização Regional adicionada ao "A Fazer" com critérios de aceite detalhados |
 | 06/04/2026 | 1.6.0 | Feature implementada e movida para Concluído — LocationModal, SearchScreen, ResultadosScreen, HomeScreen, FeaturedProfessionalsCarousel e backend atualizados |
+| 09/04/2026 | 1.7.0 | SelecaoHorarioScreen reescrita com calendário mensal + grade de horários; backend suporta filtro por `?data=YYYY-MM-DD` |
 
 ---
 

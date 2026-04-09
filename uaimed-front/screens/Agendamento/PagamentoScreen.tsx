@@ -5,15 +5,18 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   ScrollView,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackScreenProps } from '@react-navigation/stack';
 import { AgendamentoStackParamList } from '../../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
 import { usePayments } from '../../hooks/usePayments';
+import AppModal from '../../components/AppModal';
+import { useModal } from '../../hooks/useModal';
 
 type Props = StackScreenProps<AgendamentoStackParamList, 'Pagamento'>;
 
@@ -31,34 +34,50 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
   const [usingPlan, setUsingPlan] = useState(false);
   const [promo, setPromo] = useState('');
   const [promoDiscount, setPromoDiscount] = useState(0);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const { modal, showModal, hideModal } = useModal();
 
   const baseAmount = amount || 100;
   const finalAmount = calcularValorFinal(baseAmount, usingPlan, promoDiscount);
 
   const handleValidarCupom = async () => {
     if (!promo.trim()) {
-      Alert.alert('Cupom vazio', 'Insira um código promocional.');
+      showModal('Cupom vazio', 'Insira um código promocional.', { type: 'warning' });
       return;
     }
-
     const desconto = await validarCupom(promo);
     if (desconto > 0) {
       setPromoDiscount(desconto);
-      Alert.alert('Cupom válido', `Desconto de ${desconto}% aplicado!`);
+      showModal('Cupom válido!', `Desconto de ${desconto}% aplicado com sucesso.`, { type: 'success' });
     } else {
       setPromoDiscount(0);
-      Alert.alert('Cupom inválido', 'Este código não é válido.');
+      showModal('Cupom inválido', 'Este código promocional não é válido ou expirou.', { type: 'error' });
     }
   };
 
-  const handlePay = async () => {
+  const handlePay = () => {
     if (method === 'card') {
       if (!cardNumber || !cardName || !expiry || !cvv) {
-        Alert.alert('Dados incompletos', 'Preencha todos os dados do cartão.');
+        showModal('Dados incompletos', 'Preencha todos os dados do cartão antes de continuar.', { type: 'warning' });
         return;
       }
     }
+    setShowConfirmModal(true);
+  };
 
+  const methodLabel: Record<string, string> = {
+    pix: 'Pix',
+    card: 'Cartão de crédito/débito',
+    cash: 'Dinheiro',
+  };
+
+  const methodIcon: Record<string, string> = {
+    pix: 'scan',
+    card: 'card',
+    cash: 'cash',
+  };
+
+  const processarPagamentoConfirmado = async () => {
     const resultado = await processarPagamento({
       method,
       amount: finalAmount,
@@ -72,29 +91,28 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
     });
 
     if (resultado) {
-      Alert.alert(
-        'Pagamento realizado ✅',
+      showModal(
+        'Pagamento realizado!',
         `Valor cobrado: R$ ${resultado.amount.toFixed(2)}\nID: ${resultado.id}`,
-        [
-          {
-            text: 'Avaliar Consulta',
-            onPress: () => {
-              if (agendamentoId && medicoId) {
-                navigation.navigate('Avaliacao', { agendamentoId, medicoId });
-              } else {
-                navigation.navigate('Busca');
-              }
+        {
+          type: 'success',
+          buttons: [
+            {
+              text: 'Avaliar Consulta',
+              onPress: () => {
+                if (agendamentoId && medicoId) {
+                  navigation.navigate('Avaliacao', { agendamentoId, medicoId });
+                } else {
+                  navigation.navigate('Busca');
+                }
+              },
             },
-          },
-          {
-            text: 'Início',
-            style: 'cancel',
-            onPress: () => navigation.navigate('Busca'),
-          },
-        ],
+            { text: 'Início', style: 'cancel', onPress: () => navigation.navigate('Busca') },
+          ],
+        },
       );
     } else {
-      Alert.alert('Erro', 'Falha no processamento do pagamento.');
+      showModal('Falha no pagamento', 'Não foi possível processar o pagamento. Tente novamente.', { type: 'error' });
     }
   };
 
@@ -170,6 +188,93 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
         </TouchableOpacity>
 
       </ScrollView>
+
+      {/* ── Modal de Confirmação de Pagamento ── */}
+      <Modal
+        visible={showConfirmModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowConfirmModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowConfirmModal(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            {/* Ícone do método */}
+            <View style={styles.modalIconWrapper}>
+              <Ionicons name={methodIcon[method] as any} size={36} color="#4CAF50" />
+            </View>
+
+            <Text style={styles.modalTitle}>Confirmar Pagamento</Text>
+
+            {/* Método */}
+            <View style={styles.modalInfoRow}>
+              <Ionicons name="card-outline" size={18} color="#4CAF50" />
+              <Text style={styles.modalInfoLabel}>Método</Text>
+              <Text style={styles.modalInfoValue}>{methodLabel[method]}</Text>
+            </View>
+
+            {/* Valor base */}
+            <View style={styles.modalInfoRow}>
+              <Ionicons name="cash-outline" size={18} color="#4CAF50" />
+              <Text style={styles.modalInfoLabel}>Valor</Text>
+              <Text style={styles.modalInfoValue}>R$ {baseAmount.toFixed(2)}</Text>
+            </View>
+
+            {/* Desconto se houver */}
+            {finalAmount < baseAmount && (
+              <View style={styles.modalInfoRow}>
+                <Ionicons name="pricetag-outline" size={18} color="#4CAF50" />
+                <Text style={styles.modalInfoLabel}>Desconto</Text>
+                <Text style={[styles.modalInfoValue, { color: '#2E7D32' }]}>
+                  - R$ {(baseAmount - finalAmount).toFixed(2)}
+                </Text>
+              </View>
+            )}
+
+            {/* Total */}
+            <View style={[styles.modalInfoRow, styles.modalInfoRowTotal]}>
+              <Ionicons name="checkmark-circle-outline" size={18} color="#FFF" />
+              <Text style={[styles.modalInfoLabel, { color: '#FFF' }]}>Total</Text>
+              <Text style={[styles.modalInfoValue, styles.modalTotalValue]}>
+                R$ {finalAmount.toFixed(2)}
+              </Text>
+            </View>
+
+            <Text style={styles.modalHint}>
+              Deseja confirmar este pagamento?
+            </Text>
+
+            {/* Botões */}
+            <View style={styles.modalBtns}>
+              <TouchableOpacity
+                style={styles.modalBtnCancel}
+                onPress={() => setShowConfirmModal(false)}
+                activeOpacity={0.75}
+              >
+                <Text style={styles.modalBtnCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtnConfirm, loading && { opacity: 0.7 }]}
+                onPress={() => {
+                  setShowConfirmModal(false);
+                  processarPagamentoConfirmado();
+                }}
+                disabled={loading}
+                activeOpacity={0.8}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <>
+                    <Ionicons name="lock-closed-outline" size={16} color="#FFF" />
+                    <Text style={styles.modalBtnConfirmText}>Pagar agora</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+      <AppModal {...modal} onClose={hideModal} />
     </SafeAreaView>
   );
 };
@@ -196,6 +301,117 @@ const styles = StyleSheet.create({
   applyButton: { backgroundColor: '#4CAF50', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   payButton: { backgroundColor: '#4CAF50', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 18 },
   payText: { color: '#FFF', fontWeight: '700' },
+
+  // ── Modal de confirmação ────────────────────────────────────────────────────
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 36,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+  },
+  modalIconWrapper: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#E8F5E9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 19,
+    fontWeight: '700',
+    color: '#222',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  modalInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+  },
+  modalInfoRowTotal: {
+    backgroundColor: '#4CAF50',
+    marginTop: 4,
+  },
+  modalInfoLabel: {
+    fontSize: 13,
+    color: '#888',
+    width: 64,
+  },
+  modalInfoValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#222',
+    flex: 1,
+  },
+  modalTotalValue: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  modalHint: {
+    fontSize: 13,
+    color: '#999',
+    textAlign: 'center',
+    marginTop: 16,
+    marginBottom: 20,
+  },
+  modalBtns: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalBtnCancel: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#DDD',
+    alignItems: 'center',
+  },
+  modalBtnCancelText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#888',
+  },
+  modalBtnConfirm: {
+    flex: 2,
+    flexDirection: 'row',
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#4CAF50',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    elevation: 2,
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+  },
+  modalBtnConfirmText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFF',
+  },
 });
 
 export default PagamentoScreen;

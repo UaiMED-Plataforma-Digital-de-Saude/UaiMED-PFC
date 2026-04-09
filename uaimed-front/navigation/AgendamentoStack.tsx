@@ -11,6 +11,7 @@ import PagamentoScreen from '../screens/Agendamento/PagamentoScreen';
 import ResultadosScreen from '../screens/Agendamento/ResultadosScreen';
 import MedicoDetalhesScreen from '../screens/Agendamento/MedicoDetalhesScreen';
 import SelecaoHorarioScreen from '../screens/Agendamento/SelecaoHorarioScreen';
+import SelecaoHorariosDiaScreen from '../screens/Agendamento/SelecaoHorariosDiaScreen';
 import ConfirmacaoScreen from '../screens/Agendamento/ConfirmacaoScreen';
 
 const Stack = createStackNavigator<AgendamentoStackParamList>();
@@ -84,7 +85,12 @@ const AgendamentoStack: React.FC = () => {
       <Stack.Screen
         name="SelecaoHorario"
         component={SelecaoHorarioScreen}
-        options={{ title: 'Selecione o Horário' }}
+        options={{ title: 'Selecione a Data' }}
+      />
+      <Stack.Screen
+        name="SelecaoHorariosDia"
+        component={SelecaoHorariosDiaScreen}
+        options={{ title: 'Horários Disponíveis', headerShown: false }}
       />
       <Stack.Screen
         name="Confirmacao"
