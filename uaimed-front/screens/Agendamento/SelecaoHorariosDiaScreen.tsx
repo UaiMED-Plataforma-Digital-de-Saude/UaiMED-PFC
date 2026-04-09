@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
-  Alert,
   Modal,
   Pressable,
 } from 'react-native';
@@ -15,6 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { StackScreenProps } from '@react-navigation/stack';
 import uaiMedApi from '../../api/uaiMedApi';
 import { AgendamentoStackParamList } from '../../navigation/types';
+import AppModal from '../../components/AppModal';
+import { useModal } from '../../hooks/useModal';
 
 type Props = StackScreenProps<AgendamentoStackParamList, 'SelecaoHorariosDia'>;
 
@@ -24,11 +25,22 @@ const SelecaoHorariosDiaScreen: React.FC<Props> = ({ route, navigation }) => {
   const [horarios, setHorarios] = useState<string[]>([]);
   const [loading, setLoading]   = useState(true);
   const [confirming, setConfirming] = useState<string | null>(null);
-  // ── Modal de confirmação de horário ───────────────────────────────────────
   const [modalHorario, setModalHorario] = useState<string | null>(null);
+  const { modal, showModal, hideModal } = useModal();
 
   // ── Busca horários disponíveis para o dia ──────────────────────────────────
   const fetchHorarios = useCallback(async () => {
+    // Guarda: medicoId obrigatório
+    if (!medicoId) {
+      console.warn('[SelecaoHorariosDia] medicoId ausente — params:', JSON.stringify({ medicoId, dateKey, displayDate }));
+      setLoading(false);
+      showModal(
+        'Profissional não identificado',
+        'Não foi possível identificar o profissional. Volte e selecione novamente.',
+        { type: 'error', buttons: [{ text: 'Voltar', onPress: () => navigation.goBack() }] },
+      );
+      return;
+    }
     setLoading(true);
     setHorarios([]);
     try {
@@ -38,7 +50,7 @@ const SelecaoHorariosDiaScreen: React.FC<Props> = ({ route, navigation }) => {
       setHorarios(Array.isArray(res.data) ? res.data : []);
     } catch {
       setHorarios([]);
-      Alert.alert('Atenção', 'Não foi possível carregar os horários. Tente novamente.');
+      showModal('Atenção', 'Não foi possível carregar os horários. Tente novamente.', { type: 'warning' });
     } finally {
       setLoading(false);
     }
@@ -80,25 +92,20 @@ const SelecaoHorariosDiaScreen: React.FC<Props> = ({ route, navigation }) => {
       const serverDetail: string = e?.response?.data?.detail || '';
 
       if (status === 401 || status === 422) {
-        // Sessão inválida (userId sumiu do DB após reset/seed)
-        Alert.alert(
-          'Sessão expirada',
-          serverError || 'Sua sessão expirou. Faça login novamente.',
-          [{ text: 'OK' }],
-        );
+        showModal('Sessão expirada', serverError || 'Sua sessão expirou. Faça login novamente.', { type: 'warning' });
         return;
       }
       if (status === 409) {
-        Alert.alert('Horário ocupado', 'Este horário já foi reservado. Escolha outro.');
+        showModal('Horário ocupado', 'Este horário já foi reservado. Escolha outro.', { type: 'warning' });
         return;
       }
       if (status === 404) {
-        Alert.alert('Profissional não encontrado', 'O profissional selecionado não está mais disponível.');
+        showModal('Profissional indisponível', 'O profissional selecionado não está mais disponível.', { type: 'error' });
         return;
       }
 
       const msg = serverError || 'Não foi possível criar o agendamento.';
-      Alert.alert('Erro', serverDetail ? `${msg}\n\n${serverDetail}` : msg);
+      showModal('Erro', serverDetail ? `${msg}\n\n${serverDetail}` : msg, { type: 'error' });
     } finally {
       setConfirming(null);
     }
@@ -259,6 +266,7 @@ const SelecaoHorariosDiaScreen: React.FC<Props> = ({ route, navigation }) => {
           </Pressable>
         </Pressable>
       </Modal>
+      <AppModal {...modal} onClose={hideModal} />
     </SafeAreaView>
   );
 };
@@ -338,7 +346,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#4CAF50',
     borderRadius: 12,
     paddingVertical: 14,
-    paddingHorizontal: 20,
+    paddingHorizontal: 28,
     elevation: 2,
     shadowColor: '#4CAF50',
     shadowOffset: { width: 0, height: 2 },

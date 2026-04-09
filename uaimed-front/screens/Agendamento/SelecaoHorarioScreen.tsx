@@ -90,6 +90,10 @@ const SelecaoHorarioScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleSelectDate = (date: Date) => {
     if (!isSelectable(date)) return;
+    if (!medicoId) {
+      console.warn('[SelecaoHorario] medicoId ausente — não é possível prosseguir.');
+      return;
+    }
     setSelectedDate(date);
     const displayDate = date.toLocaleDateString('pt-BR', {
       weekday: 'long',
@@ -97,7 +101,7 @@ const SelecaoHorarioScreen: React.FC<Props> = ({ route, navigation }) => {
       month: 'long',
     });
     navigation.navigate('SelecaoHorariosDia', {
-      medicoId: medicoId ?? '',
+      medicoId,
       dateKey: toDateKey(date),
       displayDate,
       amount,

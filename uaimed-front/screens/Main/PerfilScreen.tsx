@@ -1,10 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, TextInput, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, Switch } from 'react-native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from '../../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../hooks/useAuth';
 import { useAvaliacoes } from '../../hooks/useAvaliacoes';
+import AppModal from '../../components/AppModal';
+import { useModal } from '../../hooks/useModal';
 
 type PerfilScreenProps = BottomTabScreenProps<MainTabParamList, 'Perfil'>;
 
@@ -48,7 +50,6 @@ const ActionItem: React.FC<{
  */
 const PerfilScreen: React.FC<PerfilScreenProps> = () => {
   const { user, signOut } = useAuth();
-  // Para médicos, usa o ID do profissional (não o ID do usuário) para buscar avaliações
   const profissionalId = user?.tipo === 'medico' ? user?.profissional?.id : undefined;
   const { notaMedia, loading: loadingAvaliacoes } = useAvaliacoes(profissionalId);
   const [showChangePwd, setShowChangePwd] = React.useState(false);
@@ -56,31 +57,27 @@ const PerfilScreen: React.FC<PerfilScreenProps> = () => {
   const [oldPassword, setOldPassword] = React.useState('');
   const [newPassword, setNewPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
-
   const [showNotifications, setShowNotifications] = React.useState(false);
   const [notifEmail, setNotifEmail] = React.useState(true);
   const [notifPush, setNotifPush] = React.useState(true);
   const [notifLoading, setNotifLoading] = React.useState(false);
 
-  // Função para lidar com o Logout
+  const { modal, showModal, hideModal } = useModal();
+
   const handleLogout = () => {
-    Alert.alert(
-      "Sair da Conta",
-      "Tem certeza de que deseja encerrar sua sessão no UaiMED?",
-      [
-        {
-          text: "Cancelar",
-          style: "cancel"
-        },
-        { 
-          text: "Sim, Sair", 
-          onPress: () => signOut(), // Chama a função signOut do AuthContext
-          style: "destructive"
-        }
-      ]
+    showModal(
+      'Sair da Conta',
+      'Tem certeza de que deseja encerrar sua sessão no UaiMED?',
+      {
+        type: 'confirm',
+        buttons: [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Sim, Sair', style: 'destructive', onPress: () => signOut() },
+        ],
+      },
     );
   };
-  
+
   // Garante que o usuário existe antes de tentar exibir
   if (!user) {
       return (
@@ -140,11 +137,11 @@ const PerfilScreen: React.FC<PerfilScreenProps> = () => {
                   style={[styles.changeBtn, pwdLoading && { opacity: 0.7 }]}
                   onPress={async () => {
                     if (!oldPassword || !newPassword) {
-                      Alert.alert('Atenção', 'Preencha as senhas.');
+                      showModal('Campos obrigatórios', 'Preencha a senha atual e a nova senha.', { type: 'warning' });
                       return;
                     }
                     if (newPassword !== confirmPassword) {
-                      Alert.alert('Atenção', 'A confirmação da senha não coincide.');
+                      showModal('Senhas diferentes', 'A confirmação da senha não coincide.', { type: 'error' });
                       return;
                     }
                     setPwdLoading(true);
@@ -153,12 +150,11 @@ const PerfilScreen: React.FC<PerfilScreenProps> = () => {
                       await import('../../api/uaiMedApi').then(async ({ default: api }) => {
                         await api.post('/auth/change-password', { oldPassword, newPassword });
                       });
-                      Alert.alert('Sucesso', 'Senha alterada com sucesso.');
                       setOldPassword(''); setNewPassword(''); setConfirmPassword('');
                       setShowChangePwd(false);
-                    } catch (e) {
-                      console.warn('Erro ao alterar senha:', e);
-                      Alert.alert('Erro', 'Não foi possível alterar a senha. Tente novamente.');
+                      showModal('Senha alterada!', 'Sua senha foi atualizada com sucesso.', { type: 'success' });
+                    } catch {
+                      showModal('Erro', 'Não foi possível alterar a senha. Tente novamente.', { type: 'error' });
                     } finally {
                       setPwdLoading(false);
                     }
@@ -193,11 +189,10 @@ const PerfilScreen: React.FC<PerfilScreenProps> = () => {
                       await import('../../api/uaiMedApi').then(async ({ default: api }) => {
                         await api.post('/users/me/notifications', { email: notifEmail, push: notifPush });
                       });
-                      Alert.alert('Sucesso', 'Preferências salvas.');
                       setShowNotifications(false);
-                    } catch (e) {
-                      console.warn('Erro ao salvar notificações', e);
-                      Alert.alert('Erro', 'Não foi possível salvar as preferências.');
+                      showModal('Preferências salvas!', 'Suas configurações de notificação foram atualizadas.', { type: 'success' });
+                    } catch {
+                      showModal('Erro', 'Não foi possível salvar as preferências.', { type: 'error' });
                     } finally {
                       setNotifLoading(false);
                     }
@@ -221,6 +216,8 @@ const PerfilScreen: React.FC<PerfilScreenProps> = () => {
         
         <View style={{ height: 50 }} /> {/* Espaço no final */}
       </ScrollView>
+
+      <AppModal {...modal} onClose={hideModal} />
     </View>
   );
 };

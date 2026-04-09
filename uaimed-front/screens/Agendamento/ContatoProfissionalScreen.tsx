@@ -3,18 +3,19 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TextInput,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackScreenProps } from '@react-navigation/stack';
 import { AgendamentoStackParamList } from '../../navigation/types';
 import { useContatos } from '../../hooks/useContatos';
+import AppModal from '../../components/AppModal';
+import { useModal } from '../../hooks/useModal';
 
 type Props = StackScreenProps<AgendamentoStackParamList, 'ContatoProfissional'>;
 
@@ -23,25 +24,25 @@ const ContatoProfissionalScreen: React.FC<Props> = ({ route, navigation }) => {
   const { enviarContato, loading } = useContatos();
   const [assunto, setAssunto] = useState('');
   const [mensagem, setMensagem] = useState('');
+  const { modal, showModal, hideModal } = useModal();
 
   const handleEnviar = async () => {
     if (!assunto.trim() || !mensagem.trim()) {
-      Alert.alert('Atenção', 'Preencha assunto e mensagem.');
+      showModal('Campos obrigatórios', 'Preencha assunto e mensagem.', { type: 'warning' });
       return;
     }
-
     if (!medicoId) {
-      Alert.alert('Erro', 'ID do profissional não foi fornecido.');
+      showModal('Erro', 'ID do profissional não foi fornecido.', { type: 'error' });
       return;
     }
-
     const resultado = await enviarContato({ medicoId, assunto, mensagem });
-
     if (resultado) {
-      Alert.alert('Enviado', 'Sua mensagem foi enviada com sucesso. O profissional/clinica será notificado.');
-      navigation.goBack();
+      showModal('Enviado!', 'Sua mensagem foi enviada com sucesso. O profissional/clínica será notificado.', {
+        type: 'success',
+        buttons: [{ text: 'OK', onPress: () => navigation.goBack() }],
+      });
     } else {
-      Alert.alert('Erro', 'Falha ao enviar mensagem. Tente novamente.');
+      showModal('Erro', 'Falha ao enviar mensagem. Tente novamente.', { type: 'error' });
     }
   };
 
@@ -85,6 +86,7 @@ const ContatoProfissionalScreen: React.FC<Props> = ({ route, navigation }) => {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+      <AppModal {...modal} onClose={hideModal} />
     </SafeAreaView>
   );
 };

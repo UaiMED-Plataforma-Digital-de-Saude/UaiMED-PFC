@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   ScrollView,
   Modal,
@@ -16,6 +15,8 @@ import { StackScreenProps } from '@react-navigation/stack';
 import { AgendamentoStackParamList } from '../../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
 import { usePayments } from '../../hooks/usePayments';
+import AppModal from '../../components/AppModal';
+import { useModal } from '../../hooks/useModal';
 
 type Props = StackScreenProps<AgendamentoStackParamList, 'Pagamento'>;
 
@@ -34,30 +35,30 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
   const [promo, setPromo] = useState('');
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const { modal, showModal, hideModal } = useModal();
 
   const baseAmount = amount || 100;
   const finalAmount = calcularValorFinal(baseAmount, usingPlan, promoDiscount);
 
   const handleValidarCupom = async () => {
     if (!promo.trim()) {
-      Alert.alert('Cupom vazio', 'Insira um código promocional.');
+      showModal('Cupom vazio', 'Insira um código promocional.', { type: 'warning' });
       return;
     }
-
     const desconto = await validarCupom(promo);
     if (desconto > 0) {
       setPromoDiscount(desconto);
-      Alert.alert('Cupom válido', `Desconto de ${desconto}% aplicado!`);
+      showModal('Cupom válido!', `Desconto de ${desconto}% aplicado com sucesso.`, { type: 'success' });
     } else {
       setPromoDiscount(0);
-      Alert.alert('Cupom inválido', 'Este código não é válido.');
+      showModal('Cupom inválido', 'Este código promocional não é válido ou expirou.', { type: 'error' });
     }
   };
 
   const handlePay = () => {
     if (method === 'card') {
       if (!cardNumber || !cardName || !expiry || !cvv) {
-        Alert.alert('Dados incompletos', 'Preencha todos os dados do cartão.');
+        showModal('Dados incompletos', 'Preencha todos os dados do cartão antes de continuar.', { type: 'warning' });
         return;
       }
     }
@@ -90,29 +91,28 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
     });
 
     if (resultado) {
-      Alert.alert(
-        'Pagamento realizado ✅',
+      showModal(
+        'Pagamento realizado!',
         `Valor cobrado: R$ ${resultado.amount.toFixed(2)}\nID: ${resultado.id}`,
-        [
-          {
-            text: 'Avaliar Consulta',
-            onPress: () => {
-              if (agendamentoId && medicoId) {
-                navigation.navigate('Avaliacao', { agendamentoId, medicoId });
-              } else {
-                navigation.navigate('Busca');
-              }
+        {
+          type: 'success',
+          buttons: [
+            {
+              text: 'Avaliar Consulta',
+              onPress: () => {
+                if (agendamentoId && medicoId) {
+                  navigation.navigate('Avaliacao', { agendamentoId, medicoId });
+                } else {
+                  navigation.navigate('Busca');
+                }
+              },
             },
-          },
-          {
-            text: 'Início',
-            style: 'cancel',
-            onPress: () => navigation.navigate('Busca'),
-          },
-        ],
+            { text: 'Início', style: 'cancel', onPress: () => navigation.navigate('Busca') },
+          ],
+        },
       );
     } else {
-      Alert.alert('Erro', 'Falha no processamento do pagamento.');
+      showModal('Falha no pagamento', 'Não foi possível processar o pagamento. Tente novamente.', { type: 'error' });
     }
   };
 
@@ -274,6 +274,7 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
           </Pressable>
         </Pressable>
       </Modal>
+      <AppModal {...modal} onClose={hideModal} />
     </SafeAreaView>
   );
 };
