@@ -99,6 +99,7 @@ uaiMedApi.interceptors.response.use(
           message: error.message,
           code: error.code,
           status: error.response?.status,
+          data: error.response?.data,       // ← corpo do erro do backend
           url: error.config?.url,
           baseURL: error.config?.baseURL,
           fullURL: `${error.config?.baseURL}${error.config?.url}`,

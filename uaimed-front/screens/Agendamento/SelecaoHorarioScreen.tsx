@@ -1,18 +1,15 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
   ScrollView,
-  Alert,
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StackScreenProps } from '@react-navigation/stack';
-import uaiMedApi from '../../api/uaiMedApi';
 import { AgendamentoStackParamList } from '../../navigation/types';
 
 type Props = StackScreenProps<AgendamentoStackParamList, 'SelecaoHorario'>;
@@ -25,7 +22,6 @@ const MONTHS = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ];
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-// 16 de padding da tela + 16 de padding do card = 32 de cada lado, dividido por 7 dias
 const DAY_SIZE = Math.floor((SCREEN_WIDTH - 64) / 7);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -69,20 +65,15 @@ const SelecaoHorarioScreen: React.FC<Props> = ({ route, navigation }) => {
     new Date(todayMidnight.getFullYear(), todayMidnight.getMonth(), 1),
   );
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [horarios, setHorarios]         = useState<string[]>([]);
-  const [loadingSlots, setLoadingSlots] = useState(false);
-  const [confirming, setConfirming]     = useState(false);
 
   // ── Navegação de mês ────────────────────────────────────────────────────────
   const goToPrevMonth = () => {
     setDisplayMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1));
     setSelectedDate(null);
-    setHorarios([]);
   };
   const goToNextMonth = () => {
     setDisplayMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1));
     setSelectedDate(null);
-    setHorarios([]);
   };
 
   // ── Estado de cada célula ───────────────────────────────────────────────────
@@ -97,49 +88,20 @@ const SelecaoHorarioScreen: React.FC<Props> = ({ route, navigation }) => {
   const isSelected = (date: Date | null) =>
     !!date && !!selectedDate && toDateKey(date) === toDateKey(selectedDate);
 
-  // ── Busca de horários por data ──────────────────────────────────────────────
-  const fetchHorarios = useCallback(
-    async (date: Date) => {
-      setLoadingSlots(true);
-      setHorarios([]);
-      try {
-        const res = await uaiMedApi.get('/agendamentos/sugestoes-horario', {
-          params: { medicoId, data: toDateKey(date) },
-        });
-        setHorarios(Array.isArray(res.data) ? res.data : []);
-      } catch {
-        setHorarios([]);
-      } finally {
-        setLoadingSlots(false);
-      }
-    },
-    [medicoId],
-  );
-
   const handleSelectDate = (date: Date) => {
     if (!isSelectable(date)) return;
     setSelectedDate(date);
-    fetchHorarios(date);
-  };
-
-  // ── Criação do agendamento ──────────────────────────────────────────────────
-  const handleSelecionarHorario = async (horario: string) => {
-    setConfirming(true);
-    try {
-      const res = await uaiMedApi.post('/agendamentos', { medicoId, dataHora: horario });
-      const agendamentoId: string = res.data?.id ?? res.data?.agendamentoId;
-      navigation.navigate('Confirmacao', {
-        horario,
-        medicoId: medicoId ?? '',
-        agendamentoId,
-        amount: amount ?? res.data?.valor ?? 0,
-      });
-    } catch (e: any) {
-      const msg = e?.response?.data?.error || 'Não foi possível criar o agendamento.';
-      Alert.alert('Erro', msg);
-    } finally {
-      setConfirming(false);
-    }
+    const displayDate = date.toLocaleDateString('pt-BR', {
+      weekday: 'long',
+      day: '2-digit',
+      month: 'long',
+    });
+    navigation.navigate('SelecaoHorariosDia', {
+      medicoId: medicoId ?? '',
+      dateKey: toDateKey(date),
+      displayDate,
+      amount,
+    });
   };
 
   const calendarDays = buildCalendarGrid(
@@ -149,18 +111,18 @@ const SelecaoHorarioScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.screenTitle}>Selecionar Data e Horário</Text>
+        <Text style={styles.screenTitle}>Selecionar Data</Text>
         <Text style={styles.screenSubtitle}>
-          Escolha uma data disponível e toque no horário desejado
+          Toque em um dia disponível para ver os horários
         </Text>
 
-        {/* ── Calendário ───────────────────────────────────────────────────── */}
+        {/* ── Calendário ── */}
         <View style={styles.calendarCard}>
           {/* Cabeçalho com navegação de mês */}
           <View style={styles.monthHeader}>
@@ -247,67 +209,14 @@ const SelecaoHorarioScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         </View>
 
-        {/* ── Seção de Horários ────────────────────────────────────────────── */}
-        {selectedDate ? (
-          <View style={styles.slotsCard}>
-            <View style={styles.slotsHeader}>
-              <Ionicons name="time-outline" size={20} color="#4B73B2" />
-              <Text style={styles.slotsTitle} numberOfLines={2}>
-                {'Horários para '}
-                {selectedDate.toLocaleDateString('pt-BR', {
-                  weekday: 'long',
-                  day: '2-digit',
-                  month: 'long',
-                })}
-              </Text>
-            </View>
-
-            {loadingSlots || confirming ? (
-              <ActivityIndicator
-                size="large"
-                color="#4CAF50"
-                style={{ marginVertical: 32 }}
-              />
-            ) : horarios.length > 0 ? (
-              <View style={styles.slotsGrid}>
-                {horarios.map(horario => {
-                  const time = new Date(horario).toLocaleTimeString('pt-BR', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  });
-                  return (
-                    <TouchableOpacity
-                      key={horario}
-                      style={styles.slotBtn}
-                      onPress={() => handleSelecionarHorario(horario)}
-                      activeOpacity={0.75}
-                    >
-                      <Ionicons name="time-outline" size={14} color="#FFF" />
-                      <Text style={styles.slotBtnText}>{time}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            ) : (
-              <View style={styles.emptySlots}>
-                <Ionicons name="calendar-outline" size={44} color="#DDD" />
-                <Text style={styles.emptySlotsTitle}>Sem horários disponíveis</Text>
-                <Text style={styles.emptySlotsSubtitle}>
-                  {'Todos os horários desta data estão ocupados.\nTente selecionar outro dia.'}
-                </Text>
-              </View>
-            )}
-          </View>
-        ) : (
-          /* Prompt inicial — orienta o usuário */
-          <View style={styles.promptCard}>
-            <Ionicons name="calendar-outline" size={52} color="#D0E8D0" />
-            <Text style={styles.promptTitle}>Selecione uma data</Text>
-            <Text style={styles.promptSubtitle}>
-              Toque em qualquer dia disponível no calendário acima para ver os horários
-            </Text>
-          </View>
-        )}
+        {/* Prompt orientativo */}
+        <View style={styles.promptCard}>
+          <Ionicons name="time-outline" size={44} color="#D0E8D0" />
+          <Text style={styles.promptTitle}>Escolha uma data</Text>
+          <Text style={styles.promptSubtitle}>
+            Os horários disponíveis serão exibidos na próxima tela
+          </Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -317,19 +226,20 @@ const SelecaoHorarioScreen: React.FC<Props> = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   safe:   { flex: 1, backgroundColor: '#F5F7FA' },
-  scroll: { padding: 16, paddingBottom: 48 },
+  // paddingTop reduzido para subir o calendário
+  scroll: { padding: 12, paddingTop: 4, paddingBottom: 32 },
 
   screenTitle: {
     fontSize: 22,
     fontWeight: '700',
     color: '#222',
-    marginTop: 4,
-    marginBottom: 4,
+    marginTop: 2,
+    marginBottom: 2,
   },
   screenSubtitle: {
-    fontSize: 13,
+    fontSize: 16,
     color: '#888',
-    marginBottom: 16,
+    marginBottom: 12,
     lineHeight: 18,
   },
 
@@ -338,7 +248,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderRadius: 16,
     padding: 16,
-    marginBottom: 20,
+    marginBottom: 16,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -354,10 +264,7 @@ const styles = StyleSheet.create({
   monthTitle: { fontSize: 17, fontWeight: '700', color: '#222' },
 
   weekRow: { flexDirection: 'row', marginBottom: 6 },
-  weekLabelCell: {
-    width: DAY_SIZE,
-    alignItems: 'center',
-  },
+  weekLabelCell: { width: DAY_SIZE, alignItems: 'center' },
   weekLabelText: {
     fontSize: 11,
     fontWeight: '700',
@@ -375,7 +282,7 @@ const styles = StyleSheet.create({
     borderRadius: DAY_SIZE / 2,
   },
   dayCellSelected: { backgroundColor: '#4CAF50' },
-  dayCellToday:    {
+  dayCellToday: {
     backgroundColor: '#E8F5E9',
     borderWidth: 1.5,
     borderColor: '#4CAF50',
@@ -463,7 +370,7 @@ const styles = StyleSheet.create({
   promptCard: {
     backgroundColor: '#FFF',
     borderRadius: 16,
-    padding: 32,
+    padding: 24,
     alignItems: 'center',
     elevation: 1,
     shadowColor: '#000',
@@ -472,17 +379,17 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
   },
   promptTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
-    color: '#BBB',
-    marginTop: 16,
+    color: '#AAAAAA',
+    marginTop: 12,
   },
   promptSubtitle: {
-    fontSize: 13,
-    color: '#CCC',
+    fontSize: 12,
+    color: '#CCCCCC',
     textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 19,
+    marginTop: 6,
+    lineHeight: 18,
   },
 });
 

@@ -14,6 +14,12 @@ class AgendamentosController {
         return res.status(400).json({ error: 'medicoId e dataHora são obrigatórios' });
       }
 
+      // Verifica se o usuário ainda existe na DB (token pode ter userId de sessão antiga)
+      const usuarioExiste = await prisma.usuario.findUnique({ where: { id: usuarioId } });
+      if (!usuarioExiste) {
+        return res.status(401).json({ error: 'Sessão inválida. Faça login novamente.' });
+      }
+
       // Verifica se o profissional existe
       const profissional = await prisma.profissional.findUnique({ where: { id: String(medicoId) } });
       if (!profissional) return res.status(404).json({ error: 'Profissional não encontrado' });
@@ -45,9 +51,18 @@ class AgendamentosController {
         dataHora: agendamento.dataHora,
         profissionalId: agendamento.profissionalId,
       });
-    } catch (err) {
+    } catch (err: any) {
       logger.error('Erro ao criar agendamento', err);
-      return res.status(500).json({ error: 'Erro ao criar agendamento' });
+      const detail = process.env.NODE_ENV !== 'production' ? (err?.message ?? String(err)) : undefined;
+      // P2003 = FK constraint violation (usuário ou profissional não existe)
+      if (err?.code === 'P2003') {
+        return res.status(422).json({ error: 'Referência inválida: usuário ou profissional não encontrado. Faça login novamente.', detail });
+      }
+      // P2002 = unique constraint (agendamento duplicado exato)
+      if (err?.code === 'P2002') {
+        return res.status(409).json({ error: 'Já existe um agendamento neste horário.', detail });
+      }
+      return res.status(500).json({ error: 'Erro ao criar agendamento', detail });
     }
   }
 
