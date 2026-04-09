@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   ScrollView,
   Alert,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,7 +23,9 @@ const SelecaoHorariosDiaScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const [horarios, setHorarios] = useState<string[]>([]);
   const [loading, setLoading]   = useState(true);
-  const [confirming, setConfirming] = useState<string | null>(null); // horário em processamento
+  const [confirming, setConfirming] = useState<string | null>(null);
+  // ── Modal de confirmação de horário ───────────────────────────────────────
+  const [modalHorario, setModalHorario] = useState<string | null>(null);
 
   // ── Busca horários disponíveis para o dia ──────────────────────────────────
   const fetchHorarios = useCallback(async () => {
@@ -44,8 +48,18 @@ const SelecaoHorariosDiaScreen: React.FC<Props> = ({ route, navigation }) => {
     fetchHorarios();
   }, [fetchHorarios]);
 
-  // ── Cria o agendamento ao selecionar um horário ────────────────────────────
-  const handleSelecionarHorario = async (horario: string) => {
+  // ── Formata exibição de horário ────────────────────────────────────────────
+  const formatTime = (iso: string) =>
+    new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+  // ── Abre modal de confirmação ──────────────────────────────────────────────
+  const confirmarHorario = (horario: string) => {
+    if (confirming) return;
+    setModalHorario(horario);
+  };
+
+  // ── Cria o agendamento após confirmação ────────────────────────────────────
+  const criarAgendamento = async (horario: string) => {
     if (confirming) return;
     setConfirming(horario);
     try {
@@ -90,9 +104,6 @@ const SelecaoHorariosDiaScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
-  // ── Formata exibição de horário ────────────────────────────────────────────
-  const formatTime = (iso: string) =>
-    new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -149,7 +160,7 @@ const SelecaoHorariosDiaScreen: React.FC<Props> = ({ route, navigation }) => {
                   <TouchableOpacity
                     key={horario}
                     style={[styles.slotBtn, isProcessing && styles.slotBtnProcessing]}
-                    onPress={() => handleSelecionarHorario(horario)}
+                    onPress={() => confirmarHorario(horario)}
                     disabled={!!confirming}
                     activeOpacity={0.75}
                   >
@@ -170,6 +181,84 @@ const SelecaoHorariosDiaScreen: React.FC<Props> = ({ route, navigation }) => {
           </>
         )}
       </ScrollView>
+
+      {/* ── Modal de Confirmação de Horário ── */}
+      <Modal
+        visible={!!modalHorario}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalHorario(null)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setModalHorario(null)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            {/* Ícone */}
+            <View style={styles.modalIconWrapper}>
+              <Ionicons name="calendar-outline" size={36} color="#4CAF50" />
+            </View>
+
+            <Text style={styles.modalTitle}>Confirmar Agendamento</Text>
+
+            {/* Data */}
+            <View style={styles.modalInfoRow}>
+              <Ionicons name="calendar" size={18} color="#4CAF50" />
+              <Text style={styles.modalInfoLabel}>Data</Text>
+              <Text style={styles.modalInfoValue} numberOfLines={1}>
+                {displayDate ?? dateKey}
+              </Text>
+            </View>
+
+            {/* Horário */}
+            <View style={styles.modalInfoRow}>
+              <Ionicons name="time" size={18} color="#4CAF50" />
+              <Text style={styles.modalInfoLabel}>Horário</Text>
+              <Text style={styles.modalInfoValue}>
+                {modalHorario ? formatTime(modalHorario) : ''}
+              </Text>
+            </View>
+
+            {/* Duração padrão */}
+            <View style={styles.modalInfoRow}>
+              <Ionicons name="hourglass-outline" size={18} color="#4CAF50" />
+              <Text style={styles.modalInfoLabel}>Duração</Text>
+              <Text style={styles.modalInfoValue}>30 minutos</Text>
+            </View>
+
+            <Text style={styles.modalHint}>
+              Deseja reservar este horário?
+            </Text>
+
+            {/* Botões */}
+            <View style={styles.modalBtns}>
+              <TouchableOpacity
+                style={styles.modalBtnCancel}
+                onPress={() => setModalHorario(null)}
+                activeOpacity={0.75}
+              >
+                <Text style={styles.modalBtnCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtnConfirm, !!confirming && { opacity: 0.7 }]}
+                onPress={() => {
+                  const h = modalHorario!;
+                  setModalHorario(null);
+                  criarAgendamento(h);
+                }}
+                disabled={!!confirming}
+                activeOpacity={0.8}
+              >
+                {confirming ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark-circle-outline" size={18} color="#FFF" />
+                    <Text style={styles.modalBtnConfirmText}>Confirmar</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -273,6 +362,109 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 24,
     lineHeight: 18,
+  },
+
+  // ── Modal de confirmação ──────────────────────────────────────────────────
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 36,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+  },
+  modalIconWrapper: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#E8F5E9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 19,
+    fontWeight: '700',
+    color: '#222',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  modalInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+  },
+  modalInfoLabel: {
+    fontSize: 13,
+    color: '#888',
+    width: 60,
+  },
+  modalInfoValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#222',
+    flex: 1,
+    textTransform: 'capitalize',
+  },
+  modalHint: {
+    fontSize: 13,
+    color: '#999',
+    textAlign: 'center',
+    marginTop: 16,
+    marginBottom: 20,
+  },
+  modalBtns: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalBtnCancel: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#DDD',
+    alignItems: 'center',
+  },
+  modalBtnCancelText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#888',
+  },
+  modalBtnConfirm: {
+    flex: 2,
+    flexDirection: 'row',
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#4CAF50',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    elevation: 2,
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+  },
+  modalBtnConfirmText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFF',
   },
 });
 
