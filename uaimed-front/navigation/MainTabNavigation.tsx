@@ -14,11 +14,22 @@ import ClinicDashboard from '../screens/Admin/ClinicDashboard';
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 /**
+ * Oculta um item da bottom tab bar sem removê-lo do navegador.
+ * Isso evita o anti-pattern de renderização condicional de <Tab.Screen>,
+ * que causava o erro "Maximum update depth exceeded".
+ */
+const hiddenTab = { display: 'none' as const, width: 0, height: 0, overflow: 'hidden' as const };
+
+/**
  * Navegador Principal com Abas (Bottom Tabs)
  * Diferencia abas conforme `user.tipo` (paciente, medico, clinica)
  */
 const MainTabNavigator: React.FC = () => {
   const { user } = useAuth();
+
+  const isPaciente = user?.tipo === 'paciente';
+  const isMedico   = user?.tipo === 'medico';
+  const isClinica  = user?.tipo === 'clinica';
 
   return (
     <Tab.Navigator
@@ -31,21 +42,11 @@ const MainTabNavigator: React.FC = () => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home-outline';
 
           switch (route.name) {
-            case 'Home':
-              iconName = 'home-outline';
-              break;
-            case 'Agendamentos':
-              iconName = 'calendar-outline';
-              break;
-            case 'MedicoAgenda':
-              iconName = 'calendar-outline';
-              break;
-            case 'ClinicDashboard':
-              iconName = 'bar-chart-outline';
-              break;
-            case 'Perfil':
-              iconName = 'person-outline';
-              break;
+            case 'Home':         iconName = 'home-outline';       break;
+            case 'Agendamentos': iconName = 'calendar-outline';   break;
+            case 'MedicoAgenda': iconName = 'calendar-outline';   break;
+            case 'ClinicDashboard': iconName = 'bar-chart-outline'; break;
+            case 'Perfil':       iconName = 'person-outline';     break;
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -55,20 +56,35 @@ const MainTabNavigator: React.FC = () => {
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Início' }} />
 
-      {/* Paciente: mostra fluxo de agendamento */}
-      {user?.tipo === 'paciente' && (
-        <Tab.Screen name="Agendamentos" component={AgendamentoStack} options={{ title: 'Agendamentos' }} />
-      )}
+      {/* Paciente: fluxo de agendamento — oculto para outros tipos */}
+      <Tab.Screen
+        name="Agendamentos"
+        component={AgendamentoStack}
+        options={{
+          title: 'Agendamentos',
+          tabBarItemStyle: isPaciente ? undefined : hiddenTab,
+        }}
+      />
 
-      {/* Médico: agenda específica */}
-      {user?.tipo === 'medico' && (
-        <Tab.Screen name="MedicoAgenda" component={MedicoAgendaScreen} options={{ title: 'Minha Agenda' }} />
-      )}
+      {/* Médico: agenda específica — oculto para outros tipos */}
+      <Tab.Screen
+        name="MedicoAgenda"
+        component={MedicoAgendaScreen}
+        options={{
+          title: 'Minha Agenda',
+          tabBarItemStyle: isMedico ? undefined : hiddenTab,
+        }}
+      />
 
-      {/* Clínica: dashboard */}
-      {user?.tipo === 'clinica' && (
-        <Tab.Screen name="ClinicDashboard" component={ClinicDashboard} options={{ title: 'Dashboard' }} />
-      )}
+      {/* Clínica: dashboard — oculto para outros tipos */}
+      <Tab.Screen
+        name="ClinicDashboard"
+        component={ClinicDashboard}
+        options={{
+          title: 'Dashboard',
+          tabBarItemStyle: isClinica ? undefined : hiddenTab,
+        }}
+      />
 
       {/* Perfil sempre disponível */}
       <Tab.Screen name="Perfil" component={PerfilScreen} options={{ title: 'Meu Perfil' }} />

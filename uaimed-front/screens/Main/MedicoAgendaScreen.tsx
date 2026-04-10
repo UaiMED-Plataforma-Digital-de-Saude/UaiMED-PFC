@@ -24,7 +24,8 @@ const MedicoAgendaScreen: React.FC = () => {
     };
     fetch();
     return () => { mounted = false; };
-  }, [user]);
+  // Usa user?.id (string estável) em vez do objeto completo para evitar re-renders desnecessários
+  }, [user?.id]);
 
   if (!user) return <View style={styles.container}><Text>Usuário não autenticado.</Text></View>;
 

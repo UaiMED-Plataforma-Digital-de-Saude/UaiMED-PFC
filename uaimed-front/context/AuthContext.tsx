@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 import uaiMedApi from '../api/uaiMedApi';
@@ -85,13 +85,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   /**
-   * Função de Login
-   * Autentica o usuário via API e salva o token/usuário
+   * Função de Login — estabilizada com useCallback para evitar re-renders desnecessários
    */
-  async function signIn(email: string, password: string) {
+  const signIn = useCallback(async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Chamada à API para autenticação
       const response = await uaiMedApi.post<LoginResponse>('/sessions', {
         email,
         password,
@@ -99,14 +97,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { user: userData, token: authToken } = response.data;
 
-      // Salva dados no estado local
       setUser(userData);
 
-      // Persiste os dados no AsyncStorage
       await AsyncStorage.setItem(CONFIG.STORAGE_KEYS.token, authToken);
       await AsyncStorage.setItem(CONFIG.STORAGE_KEYS.user, JSON.stringify(userData));
 
-      // Configura o header de autorização para requisições futuras
       uaiMedApi.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
 
     } catch (error: any) {
@@ -140,36 +135,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   /**
-   * Função de Logout
-   * Remove os dados do usuário e limpa o token
+   * Função de Logout — estabilizada com useCallback
    */
-  async function signOut() {
+  const signOut = useCallback(async () => {
     try {
-      // Remove dados do AsyncStorage
       await AsyncStorage.removeItem(CONFIG.STORAGE_KEYS.token);
       await AsyncStorage.removeItem(CONFIG.STORAGE_KEYS.user);
 
-      // Limpa o estado local
       setUser(null);
 
-      // Remove o header de autorização da API
       delete uaiMedApi.defaults.headers.common['Authorization'];
 
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
     }
-  }
+  }, []);
 
-  const value: AuthContextData = {
+  // useMemo garante que o objeto de contexto só é recriado quando user/loading muda
+  const value = useMemo<AuthContextData>(() => ({
     signed: !!user,
     user,
     loading,
     signIn,
     signOut,
-  };
+  }), [user, loading, signIn, signOut]);
 
   return (
     <AuthContext.Provider value={value}>
