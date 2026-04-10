@@ -89,7 +89,7 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
 
 **Área**: Frontend | **Prioridade**: 🔴 Crítico | **Esforço**: 1
 
-- `unmountOnBlur: true` adicionado na tab Agendamentos
+- Ajustado o comportamento da tab Agendamentos para retornar à `SearchScreen` ao tocar na aba
 - Ao tocar na aba, o stack reinicia na `SearchScreen` independente de navegação anterior via atalhos
 
 ---

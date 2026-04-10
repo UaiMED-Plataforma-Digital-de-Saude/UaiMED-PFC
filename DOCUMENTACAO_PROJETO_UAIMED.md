@@ -1182,7 +1182,7 @@ O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 **Navegação:**
 - `AgendamentoStackParamList` — rotas `MinhasConsultas` e `MeusPagamentos` adicionadas
 - `AgendamentoStack.tsx` — ambas as novas telas registradas no stack
-- `MainTabNavigation.tsx` — `unmountOnBlur: true` na tab Agendamentos: ao tocar na aba, o stack sempre reinicia na `SearchScreen` (Busca), impedindo que navegação via atalhos deixe MinhasConsultas como tela padrão da tab
+- `MainTabNavigation.tsx` — `Ajustado o comportamento da tab Agendamentos para retornar à `SearchScreen` ao tocar na aba` (Busca), impedindo que navegação via atalhos deixe MinhasConsultas como tela padrão da tab
 
 **Correções de Estabilidade:**
 - `AuthContext.tsx` — `signIn` e `signOut` agora usam `useCallback([], [])` e `value` usa `useMemo` → elimina re-renders excessivos em todos os consumers de `useAuth()`
