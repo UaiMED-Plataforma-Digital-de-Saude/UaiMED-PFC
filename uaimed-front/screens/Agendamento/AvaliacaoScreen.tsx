@@ -7,7 +7,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   TextInput,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +14,8 @@ import { StackScreenProps } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { AgendamentoStackParamList } from '../../navigation/types';
 import uaiMedApi from '../../api/uaiMedApi';
+import AppModal from '../../components/AppModal';
+import { useModal } from '../../hooks/useModal';
 
 /**
  * Tela de Avaliação de Consulta
@@ -34,7 +35,6 @@ interface AvaliacaoFormData {
 }
 
 export const AvaliacaoScreen: React.FC<Props> = ({ route, navigation }) => {
-  // Extrai medicoId dos parâmetros de navegação
   const { medicoId } = route.params ?? { medicoId: undefined };
   const [form, setForm] = useState<AvaliacaoFormData>({
     notaAtendimento: 0,
@@ -48,6 +48,7 @@ export const AvaliacaoScreen: React.FC<Props> = ({ route, navigation }) => {
   });
 
   const [loading, setLoading] = useState(false);
+  const { modal, showModal, hideModal } = useModal();
 
   // Renderiza estrelas para avaliação
   const renderStars = (nota: number, onPress: (value: number) => void) => {
@@ -101,7 +102,6 @@ export const AvaliacaoScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const handleSubmit = async () => {
-    // Validar campos obrigatórios
     if (
       form.notaAtendimento === 0 ||
       form.notaPuntualidade === 0 ||
@@ -110,43 +110,48 @@ export const AvaliacaoScreen: React.FC<Props> = ({ route, navigation }) => {
       !form.voltariaClinica ||
       !form.recomendaMedico
     ) {
-      Alert.alert('Atenção', 'Por favor, responda todas as perguntas obrigatórias!');
+      showModal('Atenção', 'Por favor, responda todas as perguntas obrigatórias!', { type: 'warning' });
       return;
     }
 
     if (form.comentario.trim().length === 0) {
-      Alert.alert('Atenção', 'Por favor, adicione um comentário sobre sua experiência!');
+      showModal('Atenção', 'Por favor, adicione um comentário sobre sua experiência!', { type: 'warning' });
       return;
     }
 
     if (!medicoId) {
-      Alert.alert('Erro', 'ID do profissional não foi fornecido.');
+      showModal('Erro', 'ID do profissional não foi fornecido.', { type: 'error' });
       return;
     }
 
     setLoading(true);
     try {
-      // Calcula a nota média das 4 dimensões e arredonda para o inteiro mais próximo
       const notaMedia = Math.round(
-        (form.notaAtendimento + form.notaPuntualidade + form.notaClinica + form.notaComuni) / 4
+        (form.notaAtendimento + form.notaPuntualidade + form.notaClinica + form.notaComuni) / 4,
       );
 
-      // Envia a avaliação para o backend
       await uaiMedApi.post('/avaliacoes', {
         profissionalId: medicoId,
         nota: notaMedia,
         comentario: form.comentario,
       });
 
-      Alert.alert('Sucesso', 'Obrigado por avaliar seu atendimento!', [
+      showModal(
+        'Avaliação Enviada! 🌟',
+        'Obrigado por avaliar seu atendimento!\nSua opinião é muito importante para melhorarmos nossos serviços.',
         {
-          text: 'OK',
-          onPress: () => navigation.getParent<any>()?.navigate('Home'),
+          type: 'success',
+          buttons: [
+            {
+              text: 'Ir para Início',
+              onPress: () => navigation.getParent<any>()?.navigate('Home'),
+            },
+          ],
         },
-      ]);
+      );
     } catch (error: any) {
       const msg = error?.response?.data?.error || 'Falha ao enviar avaliação. Tente novamente.';
-      Alert.alert('Erro', msg);
+      showModal('Erro ao Enviar', msg, { type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -331,6 +336,8 @@ export const AvaliacaoScreen: React.FC<Props> = ({ route, navigation }) => {
           <View style={styles.spacer} />
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <AppModal {...modal} onClose={hideModal} />
     </SafeAreaView>
   );
 };
