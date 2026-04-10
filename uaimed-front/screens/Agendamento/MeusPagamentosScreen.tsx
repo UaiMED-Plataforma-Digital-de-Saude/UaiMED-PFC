@@ -149,7 +149,7 @@ const MeusPagamentosScreen: React.FC<Props> = ({ navigation }) => {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <TouchableOpacity onPress={() => navigation.getParent<any>()?.navigate('Home')} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Ionicons name="chevron-back" size={26} color="#4CAF50" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Meus Pagamentos</Text>
@@ -166,7 +166,7 @@ const MeusPagamentosScreen: React.FC<Props> = ({ navigation }) => {
     <SafeAreaView style={styles.safe}>
       {/* Cabeçalho */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <TouchableOpacity onPress={() => navigation.getParent<any>()?.navigate('Home')} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Ionicons name="chevron-back" size={26} color="#4CAF50" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Meus Pagamentos</Text>

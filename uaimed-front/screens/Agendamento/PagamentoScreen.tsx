@@ -96,18 +96,18 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
         `Valor cobrado: R$ ${resultado.amount.toFixed(2)}\nID: ${resultado.id}`,
         {
           type: 'success',
-          buttons: [
+            buttons: [
             {
               text: 'Avaliar Consulta',
               onPress: () => {
                 if (agendamentoId && medicoId) {
                   navigation.navigate('Avaliacao', { agendamentoId, medicoId });
                 } else {
-                  navigation.navigate('Busca');
+                  navigation.getParent<any>()?.navigate('Home');
                 }
               },
             },
-            { text: 'Início', style: 'cancel', onPress: () => navigation.navigate('Busca') },
+            { text: 'Início', style: 'cancel', onPress: () => navigation.getParent<any>()?.navigate('Home') },
           ],
         },
       );

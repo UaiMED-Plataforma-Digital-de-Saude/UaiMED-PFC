@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from './types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
-import { StackActions } from '@react-navigation/native';
+import { CommonActions } from '@react-navigation/native';
 
 // Importe as telas
 import HomeScreen from '../screens/Main/HomeScreen';
@@ -67,9 +67,13 @@ const MainTabNavigator: React.FC = () => {
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
-            // Reseta o stack interno para Busca ao tocar na aba diretamente
-            navigation.dispatch(StackActions.popToTop());
-            navigation.navigate('Agendamentos' as never);
+            // Navega para Agendamentos e reseta o stack interno para Busca
+            navigation.dispatch(
+              CommonActions.navigate({
+                name: 'Agendamentos',
+                params: { screen: 'Busca' },
+              })
+            );
           },
         })}
         options={{
