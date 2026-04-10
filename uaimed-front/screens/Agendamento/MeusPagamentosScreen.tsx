@@ -40,7 +40,7 @@ const METODO_LABEL: Record<string, string> = {
   cartao_debito: 'Cartão de Débito',
   card: 'Cartão',
   boleto: 'Boleto Bancário',
-  cash: 'Dinheiro', // legacy
+  cash: 'Dinheiro',
 };
 
 const STATUS_COLOR: Record<string, string> = {

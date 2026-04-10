@@ -43,7 +43,7 @@ const AgendamentoStack: React.FC = () => {
         component={SearchScreen}
         options={{
           title: 'Nova Consulta',
-          headerShown: false, // SearchScreen tem seu próprio layout
+          headerShown: false,
         }}
       />
       <Stack.Screen

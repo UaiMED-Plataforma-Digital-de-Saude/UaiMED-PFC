@@ -19,8 +19,8 @@ type Props = StackScreenProps<AgendamentoStackParamList, 'MinhasConsultas'>;
 // Interface alinhada com o retorno real do backend (GET /api/agendamentos)
 interface Consulta {
   id: string;
-  data: string;          // backend retorna 'data', não 'dataHora'
-  medico: string | null; // flat — não aninhado em profissional.usuario.nome
+  data: string;
+  medico: string | null;
   especialidade: string | null;
   status: string;
 }
@@ -63,14 +63,14 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
   const agora = new Date();
 
   const filtradas = consultas.filter((c) => {
-    const dataConsulta = new Date(c.data);   // usa 'c.data', não 'c.dataHora'
+    const dataConsulta = new Date(c.data);
     if (activeTab === 'proximas')   return dataConsulta >= agora && c.status !== 'cancelado';
     if (activeTab === 'anteriores') return dataConsulta < agora  || c.status === 'cancelado' || c.status === 'concluido';
     return true;
   });
 
   const renderItem = ({ item }: { item: Consulta }) => {
-    const dataObj = new Date(item.data);     // usa 'item.data'
+    const dataObj = new Date(item.data);
     const dateStr = dataObj.toLocaleDateString('pt-BR', {
       weekday: 'short',
       day: '2-digit',
@@ -81,8 +81,8 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
       hour: '2-digit',
       minute: '2-digit',
     });
-    const medicoNome    = item.medico ?? 'Profissional';         // flat
-    const especialidade = item.especialidade ?? '';              // flat
+    const medicoNome    = item.medico ?? 'Profissional';
+    const especialidade = item.especialidade ?? '';
     const cfg           = STATUS_CONFIG[item.status] ?? { label: item.status, color: '#888', icon: 'ellipse-outline' };
 
     return (
