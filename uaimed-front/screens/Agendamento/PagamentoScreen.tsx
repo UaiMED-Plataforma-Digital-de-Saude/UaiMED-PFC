@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   ScrollView,
   Modal,
   Pressable,
+  Share,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackScreenProps } from '@react-navigation/stack';
@@ -19,6 +21,169 @@ import AppModal from '../../components/AppModal';
 import { useModal } from '../../hooks/useModal';
 
 type Props = StackScreenProps<AgendamentoStackParamList, 'Pagamento'>;
+
+// ── Geração de código de barras simulado ──────────────────────────────────────
+function gerarCodigoBoleto(valor: number): string {
+  const rand = (n: number) => Math.floor(Math.random() * n).toString().padStart(n.toString().length, '0');
+  const v = valor.toFixed(2).replace('.', '').padStart(10, '0');
+  return `34191.${rand(99999)} ${rand(99999)}.${rand(999999)} ${rand(99999)}.${rand(999999)} ${rand(1)} 0001${v}`;
+}
+
+function gerarVencimento(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 3);
+  return d.toLocaleDateString('pt-BR');
+}
+
+function gerarNossoNumero(): string {
+  return Math.floor(Math.random() * 9000000000 + 1000000000).toString();
+}
+
+// ── Barras visuais do código de barras ────────────────────────────────────────
+const BarcodeVisual: React.FC = () => {
+  const bars = useMemo(() => {
+    const arr: { width: number; isWhite: boolean }[] = [];
+    for (let i = 0; i < 80; i++) {
+      arr.push({ width: Math.random() > 0.5 ? 3 : 2, isWhite: i % 2 === 0 });
+    }
+    return arr;
+  }, []);
+
+  return (
+    <View style={boletoStyles.barcodeContainer}>
+      {bars.map((bar, i) => (
+        <View
+          key={i}
+          style={[
+            boletoStyles.bar,
+            {
+              width: bar.width,
+              backgroundColor: bar.isWhite ? '#FFFFFF' : '#000000',
+            },
+          ]}
+        />
+      ))}
+    </View>
+  );
+};
+
+// ── Componente principal do Boleto ────────────────────────────────────────────
+interface BoletoViewProps {
+  valor: number;
+  onCopiado: () => void;
+}
+
+const BoletoView: React.FC<BoletoViewProps> = ({ valor, onCopiado }) => {
+  const codigo = useMemo(() => gerarCodigoBoleto(valor), [valor]);
+  const vencimento = useMemo(() => gerarVencimento(), []);
+  const nossoNumero = useMemo(() => gerarNossoNumero(), []);
+  const dataEmissao = new Date().toLocaleDateString('pt-BR');
+
+  const handleCopiar = async () => {
+    try {
+      await Share.share({
+        message: `Linha Digitável do Boleto UaiMED:\n\n${codigo}`,
+        title: 'Boleto UaiMED',
+      });
+      onCopiado();
+    } catch (_) {
+      onCopiado();
+    }
+  };
+
+  return (
+    <View style={boletoStyles.boletoCard}>
+      {/* ── Cabeçalho do banco ── */}
+      <View style={boletoStyles.boletoHeader}>
+        <View style={boletoStyles.bankLogoBox}>
+          <Text style={boletoStyles.bankLogoText}>UAI</Text>
+          <Text style={boletoStyles.bankLogoSub}>BANK</Text>
+        </View>
+        <View style={boletoStyles.bankCodeBox}>
+          <Text style={boletoStyles.bankCode}>341-7</Text>
+        </View>
+        <Text style={boletoStyles.boletoTitleText}>BOLETO BANCÁRIO</Text>
+      </View>
+
+      {/* ── Linha digitável ── */}
+      <View style={boletoStyles.linhaDigitavelBox}>
+        <Text style={boletoStyles.linhaDigitavelLabel}>Linha Digitável</Text>
+        <Text style={boletoStyles.linhaDigitavel} selectable>{codigo}</Text>
+      </View>
+
+      {/* ── Código de barras visual ── */}
+      <BarcodeVisual />
+      <Text style={boletoStyles.barcodeNote}>Código de Barras — Não escaneável (simulado)</Text>
+
+      {/* ── Linha tracejada ── */}
+      <View style={boletoStyles.dashedLine} />
+
+      {/* ── Informações do boleto ── */}
+      <View style={boletoStyles.infoGrid}>
+        <View style={boletoStyles.infoBlock}>
+          <Text style={boletoStyles.infoLabel}>Beneficiário</Text>
+          <Text style={boletoStyles.infoValue}>UaiMED Serviços de Saúde Ltda</Text>
+          <Text style={boletoStyles.infoSubValue}>CNPJ: 00.000.000/0001-00</Text>
+        </View>
+        <View style={boletoStyles.infoRowDivider} />
+
+        <View style={boletoStyles.infoRow}>
+          <View style={boletoStyles.infoCell}>
+            <Text style={boletoStyles.infoLabel}>Agência / Código</Text>
+            <Text style={boletoStyles.infoValue}>0001 / 12345-6</Text>
+          </View>
+          <View style={boletoStyles.infoCellBorderLeft}>
+            <Text style={boletoStyles.infoLabel}>Nosso Número</Text>
+            <Text style={boletoStyles.infoValue}>{nossoNumero}</Text>
+          </View>
+        </View>
+        <View style={boletoStyles.infoRowDivider} />
+
+        <View style={boletoStyles.infoRow}>
+          <View style={boletoStyles.infoCell}>
+            <Text style={boletoStyles.infoLabel}>Data de Emissão</Text>
+            <Text style={boletoStyles.infoValue}>{dataEmissao}</Text>
+          </View>
+          <View style={boletoStyles.infoCellBorderLeft}>
+            <Text style={boletoStyles.infoLabel}>Vencimento</Text>
+            <Text style={[boletoStyles.infoValue, { color: '#E53935' }]}>{vencimento}</Text>
+          </View>
+          <View style={boletoStyles.infoCellBorderLeft}>
+            <Text style={boletoStyles.infoLabel}>Valor (R$)</Text>
+            <Text style={[boletoStyles.infoValue, { color: '#1B5E20', fontWeight: '800' }]}>
+              {valor.toFixed(2)}
+            </Text>
+          </View>
+        </View>
+        <View style={boletoStyles.infoRowDivider} />
+
+        <View style={boletoStyles.infoBlock}>
+          <Text style={boletoStyles.infoLabel}>Pagador</Text>
+          <Text style={boletoStyles.infoValue}>Paciente UaiMED</Text>
+        </View>
+      </View>
+
+      {/* ── Instruções ── */}
+      <View style={boletoStyles.instrucoes}>
+        <Text style={boletoStyles.instrucoesTitle}>Instruções de Pagamento</Text>
+        <Text style={boletoStyles.instrucoesItem}>• Pague em qualquer banco, lotérica ou internet banking.</Text>
+        <Text style={boletoStyles.instrucoesItem}>• Após o vencimento, sujeito a juros e multa de 2%.</Text>
+        <Text style={boletoStyles.instrucoesItem}>• Não receber após 30 dias do vencimento.</Text>
+        <Text style={boletoStyles.instrucoesItem}>• Confirme o valor antes de efetuar o pagamento.</Text>
+      </View>
+
+      {/* ── Botão copiar código ── */}
+      <TouchableOpacity style={boletoStyles.copyBtn} onPress={handleCopiar} activeOpacity={0.8}>
+        <Ionicons name="share-social-outline" size={18} color="#FFF" />
+        <Text style={boletoStyles.copyBtnText}>Compartilhar / Copiar Código</Text>
+      </TouchableOpacity>
+
+      <Text style={boletoStyles.boletoFooter}>
+        UaiMED · Serviços de Saúde Digital · SAC 0800 000 0000
+      </Text>
+    </View>
+  );
+};
 
 const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
   const amount = route.params?.amount ?? 0;
@@ -155,6 +320,15 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
               <TextInput style={[styles.input, { width: 100 }]} placeholder="CVV" keyboardType="numeric" value={cvv} onChangeText={setCvv} />
             </View>
           </View>
+        )}
+
+        {method === 'boleto' && (
+          <BoletoView
+            valor={finalAmount}
+            onCopiado={() =>
+              showModal('Copiado!', 'Linha digitável copiada. Cole no seu banco ou internet banking.', { type: 'success' })
+            }
+          />
         )}
 
         <View style={styles.section}>
@@ -415,3 +589,219 @@ const styles = StyleSheet.create({
 });
 
 export default PagamentoScreen;
+
+// ── Estilos do Boleto ─────────────────────────────────────────────────────────
+const boletoStyles = StyleSheet.create({
+  boletoCard: {
+    borderWidth: 1,
+    borderColor: '#BDBDBD',
+    borderRadius: 8,
+    backgroundColor: '#FAFAFA',
+    marginBottom: 14,
+    overflow: 'hidden',
+  },
+
+  // Header
+  boletoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1B5E20',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  bankLogoBox: {
+    backgroundColor: '#FFF',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    alignItems: 'center',
+  },
+  bankLogoText: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#1B5E20',
+    letterSpacing: 1,
+  },
+  bankLogoSub: {
+    fontSize: 7,
+    color: '#388E3C',
+    letterSpacing: 2,
+    fontWeight: '700',
+  },
+  bankCodeBox: {
+    borderLeftWidth: 2,
+    borderRightWidth: 2,
+    borderColor: '#FFF',
+    paddingHorizontal: 10,
+    marginHorizontal: 4,
+  },
+  bankCode: {
+    color: '#FFF',
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  boletoTitleText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 13,
+    flex: 1,
+    textAlign: 'right',
+    letterSpacing: 0.5,
+  },
+
+  // Linha digitável
+  linhaDigitavelBox: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderColor: '#C8E6C9',
+  },
+  linhaDigitavelLabel: {
+    fontSize: 10,
+    color: '#388E3C',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  linhaDigitavel: {
+    fontSize: 12,
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    color: '#1B5E20',
+    letterSpacing: 0.5,
+    fontWeight: '700',
+  },
+
+  // Código de barras
+  barcodeContainer: {
+    flexDirection: 'row',
+    height: 64,
+    backgroundColor: '#FFF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignItems: 'stretch',
+  },
+  bar: {
+    height: '100%',
+  },
+  barcodeNote: {
+    fontSize: 9,
+    color: '#9E9E9E',
+    textAlign: 'center',
+    marginBottom: 6,
+    fontStyle: 'italic',
+  },
+
+  // Linha tracejada (corte do canhoto)
+  dashedLine: {
+    height: 1,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: '#9E9E9E',
+    marginHorizontal: 12,
+    marginVertical: 8,
+  },
+
+  // Grade de informações
+  infoGrid: {
+    borderWidth: 1,
+    borderColor: '#BDBDBD',
+    marginHorizontal: 12,
+    marginBottom: 10,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  infoBlock: {
+    padding: 8,
+  },
+  infoRow: {
+    flexDirection: 'row',
+  },
+  infoCell: {
+    flex: 1,
+    padding: 8,
+  },
+  infoCellBorderLeft: {
+    flex: 1,
+    padding: 8,
+    borderLeftWidth: 1,
+    borderColor: '#BDBDBD',
+  },
+  infoRowDivider: {
+    height: 1,
+    backgroundColor: '#BDBDBD',
+  },
+  infoLabel: {
+    fontSize: 9,
+    color: '#757575',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+    marginBottom: 2,
+  },
+  infoValue: {
+    fontSize: 12,
+    color: '#212121',
+    fontWeight: '600',
+  },
+  infoSubValue: {
+    fontSize: 10,
+    color: '#757575',
+    marginTop: 2,
+  },
+
+  // Instruções
+  instrucoes: {
+    backgroundColor: '#FFFDE7',
+    marginHorizontal: 12,
+    padding: 10,
+    borderRadius: 4,
+    borderLeftWidth: 3,
+    borderLeftColor: '#F9A825',
+    marginBottom: 12,
+  },
+  instrucoesTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#F57F17',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  instrucoesItem: {
+    fontSize: 11,
+    color: '#5D4037',
+    lineHeight: 18,
+  },
+
+  // Botão copiar
+  copyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#388E3C',
+    marginHorizontal: 12,
+    marginBottom: 10,
+    paddingVertical: 12,
+    borderRadius: 8,
+    elevation: 2,
+  },
+  copyBtnText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+
+  // Rodapé
+  boletoFooter: {
+    textAlign: 'center',
+    fontSize: 10,
+    color: '#9E9E9E',
+    paddingBottom: 12,
+    fontStyle: 'italic',
+  },
+});
+
