@@ -4,7 +4,7 @@ import uaiMedApi from '../api/uaiMedApi';
 /**
  * Métodos de pagamento suportados
  */
-export type PaymentMethod = 'pix' | 'card' | 'cash';
+export type PaymentMethod = 'pix' | 'card' | 'boleto';
 
 /**
  * Interface para dados de pagamento

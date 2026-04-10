@@ -141,7 +141,7 @@ export const AvaliacaoScreen: React.FC<Props> = ({ route, navigation }) => {
       Alert.alert('Sucesso', 'Obrigado por avaliar seu atendimento!', [
         {
           text: 'OK',
-          onPress: () => navigation.navigate('Busca'),
+          onPress: () => navigation.getParent<any>()?.navigate('Home'),
         },
       ]);
     } catch (error: any) {

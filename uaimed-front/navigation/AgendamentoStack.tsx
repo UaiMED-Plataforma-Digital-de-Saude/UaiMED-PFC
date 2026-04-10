@@ -13,6 +13,8 @@ import MedicoDetalhesScreen from '../screens/Agendamento/MedicoDetalhesScreen';
 import SelecaoHorarioScreen from '../screens/Agendamento/SelecaoHorarioScreen';
 import SelecaoHorariosDiaScreen from '../screens/Agendamento/SelecaoHorariosDiaScreen';
 import ConfirmacaoScreen from '../screens/Agendamento/ConfirmacaoScreen';
+import MeusPagamentosScreen from '../screens/Agendamento/MeusPagamentosScreen';
+import MinhasConsultasScreen from '../screens/Agendamento/MinhasConsultasScreen';
 
 const Stack = createStackNavigator<AgendamentoStackParamList>();
 
@@ -97,7 +99,17 @@ const AgendamentoStack: React.FC = () => {
         component={ConfirmacaoScreen}
         options={{ title: 'Confirmação' }}
       />
-     
+      <Stack.Screen
+        name="MeusPagamentos"
+        component={MeusPagamentosScreen}
+        options={{ title: 'Meus Pagamentos', headerShown: false }}
+      />
+      <Stack.Screen
+        name="MinhasConsultas"
+        component={MinhasConsultasScreen}
+        options={{ title: 'Minhas Consultas', headerShown: false }}
+      />
+
     </Stack.Navigator>
   );
 };

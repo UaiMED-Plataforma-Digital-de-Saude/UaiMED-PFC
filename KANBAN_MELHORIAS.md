@@ -1,7 +1,7 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.7.0  
-**Data**: 9 de Abril de 2026  
+**Versão**: 1.8.0  
+**Data**: 10 de Abril de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
 
@@ -31,9 +31,84 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
 
 ---
 
-## 🟢 CONCLUÍDO — Sprint Atual (01/04/2026 → 09/04/2026)
+## 🟢 CONCLUÍDO — Sprint Atual (01/04/2026 → 10/04/2026)
 
 > Itens finalizados nesta sessão de desenvolvimento.
+
+---
+
+### ✅ [BUG FIX] `MinhasConsultasScreen` — Consultas agendadas não apareciam na listagem
+
+**Área**: Frontend | **Prioridade**: 🔴 Crítico | **Esforço**: 2
+
+**Causa**: Interface `Consulta` usava `dataHora` e `profissional.usuario.nome`, mas o backend (`GET /agendamentos`) retorna `data` e campos planos `medico`/`especialidade`.  
+**Fix**: Interface e campos de filtragem/renderização corrigidos para espelhar o contrato real da API.
+
+---
+
+### ✅ [FEATURE] `PagamentoScreen` — Substituição de "Dinheiro" por "Boleto Bancário"
+
+**Área**: Frontend | **Prioridade**: 🟡 Médio | **Esforço**: 1
+
+- Método `cash` substituído por `boleto` em `PagamentoScreen.tsx`, `usePayments.ts` e `MeusPagamentosScreen.tsx`
+- Ícone `document-text-outline` reflete o contexto de boleto bancário
+
+---
+
+### ✅ [FEATURE] Telas dedicadas `MinhasConsultasScreen` e `MeusPagamentosScreen`
+
+**Área**: Frontend + Backend | **Prioridade**: 🟠 Alto | **Esforço**: 5
+
+- `MinhasConsultasScreen`: lista consultas com abas "Próximas" e "Anteriores", badges de status, pull-to-refresh
+- `MeusPagamentosScreen`: lista pagamentos com card de total investido, método, desconto e status
+- Backend: `GET /pagamentos` adicionado com join de agendamento/profissional
+- Navegação: rotas `MinhasConsultas` e `MeusPagamentos` adicionadas ao `AgendamentoStackParamList`
+
+---
+
+### ✅ [UX] `HomeScreen` — Atalhos e menu reestruturados
+
+**Área**: Frontend | **Prioridade**: 🟡 Médio | **Esforço**: 2
+
+- Ícone de menu estático (sem animação de rotação)
+- Menu dropdown: Meu Perfil · Minhas Consultas · Meus Pagamentos · Sair
+- Atalhos: Minhas Consultas · Meus Pagamentos · Ajuda (3 itens, sem "Nova Consulta" redundante)
+
+---
+
+### ✅ [UX] `PerfilScreen` — Seção "Meus Registros" com atalhos de navegação
+
+**Área**: Frontend | **Prioridade**: 🟢 Baixo | **Esforço**: 1
+
+- Seção "Minha Saúde" renomeada para "Meus Registros"
+- Atalhos "Minhas Consultas" e "Meus Pagamentos" navegam para telas dedicadas
+
+---
+
+### ✅ [BUG FIX] `MainTabNavigation` — Tab "Agendamentos" não retornava ao `SearchScreen`
+
+**Área**: Frontend | **Prioridade**: 🔴 Crítico | **Esforço**: 1
+
+- Ajustado o comportamento da tab Agendamentos para retornar à `SearchScreen` ao tocar na aba
+- Ao tocar na aba, o stack reinicia na `SearchScreen` independente de navegação anterior via atalhos
+
+---
+
+### ✅ [BUG FIX] `Maximum update depth exceeded` — Loop infinito de re-renders
+
+**Área**: Frontend | **Prioridade**: 🔴 Crítico | **Esforço**: 3
+
+- `AuthContext.tsx`: `signIn`/`signOut` com `useCallback`, `value` com `useMemo`
+- `MainTabNavigation.tsx`: `<Tab.Screen>` estáticos com ocultação via `tabBarItemStyle`
+- `MedicoAgendaScreen.tsx`: dependência `[user?.id]` em vez de `[user]`
+
+---
+
+### ✅ [BUG FIX] `expo-notifications` — Erro no Expo Go (SDK 53+)
+
+**Área**: Frontend | **Prioridade**: 🟠 Alto | **Esforço**: 1
+
+- `App.tsx` detecta Expo Go via `Constants.appOwnership`; `requestPermissionsAsync` só chamado em dev/production build
 
 ---
 
@@ -482,11 +557,11 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
 
 | Coluna | Quantidade |
 |---|---|
-| 🟢 Concluído (esta sessão) | 11 itens |
+| 🟢 Concluído (esta sessão) | 19 itens |
 | 🔵 A Fazer (próxima sprint) | 11 itens |
 | 🗃️ Backlog | 12 itens |
 | ⏸️ Bloqueado | 2 itens |
-| **Total** | **36 itens** |
+| **Total** | **44 itens** |
 
 ---
 
@@ -518,9 +593,8 @@ Sprint 5 (entrega PFC)
 | 06/04/2026 | 1.5.0 | Feature de Filtro de Localização Regional adicionada ao "A Fazer" com critérios de aceite detalhados |
 | 06/04/2026 | 1.6.0 | Feature implementada e movida para Concluído — LocationModal, SearchScreen, ResultadosScreen, HomeScreen, FeaturedProfessionalsCarousel e backend atualizados |
 | 09/04/2026 | 1.7.0 | SelecaoHorarioScreen reescrita com calendário mensal + grade de horários; backend suporta filtro por `?data=YYYY-MM-DD` |
+| 10/04/2026 | 1.8.0 | Telas MinhasConsultas e MeusPagamentos; bug fix campo `data` vs `dataHora`; Boleto bancário; UX HomeScreen e PerfilScreen; fix Maximum update depth; fix expo-notifications Expo Go |
 
 ---
 
 *Documento gerado e mantido pelo time UaiMED-PFC. Atualizar a cada sprint.*
-
-TESTE

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Animated, Easing, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Animated, ActivityIndicator } from 'react-native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from '../../navigation/types';
 import { useAuth } from '../../hooks/useAuth';
@@ -20,9 +20,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [locationModalVisible, setLocationModalVisible] = useState(false);
   const [location, setLocation] = useState<LocationValue>({ uf: '', estado: '', cidade: '' });
 
-  const rotation = useRef(new Animated.Value(0)).current;
   const menuAnim = useRef(new Animated.Value(0)).current;
-  const itemAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+  const itemAnims = useRef([
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+  ]).current;
 
   // Carrega localização persistida
   useEffect(() => {
@@ -34,28 +39,23 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   }, []);
 
   useEffect(() => {
-    Animated.timing(rotation, {
-      toValue: menuOpen ? 1 : 0,
-      duration: 220,
-      easing: Easing.out(Easing.quad),
-      useNativeDriver: true,
-    }).start();
-
     Animated.timing(menuAnim, {
       toValue: menuOpen ? 1 : 0,
-      duration: 220,
-      easing: Easing.out(Easing.quad),
+      duration: 200,
       useNativeDriver: true,
     }).start();
 
     if (menuOpen) {
-      const seq = itemAnims.map((anim, i) => Animated.timing(anim, { toValue: 1, duration: 200, delay: i * 60, useNativeDriver: true }));
-      Animated.stagger(60, seq).start();
+      const seq = itemAnims.map((anim, i) =>
+        Animated.timing(anim, { toValue: 1, duration: 180, delay: i * 50, useNativeDriver: true })
+      );
+      Animated.stagger(50, seq).start();
     } else {
-      const seq = itemAnims.map((anim) => Animated.timing(anim, { toValue: 0, duration: 120, useNativeDriver: true }));
-      Animated.parallel(seq).start();
+      itemAnims.forEach(anim =>
+        Animated.timing(anim, { toValue: 0, duration: 100, useNativeDriver: true }).start()
+      );
     }
-  }, [menuOpen, rotation, menuAnim, itemAnims]);
+  }, [menuOpen, menuAnim, itemAnims]);
 
   const handleLocationConfirm = async (loc: LocationValue) => {
     setLocation(loc);
@@ -101,15 +101,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   }, []);
 
 
-  const rotate = rotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] });
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => setMenuOpen((s) => !s)} style={styles.menuButton} accessibilityLabel="Abrir menu">
-          <Animated.View style={{ transform: [{ rotate }] }}>
-            <Ionicons name="menu" size={26} color="#333" />
-          </Animated.View>
+          {/* Ícone estático — sem rotação */}
+          <Ionicons name="menu" size={26} color="#333" />
         </TouchableOpacity>
         <Text style={styles.greetingText}>Olá{user?.nome ? `, ${user.nome.split(' ')[0]}` : ''}</Text>
       </View>
@@ -124,11 +122,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 opacity: menuAnim,
                 transform: [
                   { translateY: menuAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] }) },
-                  { scale: menuAnim.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1] }) },
+                  { scale: menuAnim.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1] }) },
                 ],
               },
             ]}
           >
+            {/* Meu Perfil */}
             <Animated.View style={[styles.menuItem, { opacity: itemAnims[0], transform: [{ translateY: itemAnims[0].interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }] }]}>
               <TouchableOpacity onPress={() => { setMenuOpen(false); navigation.navigate('Perfil'); }} style={styles.menuRow}>
                 <Ionicons name="person-outline" size={18} color="#4B73B2" style={{ marginRight: 10 }} />
@@ -136,14 +135,27 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               </TouchableOpacity>
             </Animated.View>
 
+            {/* Minhas Consultas */}
             <Animated.View style={[styles.menuItem, { opacity: itemAnims[1], transform: [{ translateY: itemAnims[1].interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }] }]}>
-              <TouchableOpacity onPress={() => { setMenuOpen(false); navigation.navigate('Agendamentos'); }} style={styles.menuRow}>
+              <TouchableOpacity onPress={() => { setMenuOpen(false); navigation.navigate('Agendamentos', { screen: 'MinhasConsultas' }); }} style={styles.menuRow}>
                 <Ionicons name="calendar-outline" size={18} color="#4B73B2" style={{ marginRight: 10 }} />
-                <Text style={styles.menuText}>Meus Agendamentos</Text>
+                <Text style={styles.menuText}>Minhas Consultas</Text>
               </TouchableOpacity>
             </Animated.View>
 
+            {/* Meus Pagamentos */}
             <Animated.View style={[styles.menuItem, { opacity: itemAnims[2], transform: [{ translateY: itemAnims[2].interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }] }]}>
+              <TouchableOpacity onPress={() => { setMenuOpen(false); navigation.navigate('Agendamentos', { screen: 'MeusPagamentos' }); }} style={styles.menuRow}>
+                <Ionicons name="card-outline" size={18} color="#4B73B2" style={{ marginRight: 10 }} />
+                <Text style={styles.menuText}>Meus Pagamentos</Text>
+              </TouchableOpacity>
+            </Animated.View>
+
+            {/* Divisor */}
+            <View style={styles.menuDivider} />
+
+            {/* Sair */}
+            <Animated.View style={[styles.menuItem, { opacity: itemAnims[3], transform: [{ translateY: itemAnims[3].interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }] }]}>
               <TouchableOpacity onPress={() => { setMenuOpen(false); signOut(); }} style={styles.menuRow}>
                 <Ionicons name="log-out-outline" size={18} color="#D9534F" style={{ marginRight: 10 }} />
                 <Text style={[styles.menuText, { color: '#D9534F' }]}>Sair</Text>
@@ -198,13 +210,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
       <Text style={styles.sectionTitle}>Atalhos</Text>
       <View style={styles.shortcutsContainer}>
-        <TouchableOpacity style={styles.shortcutItem} onPress={() => navigation.navigate('Agendamentos', { screen: 'Busca' })}>
-          <Ionicons name="calendar" size={28} color="#4CAF50" />
-          <Text style={styles.shortcutText}>Agendar</Text>
+        <TouchableOpacity style={styles.shortcutItem} onPress={() => navigation.navigate('Agendamentos', { screen: 'MinhasConsultas' })}>
+          <Ionicons name="calendar-outline" size={28} color="#4CAF50" />
+          <Text style={styles.shortcutText}>Minhas Consultas</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.shortcutItem} onPress={() => navigation.navigate('Perfil')}>
-          <Ionicons name="person" size={28} color="#4CAF50" />
-          <Text style={styles.shortcutText}>Perfil</Text>
+        <TouchableOpacity style={styles.shortcutItem} onPress={() => navigation.navigate('Agendamentos', { screen: 'MeusPagamentos' })}>
+          <Ionicons name="card-outline" size={28} color="#4CAF50" />
+          <Text style={styles.shortcutText}>Meus Pagamentos</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.shortcutItem} onPress={() => Alert.alert('Ajuda', 'Em breve...')}>
           <Ionicons name="help-circle" size={28} color="#4CAF50" />
@@ -258,13 +270,14 @@ const styles = StyleSheet.create({
   detailButton: { marginTop: 10, alignSelf: 'flex-start' },
   detailButtonText: { color: '#4B73B2', fontWeight: '600' },
   shortcutsContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 6, marginBottom: 16, marginHorizontal: 4 },
-  shortcutItem: { alignItems: 'center' },
-  shortcutText: { fontSize: 12, marginTop: 6, fontWeight: '500', color: '#555' },
+  shortcutItem: { alignItems: 'center', width: '30%', marginBottom: 8 },
+  shortcutText: { fontSize: 11, marginTop: 6, fontWeight: '500', color: '#555', textAlign: 'center' },
   menuOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.25)', zIndex: 50 },
-  menuBox: { position: 'absolute', top: 60, left: 12, width: 220, backgroundColor: '#FFF', borderRadius: 12, elevation: 8, paddingVertical: 8, paddingHorizontal: 6, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
+  menuBox: { position: 'absolute', top: 60, left: 12, width: 230, backgroundColor: '#FFF', borderRadius: 12, elevation: 8, paddingVertical: 8, paddingHorizontal: 6, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
   menuItem: { paddingVertical: 8, paddingHorizontal: 6 },
   menuRow: { flexDirection: 'row', alignItems: 'center' },
   menuText: { fontSize: 15, color: '#333', fontWeight: '500' },
+  menuDivider: { height: 1, backgroundColor: '#F0F0F0', marginVertical: 4, marginHorizontal: 6 },
 });
 
 export default HomeScreen;

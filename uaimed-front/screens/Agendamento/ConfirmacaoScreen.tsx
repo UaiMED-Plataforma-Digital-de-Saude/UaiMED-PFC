@@ -84,7 +84,7 @@ const ConfirmacaoScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* Botão secundário: Voltar ao Início */}
       <TouchableOpacity
         style={styles.buttonSecondary}
-        onPress={() => navigation.navigate('Busca')}
+        onPress={() => navigation.getParent<any>()?.navigate('Home')}
       >
         <Text style={styles.buttonSecondaryText}>Voltar ao Início</Text>
       </TouchableOpacity>
