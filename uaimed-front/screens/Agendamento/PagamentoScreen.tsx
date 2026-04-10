@@ -26,7 +26,7 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
   const medicoId = route.params?.medicoId;
   const { processarPagamento, loading, validarCupom, calcularValorFinal } = usePayments();
   
-  const [method, setMethod] = useState<'pix' | 'card' | 'cash'>('pix');
+  const [method, setMethod] = useState<'pix' | 'card' | 'boleto'>('pix');
   const [cardNumber, setCardNumber] = useState('');
   const [cardName, setCardName] = useState('');
   const [expiry, setExpiry] = useState('');
@@ -68,13 +68,13 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
   const methodLabel: Record<string, string> = {
     pix: 'Pix',
     card: 'Cartão de crédito/débito',
-    cash: 'Dinheiro',
+    boleto: 'Boleto Bancário',
   };
 
   const methodIcon: Record<string, string> = {
     pix: 'scan',
     card: 'card',
-    cash: 'cash',
+    boleto: 'document-text-outline',
   };
 
   const processarPagamentoConfirmado = async () => {
@@ -138,9 +138,9 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
               <Ionicons name="card" size={22} color={method === 'card' ? '#FFF' : '#4CAF50'} />
               <Text style={[styles.methodText, method === 'card' && styles.methodTextActive]}>Cartão</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.method, method === 'cash' && styles.methodActive]} onPress={() => setMethod('cash')}>
-              <Ionicons name="cash" size={22} color={method === 'cash' ? '#FFF' : '#4CAF50'} />
-              <Text style={[styles.methodText, method === 'cash' && styles.methodTextActive]}>Dinheiro</Text>
+            <TouchableOpacity style={[styles.method, method === 'boleto' && styles.methodActive]} onPress={() => setMethod('boleto')}>
+              <Ionicons name="document-text-outline" size={22} color={method === 'boleto' ? '#FFF' : '#4CAF50'} />
+              <Text style={[styles.methodText, method === 'boleto' && styles.methodTextActive]}>Boleto</Text>
             </TouchableOpacity>
           </View>
         </View>

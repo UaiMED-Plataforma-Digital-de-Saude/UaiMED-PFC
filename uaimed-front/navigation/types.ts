@@ -34,6 +34,8 @@ export type AgendamentoStackParamList = {
   Avaliacao?: { agendamentoId: string; medicoId: string };
   HistoricoAvaliacoes?: undefined;
   Pagamento?: { amount?: number; agendamentoId?: string; medicoId?: string };
+  MeusPagamentos?: undefined;
+  MinhasConsultas?: undefined;
   ContatoProfissional?: { medicoId: string };
 };
 

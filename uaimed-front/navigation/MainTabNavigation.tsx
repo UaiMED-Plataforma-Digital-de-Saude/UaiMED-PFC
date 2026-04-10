@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from './types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
+import { StackActions } from '@react-navigation/native';
 
 // Importe as telas
 import HomeScreen from '../screens/Main/HomeScreen';
@@ -56,10 +57,21 @@ const MainTabNavigator: React.FC = () => {
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Início' }} />
 
-      {/* Paciente: fluxo de agendamento — oculto para outros tipos */}
+      {/* Paciente: fluxo de agendamento — oculto para outros tipos.
+          tabPress listener: ao tocar na aba, reseta o stack para Busca (SearchScreen).
+          Navegação programática via atalhos (MinhasConsultas, MeusPagamentos) NÃO
+          dispara tabPress, então abre a tela correta normalmente. */}
       <Tab.Screen
         name="Agendamentos"
         component={AgendamentoStack}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            // Reseta o stack interno para Busca ao tocar na aba diretamente
+            navigation.dispatch(StackActions.popToTop());
+            navigation.navigate('Agendamentos' as never);
+          },
+        })}
         options={{
           title: 'Agendamentos',
           tabBarItemStyle: isPaciente ? undefined : hiddenTab,

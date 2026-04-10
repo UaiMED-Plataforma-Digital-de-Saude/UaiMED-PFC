@@ -1,9 +1,9 @@
 # 📘 Documentação Completa do Projeto UaiMED
 
-**Versão**: 1.4.0  
-**Data**: 6 de Abril de 2026  
+**Versão**: 1.5.0  
+**Data**: 10 de Abril de 2026  
 **Classificação**: Documentação Técnica de Engenharia de Software  
-**Status**: Projeto em Desenvolvimento Avançado — Pipeline CI/CD, GitHub Actions e UX da HomeScreen otimizados
+**Status**: Projeto em Desenvolvimento Avançado — UX aprimorada, bug fixes de navegação e fluxo de registros do usuário
 
 ---
 
@@ -1137,6 +1137,58 @@ O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 
 **Backend — Correção TypeScript:**
 - `middleware/validate.ts` — tipo alterado de `AnyZodObject` para `ZodTypeAny`, permitindo que schemas com `.refine()` (`ZodEffects`) sejam passados sem erro de compilação
+
+---
+
+### v1.5.0 — 10 de Abril de 2026
+
+#### 🟢 Implementado
+
+**Correção de Bug Crítico — `MinhasConsultasScreen`:**
+- Interface `Consulta` corrigida para espelhar o retorno real do `GET /agendamentos`: campo `data` (e não `dataHora`), e campos `medico`/`especialidade` no nível raiz (e não aninhados em `profissional.usuario.nome`)
+- Filtro de abas "Próximas" / "Anteriores" agora funciona corretamente com o campo `c.data`
+- Consultas agendadas passam a aparecer imediatamente na tela "Minhas Consultas" após o agendamento
+
+**Método de Pagamento — Boleto:**
+- `PagamentoScreen.tsx` — opção "Dinheiro" (`cash`) substituída por "Boleto Bancário" (`boleto`) com ícone `document-text-outline`
+- `usePayments.ts` — tipo `PaymentMethod` atualizado: `'pix' | 'card' | 'boleto'`
+- `MeusPagamentosScreen.tsx` — `METODO_LABEL` inclui `boleto: 'Boleto Bancário'` (mantém `cash` como legado)
+
+**UX — HomeScreen:**
+- Atalho "Nova Consulta" removido dos shortcuts
+- "Minhas Consultas" agora navega para `MinhasConsultasScreen` (lista dedicada de consultas)
+- "Meus Pagamentos" navega para `MeusPagamentosScreen`
+- Ícone de menu hambúrguer estático (sem animação de rotação)
+- Menu dropdown expandido com: Meu Perfil · Minhas Consultas · Meus Pagamentos · (divisor) · Sair
+
+**UX — PerfilScreen:**
+- Seção "Minha Saúde" renomeada para "Meus Registros"
+- "Minhas Consultas" e "Meus Pagamentos" navegam para telas dedicadas
+
+**Nova Tela `MinhasConsultasScreen`:**
+- Lista consultas agendadas do usuário via `GET /agendamentos`
+- Abas: Próximas (futuras, não canceladas) e Anteriores (passadas/canceladas/concluídas)
+- Card por consulta: nome do profissional, especialidade, data, horário, badge de status colorido
+- Pull-to-refresh integrado
+
+**Nova Tela `MeusPagamentosScreen`:**
+- Lista pagamentos do usuário via `GET /pagamentos`
+- Card de resumo verde com total investido em saúde
+- Detalhes: profissional, data da consulta, método, status e valor final com desconto
+
+**Backend:**
+- `GET /pagamentos` — novo endpoint para listar pagamentos do usuário autenticado com join de agendamento/profissional (`pagamentos.controller.ts`, `pagamentos.routes.ts`)
+
+**Navegação:**
+- `AgendamentoStackParamList` — rotas `MinhasConsultas` e `MeusPagamentos` adicionadas
+- `AgendamentoStack.tsx` — ambas as novas telas registradas no stack
+- `MainTabNavigation.tsx` — `unmountOnBlur: true` na tab Agendamentos: ao tocar na aba, o stack sempre reinicia na `SearchScreen` (Busca), impedindo que navegação via atalhos deixe MinhasConsultas como tela padrão da tab
+
+**Correções de Estabilidade:**
+- `AuthContext.tsx` — `signIn` e `signOut` agora usam `useCallback([], [])` e `value` usa `useMemo` → elimina re-renders excessivos em todos os consumers de `useAuth()`
+- `MainTabNavigation.tsx` — `<Tab.Screen>` sempre declarados estaticamente, ocultados via `tabBarItemStyle: { display: 'none' }` → resolve "Maximum update depth exceeded"
+- `MedicoAgendaScreen.tsx` — `useEffect([user?.id])` em vez de `useEffect([user])` → dependência estável
+- `App.tsx` — `expo-notifications` protegido com detecção de Expo Go (`Constants.appOwnership`): push notifications não solicitadas em Expo Go (SDK 53+); canal Android e handler local preservados
 
 ---
 

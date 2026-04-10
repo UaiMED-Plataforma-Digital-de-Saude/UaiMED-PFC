@@ -30,15 +30,16 @@ const ProfileInfoRow: React.FC<{
 
 /**
  * ActionItem
- * Componente para um item de ação clicável
+ * Componente para um item de ação clicável com ícone e chevron
  */
 const ActionItem: React.FC<{
   icon: keyof typeof Ionicons.glyphMap;
+  iconColor?: string;
   label: string;
   onPress: () => void;
-}> = ({ icon, label, onPress }) => (
+}> = ({ icon, iconColor = '#4B73B2', label, onPress }) => (
   <TouchableOpacity style={styles.actionItem} onPress={onPress}>
-    <Ionicons name={icon} size={24} color="#4B73B2" />
+    <Ionicons name={icon} size={24} color={iconColor} />
     <Text style={styles.actionText}>{label}</Text>
     <Ionicons name="chevron-forward" size={24} color="#CCC" />
   </TouchableOpacity>
@@ -48,7 +49,7 @@ const ActionItem: React.FC<{
  * PerfilScreen
  * Exibe informações do usuário e opções de configuração
  */
-const PerfilScreen: React.FC<PerfilScreenProps> = () => {
+const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   const { user, signOut } = useAuth();
   const profissionalId = user?.tipo === 'medico' ? user?.profissional?.id : undefined;
   const { notaMedia, loading: loadingAvaliacoes } = useAvaliacoes(profissionalId);
@@ -119,7 +120,23 @@ const PerfilScreen: React.FC<PerfilScreenProps> = () => {
             <ProfileInfoRow icon="wallet-outline" label="CPF/CNPJ" value={user.cpf || user.cnpj || 'Não informado'} />
         </View>
 
-        {/* 2. SEÇÃO DE CONFIGURAÇÕES */}
+        {/* 2. SEÇÃO DE CONSULTAS & PAGAMENTOS */}
+        <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Meus Registros</Text>
+            <ActionItem
+                icon="calendar-outline"
+                label="Minhas Consultas"
+                onPress={() => navigation.navigate('Agendamentos', { screen: 'MinhasConsultas' })}
+            />
+            <ActionItem
+                icon="card-outline"
+                iconColor="#4CAF50"
+                label="Meus Pagamentos"
+                onPress={() => navigation.navigate('Agendamentos', { screen: 'MeusPagamentos' })}
+            />
+        </View>
+
+        {/* 3. SEÇÃO DE CONFIGURAÇÕES */}
         <View style={styles.section}>
             <Text style={styles.sectionTitle}>Configurações</Text>
             <ActionItem 
@@ -204,7 +221,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = () => {
             )}
         </View>
 
-        {/* 3. AÇÃO DE LOGOUT */}
+        {/* 4. AÇÃO DE LOGOUT */}
         <View style={styles.section}>
             <TouchableOpacity 
                 style={styles.logoutButton} 

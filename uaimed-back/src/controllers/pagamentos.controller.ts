@@ -20,6 +20,36 @@ class PagamentosController {
     }
   }
 
+  async listar(req: Request, res: Response) {
+    try {
+      const usuarioId = (req as any).user?.id;
+      if (!usuarioId) return res.status(401).json({ error: "Usuário não autenticado" });
+
+      const pagamentos = await prisma.pagamento.findMany({
+        where: { usuarioId },
+        include: {
+          agendamento: {
+            select: {
+              dataHora: true,
+              profissional: {
+                select: {
+                  especialidade: true,
+                  usuario: { select: { nome: true } },
+                },
+              },
+            },
+          },
+        },
+        orderBy: { criado_em: "desc" },
+      });
+
+      return res.json(pagamentos);
+    } catch (err) {
+      logger.error("Erro ao listar pagamentos", err);
+      return res.status(500).json({ error: "Erro ao listar pagamentos" });
+    }
+  }
+
   async processar(req: Request, res: Response) {
     try {
       const { agendamentoId, valor, metodo, cupom, usingPlan, insuranceProvider, insuranceCoveragePercent } = req.body;
