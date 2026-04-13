@@ -5,86 +5,101 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
+  ScrollView,
 } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { AuthStackParamList } from '../../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, borderRadius } from '../../styles/themes';
 
 type EmailEnviadoScreenProps = StackScreenProps<AuthStackParamList, 'EmailEnviado'>;
 
+/**
+ * Tela de Confirmação de E-mail Enviado
+ * Informa ao usuário que o link de recuperação foi enviado com sucesso.
+ */
 const EmailEnviadoScreen: React.FC<EmailEnviadoScreenProps> = ({ navigation, route }) => {
-  const email = route.params?.email || '';
+  const email = route.params?.email || 'seu e-mail';
 
   /**
-   * Função para voltar ao login
+   * Volta para a tela de login
    */
   const handleGoToLogin = () => {
-    // Limpa a stack e volta ao Login
     navigation.navigate('Login');
   };
 
   /**
-   * Função para reenviar o email
+   * Função para reenviar o email (Placeholder para futura implementação)
    */
   const handleResendEmail = () => {
-    // TODO: Implementar lógica de reenvio de email
+    // No futuro, aqui chamaria a API de recuperação novamente
     console.log('Reenviando email para:', email);
-    // Você pode chamar a API novamente aqui
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        {/* Ícone de Sucesso */}
-        <View style={styles.iconContainer}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Ícone de Sucesso Centralizado */}
+        <View style={styles.iconSection}>
           <View style={styles.iconBackground}>
-            <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
+            <Ionicons name="mail-unread-outline" size={80} color={colors.primary} />
+            <View style={styles.checkBadge}>
+              <Ionicons name="checkmark-circle" size={32} color={colors.success} />
+            </View>
           </View>
         </View>
 
-        {/* Título */}
-        <Text style={styles.title}>E-mail Enviado!</Text>
+        {/* Título e Mensagem Principal */}
+        <View style={styles.textSection}>
+          <Text style={styles.title}>E-mail Enviado!</Text>
+          <Text style={styles.message}>
+            Enviamos um link de recuperação para o endereço:
+          </Text>
+          <Text style={styles.emailHighlight}>{email}</Text>
+        </View>
 
-        {/* Mensagem */}
-        <Text style={styles.message}>
-          Enviamos um link de recuperação para:
-        </Text>
-        <Text style={styles.emailText}>{email}</Text>
+        {/* Card de Instruções */}
+        <View style={styles.instructionsCard}>
+          <Text style={styles.instructionsTitle}>Próximos passos:</Text>
 
-        {/* Instruções */}
-        <View style={styles.instructionsContainer}>
           <View style={styles.instructionItem}>
-            <Text style={styles.instructionNumber}>1</Text>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepText}>1</Text>
+            </View>
             <Text style={styles.instructionText}>
-              Abra seu e-mail e procure pela mensagem do UaiMED
+              Abra seu aplicativo de e-mail ou acesse pelo navegador.
             </Text>
           </View>
 
           <View style={styles.instructionItem}>
-            <Text style={styles.instructionNumber}>2</Text>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepText}>2</Text>
+            </View>
             <Text style={styles.instructionText}>
-              Clique no link "Redefinir Senha"
+              Procure pela mensagem do <Text style={{ fontWeight: 'bold' }}>UaiMED</Text> na sua caixa de entrada.
             </Text>
           </View>
 
           <View style={styles.instructionItem}>
-            <Text style={styles.instructionNumber}>3</Text>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepText}>3</Text>
+            </View>
             <Text style={styles.instructionText}>
-              Digite sua nova senha e confirme
+              Clique no botão de <Text style={{ fontWeight: 'bold' }}>Redefinir Senha</Text> e siga as instruções.
             </Text>
           </View>
         </View>
 
-        {/* Aviso */}
-        <View style={styles.warningBox}>
-          <Ionicons name="information-circle" size={20} color="#FF9800" />
-          <Text style={styles.warningText}>
-            Se não receber o e-mail, verifique a pasta de Spam
+        {/* Aviso sobre Spam */}
+        <View style={styles.spamWarning}>
+          <Ionicons name="alert-circle-outline" size={20} color={colors.warning} />
+          <Text style={styles.spamText}>
+            Não recebeu? Verifique sua pasta de <Text style={{ fontWeight: 'bold' }}>Spam</Text> ou Lixo Eletrônico.
           </Text>
         </View>
 
-        {/* Botões */}
-        <View style={styles.buttonsContainer}>
+        {/* Ações */}
+        <View style={styles.actionsSection}>
           <TouchableOpacity
             style={styles.buttonPrimary}
             onPress={handleGoToLogin}
@@ -96,10 +111,10 @@ const EmailEnviadoScreen: React.FC<EmailEnviadoScreenProps> = ({ navigation, rou
             style={styles.buttonSecondary}
             onPress={handleResendEmail}
           >
-            <Text style={styles.buttonSecondaryText}>Reenviar E-mail</Text>
+            <Text style={styles.buttonSecondaryText}>Não recebi o e-mail. Reenviar.</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -107,117 +122,144 @@ const EmailEnviadoScreen: React.FC<EmailEnviadoScreenProps> = ({ navigation, rou
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-    justifyContent: 'center',
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: spacing.xxl,
+    paddingVertical: spacing.xl,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  iconContainer: {
-    marginBottom: 30,
+  iconSection: {
+    marginBottom: spacing.xxl,
+    alignItems: 'center',
   },
   iconBackground: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#F0F7F0',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: '#F0F9F0',
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
+  },
+  checkBadge: {
+    position: 'absolute',
+    bottom: 5,
+    right: 5,
+    backgroundColor: colors.white,
+    borderRadius: 20,
+  },
+  textSection: {
+    alignItems: 'center',
+    marginBottom: spacing.xxl,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
-    textAlign: 'center',
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
   },
   message: {
     fontSize: 16,
-    color: '#666',
+    color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 8,
+    lineHeight: 24,
   },
-  emailText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#4CAF50',
-    textAlign: 'center',
-    marginBottom: 30,
+  emailHighlight: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginTop: spacing.xs,
   },
-  instructionsContainer: {
+  instructionsCard: {
     width: '100%',
-    backgroundColor: '#F9F9F9',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
+    backgroundColor: colors.backgroundColor,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.borderColor,
+  },
+  instructionsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
   },
   instructionItem: {
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: spacing.md,
     alignItems: 'flex-start',
   },
-  instructionNumber: {
-    fontSize: 16,
+  stepNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+    marginTop: 2,
+  },
+  stepText: {
+    color: colors.white,
+    fontSize: 12,
     fontWeight: 'bold',
-    color: '#FFF',
-    backgroundColor: '#4CAF50',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    textAlign: 'center',
-    lineHeight: 30,
-    marginRight: 12,
   },
   instructionText: {
     fontSize: 14,
-    color: '#333',
+    color: colors.textSecondary,
     flex: 1,
     lineHeight: 20,
   },
-  warningBox: {
+  spamWarning: {
     flexDirection: 'row',
-    backgroundColor: '#FFF3E0',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 30,
     alignItems: 'center',
+    backgroundColor: '#FFF9F0', // Tom suave de warning
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.xxl,
+    width: '100%',
   },
-  warningText: {
+  spamText: {
     fontSize: 13,
-    color: '#E65100',
-    marginLeft: 10,
+    color: '#855600',
+    marginLeft: spacing.sm,
     flex: 1,
   },
-  buttonsContainer: {
+  actionsSection: {
     width: '100%',
-    gap: 12,
+    gap: spacing.md,
   },
   buttonPrimary: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 8,
-    paddingVertical: 14,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    elevation: 2,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
   buttonPrimaryText: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
     fontSize: 16,
     fontWeight: 'bold',
+    letterSpacing: 1,
   },
   buttonSecondary: {
-    borderWidth: 1,
-    borderColor: '#4CAF50',
-    borderRadius: 8,
-    paddingVertical: 12,
+    paddingVertical: spacing.sm,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   buttonSecondaryText: {
-    color: '#4CAF50',
-    fontSize: 16,
+    color: colors.primary,
+    fontSize: 14,
     fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 });
 
