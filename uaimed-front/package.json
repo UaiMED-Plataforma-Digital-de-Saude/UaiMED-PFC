@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "bash start.sh",
     "start": "expo start",
-    "android": "ANDROID_HOME=/home/suporte/Android/Sdk expo start --android",
+    "android": "bash start.sh --android",
     "ios": "expo start --ios",
     "web": "expo start --web"
   },

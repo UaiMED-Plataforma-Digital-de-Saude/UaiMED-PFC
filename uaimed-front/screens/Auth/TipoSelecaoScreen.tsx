@@ -71,7 +71,7 @@ const TIPOS_USUARIO: TipoUsuario[] = [
   },
 ];
 
-export const TipoSelecaoScreen: React.FC<Props> = ({ navigation }) => {
+const TipoSelecaoScreen: React.FC<Props> = ({ navigation }) => {
   const [tipoSelecionado, setTipoSelecionado] = useState<string | null>(null);
   const { modal, showModal, hideModal } = useModal();
 
@@ -201,6 +201,8 @@ export const TipoSelecaoScreen: React.FC<Props> = ({ navigation }) => {
     </SafeAreaView>
   );
 };
+
+export default TipoSelecaoScreen;
 
 const styles = StyleSheet.create({
   container: {

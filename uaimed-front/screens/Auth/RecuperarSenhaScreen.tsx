@@ -4,43 +4,44 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  Alert,
   ActivityIndicator,
-  SafeAreaView,
+  StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackScreenProps } from '@react-navigation/stack';
 import { AuthStackParamList } from '../../navigation/types';
 import uaiMedApi from '../../api/uaiMedApi';
 import { Ionicons } from '@expo/vector-icons';
+import AppModal from '../../components/AppModal';
+import { useModal } from '../../hooks/useModal';
+import { colors, spacing, borderRadius } from '../../styles/themes';
 
 type RecuperarSenhaScreenProps = StackScreenProps<AuthStackParamList, 'RecuperarSenha'>;
 
+/**
+ * Tela de Recuperação de Senha
+ * Segue o modelo de estilização global do sistema UaiMED
+ */
 const RecuperarSenhaScreen: React.FC<RecuperarSenhaScreenProps> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-
-  /**
-   * Valida o email
-   */
-  const isValidEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  const { modal, showModal, hideModal } = useModal();
 
   /**
    * Função para enviar email de recuperação
    */
   const handleRecuperarSenha = async () => {
     if (!email.trim()) {
-      Alert.alert('Erro', 'Por favor, digite seu e-mail.');
+      showModal('Campo obrigatório', 'Por favor, digite seu e-mail.', { type: 'warning' });
       return;
     }
 
-    if (!isValidEmail(email)) {
-      Alert.alert('Erro', 'E-mail inválido. Verifique o formato.');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      showModal('E-mail inválido', 'Verifique o formato do e-mail informado.', { type: 'error' });
       return;
     }
 
@@ -53,8 +54,8 @@ const RecuperarSenhaScreen: React.FC<RecuperarSenhaScreenProps> = ({ navigation 
       });
 
       if (response.status === 200 || response.status === 201) {
-        // Navega para tela de confirmação
-        navigation.navigate('EmailEnviado', { email });
+        // Navega para tela de confirmação de envio
+        navigation.navigate('EmailEnviado', { email: email.trim() });
       }
     } catch (error: any) {
       let errorMessage = 'Não foi possível processar sua solicitação.';
@@ -67,9 +68,8 @@ const RecuperarSenhaScreen: React.FC<RecuperarSenhaScreenProps> = ({ navigation 
         errorMessage = 'Erro de conexão. Verifique sua internet.';
       }
 
-      Alert.alert('Erro na Recuperação', errorMessage);
+      showModal('Erro na Recuperação', errorMessage, { type: 'error' });
       console.error('Erro de recuperação:', error);
-
     } finally {
       setLoading(false);
     }
@@ -81,44 +81,46 @@ const RecuperarSenhaScreen: React.FC<RecuperarSenhaScreenProps> = ({ navigation 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoid}
       >
-        <View style={styles.content}>
-          {/* Header */}
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* Header com botão de voltar */}
           <View style={styles.headerSection}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Ionicons name="chevron-back" size={28} color="#333" />
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+              <Ionicons name="chevron-back" size={28} color={colors.textPrimary} />
             </TouchableOpacity>
-            <Text style={styles.title}>Recuperar Senha</Text>
-            <View style={{ width: 28 }} />
+            <Text style={styles.headerTitle}>Recuperar Senha</Text>
+            <View style={{ width: 40 }} />
           </View>
 
-          {/* Conteúdo */}
-          <View style={styles.mainSection}>
-            {/* Ícone */}
+          {/* Seção de Informação e Ícone */}
+          <View style={styles.infoSection}>
             <View style={styles.iconContainer}>
-              <Ionicons name="mail-outline" size={64} color="#4CAF50" />
+              <Ionicons name="lock-open-outline" size={70} color={colors.primary} />
             </View>
-
-            {/* Instruções */}
-            <Text style={styles.instructionTitle}>Recupere sua Senha</Text>
+            <Text style={styles.instructionTitle}>Esqueceu sua senha?</Text>
             <Text style={styles.instructionText}>
-              Digite seu e-mail cadastrado e enviaremos um link para você redefinir sua senha.
+              Fique tranquilo! Digite seu e-mail abaixo e enviaremos as instruções para você criar uma nova senha.
             </Text>
+          </View>
 
-            {/* Email Input */}
+          {/* Formulário */}
+          <View style={styles.formSection}>
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>E-mail Cadastrado</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="seu@email.com"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                onChangeText={setEmail}
-                editable={!loading}
-              />
+              <Text style={styles.label}>E-mail de Cadastro</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="mail-outline" size={20} color={colors.lightGray} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="exemplo@email.com"
+                  placeholderTextColor={colors.lightGray}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  value={email}
+                  onChangeText={setEmail}
+                  editable={!loading}
+                />
+              </View>
             </View>
 
-            {/* Botão de Envio */}
             <TouchableOpacity
               style={[styles.button, loading && styles.buttonDisabled]}
               onPress={handleRecuperarSenha}
@@ -127,17 +129,26 @@ const RecuperarSenhaScreen: React.FC<RecuperarSenhaScreenProps> = ({ navigation 
               {loading ? (
                 <ActivityIndicator color="#FFF" />
               ) : (
-                <Text style={styles.buttonText}>ENVIAR LINK</Text>
+                <>
+                  <Text style={styles.buttonText}>ENVIAR INSTRUÇÕES</Text>
+                  <Ionicons name="send-outline" size={18} color="#FFF" style={{ marginLeft: 10 }} />
+                </>
               )}
             </TouchableOpacity>
+          </View>
 
-            {/* Link para voltar ao login */}
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Text style={styles.link}>Voltar ao Login</Text>
+          {/* Rodapé com link de retorno */}
+          <View style={styles.footerSection}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.footerLink}>
+              <Ionicons name="arrow-back-outline" size={16} color={colors.primary} style={{ marginRight: 6 }} />
+              <Text style={styles.linkText}>Voltar para o Login</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Modal de Alertas padronizado */}
+      <AppModal {...modal} onClose={hideModal} />
     </SafeAreaView>
   );
 };
@@ -145,88 +156,130 @@ const RecuperarSenhaScreen: React.FC<RecuperarSenhaScreenProps> = ({ navigation 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
   },
   keyboardAvoid: {
     flex: 1,
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: spacing.xxl,
+    paddingBottom: spacing.xl,
   },
   headerSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 30,
+    paddingVertical: spacing.lg,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  mainSection: {
-    flex: 1,
+  backButton: {
+    width: 40,
+    height: 40,
     justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+  },
+  infoSection: {
+    alignItems: 'center',
+    marginTop: spacing.xxl,
+    marginBottom: spacing.xxxl,
   },
   iconContainer: {
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: '#F0F9F0', // Tom suave de verde (primary)
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: spacing.xl,
   },
   instructionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
     textAlign: 'center',
   },
   instructionText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 30,
+    fontSize: 16,
+    color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 24,
+    paddingHorizontal: spacing.md,
+  },
+  formSection: {
+    width: '100%',
   },
   inputContainer: {
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderColor,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    backgroundColor: '#FAFAFA',
+  },
+  inputIcon: {
+    marginRight: spacing.sm,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    flex: 1,
+    paddingVertical: spacing.md,
     fontSize: 16,
-    color: '#333',
+    color: colors.textPrimary,
   },
   button: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 8,
-    paddingVertical: 14,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    flexDirection: 'row',
+    marginTop: spacing.md,
+    elevation: 3,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
     fontSize: 16,
     fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
-  link: {
-    color: '#4CAF50',
-    fontSize: 14,
+  footerSection: {
+    marginTop: 'auto',
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
+    borderTopWidth: 1,
+    borderTopColor: colors.dividerColor,
+  },
+  footerLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.sm,
+  },
+  linkText: {
+    color: colors.primary,
+    fontSize: 16,
     fontWeight: '600',
-    textAlign: 'center',
     textDecorationLine: 'underline',
   },
 });
