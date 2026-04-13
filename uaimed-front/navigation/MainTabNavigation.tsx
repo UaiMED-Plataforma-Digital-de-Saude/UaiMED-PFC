@@ -4,6 +4,7 @@ import { MainTabParamList } from './types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
 import { CommonActions } from '@react-navigation/native';
+import { TouchableOpacity, Alert, View, Image } from 'react-native';
 
 // Importe as telas
 import HomeScreen from '../screens/Main/HomeScreen';
@@ -16,14 +17,12 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 
 /**
  * Oculta um item da bottom tab bar sem removê-lo do navegador.
- * Isso evita o anti-pattern de renderização condicional de <Tab.Screen>,
- * que causava o erro "Maximum update depth exceeded".
  */
 const hiddenTab = { display: 'none' as const, width: 0, height: 0, overflow: 'hidden' as const };
 
 /**
  * Navegador Principal com Abas (Bottom Tabs)
- * Diferencia abas conforme `user.tipo` (paciente, medico, clinica)
+ * Home agora centralizada no meio da barra.
  */
 const MainTabNavigator: React.FC = () => {
   const { user } = useAuth();
@@ -35,15 +34,56 @@ const MainTabNavigator: React.FC = () => {
   return (
     <Tab.Navigator
       initialRouteName="Home"
-      screenOptions={({ route }) => ({
+      screenOptions={({ route, navigation }) => ({
         tabBarActiveTintColor: '#4CAF50',
         tabBarInactiveTintColor: '#999',
-        headerShown: false,
+        headerShown: true, // Habilitado para mostrar o botão de ajuda em todas as telas
+        headerTitleAlign: 'center',
+        headerTitle: () => (
+          <Image
+            source={require('../assets/logo.png')}
+            style={{ width: 100, height: 35 }}
+            resizeMode="contain"
+          />
+        ),
+        headerStyle: {
+          backgroundColor: '#FFF',
+          elevation: 0,
+          shadowOpacity: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: '#EEE',
+        },
+        headerLeft: () => (
+          <TouchableOpacity
+            style={{ marginLeft: 16 }}
+            onPress={() => Alert.alert('Menu', 'Funcionalidade de menu em desenvolvimento')}
+          >
+            <Ionicons name="menu" size={26} color="#333" />
+          </TouchableOpacity>
+        ),
+        headerRight: () => (
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16 }}>
+            <TouchableOpacity
+              onPress={() => {
+                // Navega para a busca de agendamentos
+                navigation.navigate('Agendamentos', { screen: 'Busca' });
+              }}
+              style={{ marginRight: 12 }}
+            >
+              <Ionicons name="search-outline" size={24} color="#333" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => Alert.alert('Ajuda UaiMED', 'Como podemos ajudar? \n\nSuporte: suporte@uaimed.com.br')}
+            >
+              <Ionicons name="help-circle-outline" size={26} color="#4CAF50" />
+            </TouchableOpacity>
+          </View>
+        ),
         tabBarIcon: ({ color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home-outline';
 
           switch (route.name) {
-            case 'Home':         iconName = 'home-outline';       break;
+            case 'Home':         iconName = 'home';               break; // Home preenchida quando ativa?
             case 'Agendamentos': iconName = 'calendar-outline';   break;
             case 'MedicoAgenda': iconName = 'calendar-outline';   break;
             case 'ClinicDashboard': iconName = 'bar-chart-outline'; break;
@@ -52,22 +92,16 @@ const MainTabNavigator: React.FC = () => {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarLabel: route.name,
+        tabBarLabel: route.name === 'Home' ? '' : route.name, // Remove label da home para destaque central
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Início' }} />
-
-      {/* Paciente: fluxo de agendamento — oculto para outros tipos.
-          tabPress listener: ao tocar na aba, reseta o stack para Busca (SearchScreen).
-          Navegação programática via atalhos (MinhasConsultas, MeusPagamentos) NÃO
-          dispara tabPress, então abre a tela correta normalmente. */}
+      {/* Lado Esquerdo: Agendamentos / Agenda */}
       <Tab.Screen
         name="Agendamentos"
         component={AgendamentoStack}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
-            // Navega para Agendamentos e reseta o stack interno para Busca
             navigation.dispatch(
               CommonActions.navigate({
                 name: 'Agendamentos',
@@ -77,33 +111,47 @@ const MainTabNavigator: React.FC = () => {
           },
         })}
         options={{
-          title: 'Agendamentos',
+          title: 'Consultas',
           tabBarItemStyle: isPaciente ? undefined : hiddenTab,
         }}
       />
 
-      {/* Médico: agenda específica — oculto para outros tipos */}
       <Tab.Screen
         name="MedicoAgenda"
         component={MedicoAgendaScreen}
         options={{
-          title: 'Minha Agenda',
+          title: 'Agenda',
           tabBarItemStyle: isMedico ? undefined : hiddenTab,
         }}
       />
 
-      {/* Clínica: dashboard — oculto para outros tipos */}
       <Tab.Screen
         name="ClinicDashboard"
         component={ClinicDashboard}
         options={{
-          title: 'Dashboard',
+          title: 'Gestão',
           tabBarItemStyle: isClinica ? undefined : hiddenTab,
         }}
       />
 
-      {/* Perfil sempre disponível */}
-      <Tab.Screen name="Perfil" component={PerfilScreen} options={{ title: 'Meu Perfil' }} />
+      {/* CENTRO: HOME */}
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          title: 'UaiMED',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home" size={size + 10} color={color} /> // Home maior no meio
+          ),
+        }}
+      />
+
+      {/* Lado Direito: Perfil */}
+      <Tab.Screen
+        name="Perfil"
+        component={PerfilScreen}
+        options={{ title: 'Meu Perfil' }}
+      />
     </Tab.Navigator>
   );
 };

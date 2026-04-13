@@ -15,10 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useAvaliacoes } from '../hooks/useAvaliacoes';
 import uaiMedApi from '../api/uaiMedApi';
 
-const { width } = Dimensions.get('window');
-
-const CARD_WIDTH = Math.min(320, width * 0.78);
-
+const CARD_WIDTH = 280;
 
 const ProfessionalCard: React.FC<{ item: any; onContact: (id: string) => void }> = ({ item, onContact }) => {
   // Usa o hook para carregar a nota média do profissional
@@ -32,36 +29,31 @@ const ProfessionalCard: React.FC<{ item: any; onContact: (id: string) => void }>
   return (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => Alert.alert(item.nome, `${item.especialidade} — Avaliação ${displayNota.toFixed(1)}`)}
+      onPress={() => onContact(item.id)}
     >
       {imageUrl ? (
         <Image source={{ uri: imageUrl }} style={styles.avatar} />
       ) : (
         <View style={styles.avatarPlaceholder}>
-          <Ionicons name="person" size={36} color="#FFF" />
+          <Ionicons name="person" size={28} color="#FFF" />
         </View>
       )}
 
       <View style={styles.cardBody}>
-        <Text style={styles.name}>{item.nome}</Text>
-        <Text style={styles.specialty}>{item.especialidade}</Text>
-        <View style={styles.ratingRow}>
-          <Ionicons name="star" size={14} color="#FFB800" />
-          {loading ? (
-            <ActivityIndicator size="small" color="#FFB800" style={{ marginLeft: 6 }} />
-          ) : (
+        <View style={styles.nameRow}>
+          <Text style={styles.name} numberOfLines={1}>{item.nome}</Text>
+          <View style={styles.ratingRow}>
+            <Ionicons name="star" size={12} color="#FFB800" />
             <Text style={styles.ratingText}>{displayNota.toFixed(1)}</Text>
-          )}
+          </View>
         </View>
+        <Text style={styles.specialty} numberOfLines={1}>{item.especialidade}</Text>
 
-        <View style={styles.actionsRow}>
-          <TouchableOpacity
-            style={styles.contactButton}
-            onPress={() => onContact(item.id)}
-          >
-            <Ionicons name="chatbubble-ellipses-outline" size={16} color="#4CAF50" />
-            <Text style={styles.contactText}>Contato</Text>
-          </TouchableOpacity>
+        <View style={styles.footerRow}>
+          <View style={styles.contactBadge}>
+            <Ionicons name="chatbubble-ellipses-outline" size={12} color="#4CAF50" />
+            <Text style={styles.contactText}>Ver Perfil</Text>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -128,38 +120,40 @@ const FeaturedProfessionalsCarousel: React.FC<FeaturedProps> = ({ estado, cidade
 };
 
 const styles = StyleSheet.create({
-  container: { marginTop: 4, marginBottom: 8 },
+  container: { marginTop: 0, marginBottom: 8 },
   title: { fontSize: 16, fontWeight: '700', marginBottom: 8, marginLeft: 4 },
   list: { paddingLeft: 6, paddingRight: 12 },
   card: {
     width: CARD_WIDTH,
     backgroundColor: '#FFF',
     borderRadius: 12,
-    padding: 12,
+    padding: 10,
     marginRight: 12,
     borderWidth: 1,
     borderColor: '#EEE',
     flexDirection: 'row',
     alignItems: 'center',
+    height: 80, // Altura reduzida conforme solicitado
   },
-  avatar: { width: 64, height: 64, borderRadius: 32, marginRight: 12 },
+  avatar: { width: 50, height: 50, borderRadius: 25, marginRight: 10 },
   avatarPlaceholder: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    marginRight: 12,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 10,
     backgroundColor: '#4CAF50',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  cardBody: { flex: 1 },
-  name: { fontSize: 16, fontWeight: '700', color: '#333' },
-  specialty: { fontSize: 13, color: '#666', marginTop: 4 },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
-  ratingText: { marginLeft: 6, fontWeight: '600', color: '#333' },
-  actionsRow: { marginTop: 10, flexDirection: 'row', alignItems: 'center' },
-  contactButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, borderWidth: 1, borderColor: '#E8F5E9', backgroundColor: '#F6FFF6' },
-  contactText: { marginLeft: 6, color: '#4CAF50', fontWeight: '600' },
+  cardBody: { flex: 1, justifyContent: 'center' },
+  nameRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  name: { fontSize: 14, fontWeight: '700', color: '#333', flex: 1 },
+  specialty: { fontSize: 12, color: '#666', marginTop: 2 },
+  ratingRow: { flexDirection: 'row', alignItems: 'center' },
+  ratingText: { marginLeft: 4, fontWeight: '600', color: '#333', fontSize: 12 },
+  footerRow: { marginTop: 4, flexDirection: 'row', alignItems: 'center' },
+  contactBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  contactText: { color: '#4CAF50', fontWeight: '600', fontSize: 11 },
 });
 
 export default FeaturedProfessionalsCarousel;

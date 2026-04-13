@@ -6,6 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import FeaturedProfessionalsCarousel from '../../components/FeaturedProfessionalsCarousel';
+import FeaturedClinicsCarousel from '../../components/FeaturedClinicsCarousel';
 import LocationModal, { LocationValue } from '../../components/LocationModal';
 import uaiMedApi from '../../api/uaiMedApi';
 import NextAppointmentCard from '../../components/NextAppointmentCard';
@@ -28,6 +29,18 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     new Animated.Value(0),
     new Animated.Value(0),
   ]).current;
+
+  // Seta o título do Header para a Home
+  useEffect(() => {
+    navigation.getParent()?.setOptions({
+      headerTitle: () => (
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#4CAF50' }}>Uai</Text>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#333' }}>MED</Text>
+        </View>
+      ),
+    });
+  }, [navigation]);
 
   // Carrega localização persistida
   useEffect(() => {
@@ -67,7 +80,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     : 'Brasil';
 
   // Next appointment
-  const [nextAppointment, setNextAppointment] = useState<any | null>(null);
+  const [nextAppointments, setNextAppointments] = useState<any[]>([]);
   const [nextLoading, setNextLoading] = useState(false);
 
   useEffect(() => {
@@ -81,16 +94,27 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           .map((a) => ({ ...a, _date: new Date(a.data) }))
           .filter((a) => a._date > new Date())
           .sort((a, b) => a._date.getTime() - b._date.getTime());
-        if (mounted && future.length) {
-          setNextAppointment(future[0]);
+
+        if (mounted && future.length >= 3) {
+          setNextAppointments(future.slice(0, 3));
         } else if (mounted) {
-          // Se não houver agendamentos futuros, usa simulado
-          setNextAppointment({ medico: 'Dr. Simulado', especialidade: 'Clínica geral', data: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString() });
+          // Mock data if not enough real future appointments
+          const mockData = [
+            { id: 'mock-1', medico: 'Dra. Ana Silva', especialidade: 'Cardiologia', data: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString() },
+            { id: 'mock-2', medico: 'Dr. Roberto Santos', especialidade: 'Ortopedia', data: new Date(Date.now() + 1000 * 60 * 60 * 48).toISOString() },
+            { id: 'mock-3', medico: 'Dra. Juliana Lima', especialidade: 'Dermatologia', data: new Date(Date.now() + 1000 * 60 * 60 * 72).toISOString() },
+          ];
+          setNextAppointments(future.length > 0 ? [...future, ...mockData].slice(0, 3) : mockData);
         }
       } catch (e) {
-        // fallback simulated next appointment
         console.warn('Erro ao buscar agendamentos:', e);
-        if (mounted) setNextAppointment({ medico: 'Dr. Simulado', especialidade: 'Clínica geral', data: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString() });
+        if (mounted) {
+          setNextAppointments([
+            { id: 'mock-1', medico: 'Dra. Ana Silva', especialidade: 'Cardiologia', data: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString() },
+            { id: 'mock-2', medico: 'Dr. Roberto Santos', especialidade: 'Ortopedia', data: new Date(Date.now() + 1000 * 60 * 60 * 48).toISOString() },
+            { id: 'mock-3', medico: 'Dra. Juliana Lima', especialidade: 'Dermatologia', data: new Date(Date.now() + 1000 * 60 * 60 * 72).toISOString() },
+          ]);
+        }
       } finally {
         if (mounted) setNextLoading(false);
       }
@@ -104,14 +128,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.headerRow}>
-        <TouchableOpacity onPress={() => setMenuOpen((s) => !s)} style={styles.menuButton} accessibilityLabel="Abrir menu">
-          {/* Ícone estático — sem rotação */}
-          <Ionicons name="menu" size={26} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.greetingText}>Olá{user?.nome ? `, ${user.nome.split(' ')[0]}` : ''}</Text>
-      </View>
-
       {menuOpen && (
         <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setMenuOpen(false)}>
           <Animated.View
@@ -165,48 +181,54 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         </TouchableOpacity>
       )}
 
-      <Text style={styles.sectionTitle}>Profissionais em destaque</Text>
-
-      {/* Filtro de região — entre o título e o carrossel */}
-      <TouchableOpacity
-        style={[styles.locationBar, (location.uf || location.cidade) && styles.locationBarActive]}
-        onPress={() => setLocationModalVisible(true)}
-        activeOpacity={0.7}
-      >
-        <Ionicons
-          name="location-outline"
-          size={18}
-          color={(location.uf || location.cidade) ? '#2E7D32' : '#888'}
-          style={{ marginRight: 8 }}
-        />
-        <Text style={[styles.locationText, (location.uf || location.cidade) && styles.locationTextActive]}>
-          {location.uf ? `${location.cidade ? location.cidade + ', ' : ''}${location.uf}` : 'Qualquer localização'}
-        </Text>
-        <Ionicons
-          name="chevron-down-outline"
-          size={16}
-          color={(location.uf || location.cidade) ? '#2E7D32' : '#888'}
-        />
-      </TouchableOpacity>
-
-      <FeaturedProfessionalsCarousel estado={location.uf || undefined} cidade={location.cidade || undefined} />
-
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="gray" style={{ marginRight: 10 }} />
-        <TextInput placeholder="Buscar especialidade ou médico" style={styles.searchInput} onSubmitEditing={(e) => navigation.navigate('Agendamentos', { screen: 'Resultados', params: { query: e.nativeEvent.text } })} />
+      {/* Filtro de região — agora no topo */}
+      <View style={{ marginTop: 16 }}>
+        <TouchableOpacity
+          style={[styles.locationBar, (location.uf || location.cidade) && styles.locationBarActive]}
+          onPress={() => setLocationModalVisible(true)}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name="location-outline"
+            size={18}
+            color={(location.uf || location.cidade) ? '#2E7D32' : '#888'}
+            style={{ marginRight: 8 }}
+          />
+          <Text style={[styles.locationText, (location.uf || location.cidade) && styles.locationTextActive]}>
+            {location.uf ? `${location.cidade ? location.cidade + ', ' : ''}${location.uf}` : 'Qualquer localização'}
+          </Text>
+          <Ionicons
+            name="chevron-down-outline"
+            size={16}
+            color={(location.uf || location.cidade) ? '#2E7D32' : '#888'}
+          />
+        </TouchableOpacity>
       </View>
 
-      <Text style={styles.sectionTitle}>Seu Próximo Passo</Text>
+      <Text style={styles.sectionTitle}>Profissionais em destaque</Text>
+      <FeaturedProfessionalsCarousel estado={location.uf || undefined} cidade={location.cidade || undefined} />
+
       {nextLoading ? (
         <ActivityIndicator size="small" color="#4CAF50" style={{ marginVertical: 8 }} />
-      ) : nextAppointment ? (
-        <NextAppointmentCard
-          medico={nextAppointment.medico || nextAppointment.medicoNome || 'Profissional'}
-          especialidade={nextAppointment.especialidade}
-          data={nextAppointment.data}
-          onPress={() => navigation.navigate('Agendamentos', { screen: 'DetalhesMedico', params: { medicoId: nextAppointment.medicoId || nextAppointment.medico_id } })}
-        />
-      ) : null}
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.nextStepsContainer}>
+          {nextAppointments.map((appointment) => (
+            <NextAppointmentCard
+              key={appointment.id || appointment.agendamentoId}
+              medico={appointment.medico || appointment.medicoNome || 'Profissional'}
+              especialidade={appointment.especialidade}
+              data={appointment.data}
+              onPress={() => navigation.navigate('Agendamentos', {
+                screen: 'DetalhesMedico',
+                params: { medicoId: appointment.medicoId || appointment.medico_id }
+              })}
+            />
+          ))}
+        </ScrollView>
+      )}
+
+      <Text style={styles.sectionTitle}>Clínicas em destaque</Text>
+      <FeaturedClinicsCarousel />
 
       <Text style={styles.sectionTitle}>Atalhos</Text>
       <View style={styles.shortcutsContainer}>
@@ -217,10 +239,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         <TouchableOpacity style={styles.shortcutItem} onPress={() => navigation.navigate('Agendamentos', { screen: 'MeusPagamentos' })}>
           <Ionicons name="card-outline" size={28} color="#4CAF50" />
           <Text style={styles.shortcutText}>Meus Pagamentos</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.shortcutItem} onPress={() => Alert.alert('Ajuda', 'Em breve...')}>
-          <Ionicons name="help-circle" size={28} color="#4CAF50" />
-          <Text style={styles.shortcutText}>Ajuda</Text>
         </TouchableOpacity>
       </View>
 
@@ -239,9 +257,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, backgroundColor: '#FAFAFA', paddingHorizontal: 12, paddingTop: 0 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingTop: 28, paddingHorizontal: 6 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingTop: 28, paddingHorizontal: 6, justifyContent: 'space-between' },
   menuButton: { padding: 8, marginRight: 6 },
   greetingText: { fontSize: 20, fontWeight: '700', textAlign: 'left', flex: 1, color: '#222', marginTop: 6 },
+  helpHeaderButton: { padding: 8 },
   // Filtro de localização — igual ao SearchScreen de Agendamento
   locationBar: {
     flexDirection: 'row',
@@ -269,6 +288,7 @@ const styles = StyleSheet.create({
   cardSubtitle: { fontSize: 14, color: '#666', marginVertical: 5 },
   detailButton: { marginTop: 10, alignSelf: 'flex-start' },
   detailButtonText: { color: '#4B73B2', fontWeight: '600' },
+  nextStepsContainer: { paddingLeft: 4, marginBottom: 10 },
   shortcutsContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 6, marginBottom: 16, marginHorizontal: 4 },
   shortcutItem: { alignItems: 'center', width: '30%', marginBottom: 8 },
   shortcutText: { fontSize: 11, marginTop: 6, fontWeight: '500', color: '#555', textAlign: 'center' },

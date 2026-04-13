@@ -89,6 +89,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    */
   const signIn = useCallback(async (email: string, password: string) => {
     setLoading(true);
+
+    // Simulação de login para desenvolvimento sem backend
+    if (email === 'dev@uaimed.com' && password === '123456') {
+      const mockUser: User = {
+        id: 'dev-123',
+        nome: 'Desenvolvedor UaiMED',
+        email: 'dev@uaimed.com',
+        telefone: '(31) 99999-9999',
+        tipo: 'paciente',
+      };
+      const mockToken = 'mock-token-dev';
+
+      setUser(mockUser);
+      await AsyncStorage.setItem(CONFIG.STORAGE_KEYS.token, mockToken);
+      await AsyncStorage.setItem(CONFIG.STORAGE_KEYS.user, JSON.stringify(mockUser));
+      uaiMedApi.defaults.headers.common['Authorization'] = `Bearer ${mockToken}`;
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await uaiMedApi.post<LoginResponse>('/sessions', {
         email,
