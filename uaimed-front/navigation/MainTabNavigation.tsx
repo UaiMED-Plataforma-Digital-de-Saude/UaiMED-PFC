@@ -12,6 +12,7 @@ import AgendamentoStack from './AgendamentoStack';
 import PerfilScreen from '../screens/Main/PerfilScreen';
 import MedicoAgendaScreen from '../screens/Main/MedicoAgendaScreen';
 import ClinicDashboard from '../screens/Admin/ClinicDashboard';
+import HelpScreen from '../screens/Main/HelpScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -56,7 +57,10 @@ const MainTabNavigator: React.FC = () => {
         headerLeft: () => (
           <TouchableOpacity
             style={{ marginLeft: 16 }}
-            onPress={() => Alert.alert('Menu', 'Funcionalidade de menu em desenvolvimento')}
+            onPress={() => {
+              // Dispara um evento para abrir o menu na Home
+              navigation.navigate('Home', { openMenu: true });
+            }}
           >
             <Ionicons name="menu" size={26} color="#333" />
           </TouchableOpacity>
@@ -65,17 +69,10 @@ const MainTabNavigator: React.FC = () => {
           <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16 }}>
             <TouchableOpacity
               onPress={() => {
-                // Navega para a busca de agendamentos
                 navigation.navigate('Agendamentos', { screen: 'Busca' });
               }}
-              style={{ marginRight: 12 }}
             >
-              <Ionicons name="search-outline" size={24} color="#333" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => Alert.alert('Ajuda UaiMED', 'Como podemos ajudar? \n\nSuporte: suporte@uaimed.com.br')}
-            >
-              <Ionicons name="help-circle-outline" size={26} color="#4CAF50" />
+              <Ionicons name="search-outline" size={26} color="#333" />
             </TouchableOpacity>
           </View>
         ),
@@ -151,6 +148,15 @@ const MainTabNavigator: React.FC = () => {
         name="Perfil"
         component={PerfilScreen}
         options={{ title: 'Meu Perfil' }}
+      />
+
+      <Tab.Screen
+        name="Ajuda"
+        component={HelpScreen}
+        options={{
+          title: 'Ajuda e Suporte',
+          tabBarItemStyle: hiddenTab,
+        }}
       />
     </Tab.Navigator>
   );

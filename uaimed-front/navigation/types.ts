@@ -11,11 +11,12 @@ export type AuthStackParamList = {
 import { NavigatorScreenParams } from '@react-navigation/native';
 
 export type MainTabParamList = {
-  Home: undefined;
+  Home: { openMenu?: boolean } | undefined;
   Agendamentos: NavigatorScreenParams<AgendamentoStackParamList> | undefined;
   MedicoAgenda?: undefined;
   ClinicDashboard?: undefined;
   Perfil: undefined;
+  Ajuda: undefined;
 };
 
 // 3. Tipagem para a Pilha de Agendamento (Search)

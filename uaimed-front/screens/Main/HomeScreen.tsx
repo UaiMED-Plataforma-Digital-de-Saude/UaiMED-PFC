@@ -15,7 +15,7 @@ const LOCATION_STORAGE_KEY = '@uaimed:location';
 
 type HomeScreenProps = BottomTabScreenProps<MainTabParamList, 'Home'>;
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
   const { user, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [locationModalVisible, setLocationModalVisible] = useState(false);
@@ -28,19 +28,17 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     new Animated.Value(0),
     new Animated.Value(0),
     new Animated.Value(0),
+    new Animated.Value(0),
   ]).current;
 
-  // Seta o título do Header para a Home
+  // Escuta o parâmetro openMenu vindo do Header
   useEffect(() => {
-    navigation.getParent()?.setOptions({
-      headerTitle: () => (
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#4CAF50' }}>Uai</Text>
-          <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#333' }}>MED</Text>
-        </View>
-      ),
-    });
-  }, [navigation]);
+    if ((route.params as any)?.openMenu) {
+      setMenuOpen(true);
+      // Limpa o parâmetro para não abrir de novo acidentalmente ao voltar para a tela
+      navigation.setParams({ openMenu: undefined } as any);
+    }
+  }, [(route.params as any)?.openMenu]);
 
   // Carrega localização persistida
   useEffect(() => {
@@ -127,8 +125,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {menuOpen && (
+<ScrollView
+  contentContainerStyle={{
+    paddingHorizontal: 12,
+    paddingBottom: 20,
+  }}
+>      {menuOpen && (
         <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setMenuOpen(false)}>
           <Animated.View
             pointerEvents={menuOpen ? 'auto' : 'none'}
@@ -167,11 +169,25 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               </TouchableOpacity>
             </Animated.View>
 
+            {/* Ajuda */}
+            <Animated.View style={[styles.menuItem, { opacity: itemAnims[3], transform: [{ translateY: itemAnims[3].interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }] }]}>
+              <TouchableOpacity
+                onPress={() => {
+                  setMenuOpen(false);
+                  navigation.navigate('Ajuda');
+                }}
+                style={styles.menuRow}
+              >
+                <Ionicons name="help-circle-outline" size={18} color="#4CAF50" style={{ marginRight: 10 }} />
+                <Text style={styles.menuText}>Ajuda</Text>
+              </TouchableOpacity>
+            </Animated.View>
+
             {/* Divisor */}
             <View style={styles.menuDivider} />
 
             {/* Sair */}
-            <Animated.View style={[styles.menuItem, { opacity: itemAnims[3], transform: [{ translateY: itemAnims[3].interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }] }]}>
+            <Animated.View style={[styles.menuItem, { opacity: itemAnims[4], transform: [{ translateY: itemAnims[4].interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }] }]}>
               <TouchableOpacity onPress={() => { setMenuOpen(false); signOut(); }} style={styles.menuRow}>
                 <Ionicons name="log-out-outline" size={18} color="#D9534F" style={{ marginRight: 10 }} />
                 <Text style={[styles.menuText, { color: '#D9534F' }]}>Sair</Text>
@@ -230,17 +246,28 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       <Text style={styles.sectionTitle}>Clínicas em destaque</Text>
       <FeaturedClinicsCarousel />
 
-      <Text style={styles.sectionTitle}>Atalhos</Text>
-      <View style={styles.shortcutsContainer}>
-        <TouchableOpacity style={styles.shortcutItem} onPress={() => navigation.navigate('Agendamentos', { screen: 'MinhasConsultas' })}>
-          <Ionicons name="calendar-outline" size={28} color="#4CAF50" />
-          <Text style={styles.shortcutText}>Minhas Consultas</Text>
+      <Text style={styles.sectionTitle}>Artigos de Saúde</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.nextStepsContainer}>
+        <TouchableOpacity style={styles.articleCard} activeOpacity={0.8}>
+          <View style={[styles.articleIcon, { backgroundColor: '#E1F5FE' }]}>
+            <Ionicons name="fitness-outline" size={24} color="#03A9F4" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.articleTitle} numberOfLines={1}>Dicas para uma vida saudável</Text>
+            <Text style={styles.articleSub} numberOfLines={1}>Alimentação e exercícios diários</Text>
+          </View>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.shortcutItem} onPress={() => navigation.navigate('Agendamentos', { screen: 'MeusPagamentos' })}>
-          <Ionicons name="card-outline" size={28} color="#4CAF50" />
-          <Text style={styles.shortcutText}>Meus Pagamentos</Text>
+
+        <TouchableOpacity style={styles.articleCard} activeOpacity={0.8}>
+          <View style={[styles.articleIcon, { backgroundColor: '#F3E5F5' }]}>
+            <Ionicons name="moon-outline" size={24} color="#9C27B0" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.articleTitle} numberOfLines={1}>A importância do sono</Text>
+            <Text style={styles.articleSub} numberOfLines={1}>Como dormir melhor e render mais</Text>
+          </View>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
 
       {/* Modal de Localização */}
       <LocationModal
@@ -256,11 +283,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: '#FAFAFA', paddingHorizontal: 12, paddingTop: 0 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingTop: 28, paddingHorizontal: 6, justifyContent: 'space-between' },
-  menuButton: { padding: 8, marginRight: 6 },
-  greetingText: { fontSize: 20, fontWeight: '700', textAlign: 'left', flex: 1, color: '#222', marginTop: 6 },
-  helpHeaderButton: { padding: 8 },
+  container: { flexGrow: 1, backgroundColor: '#FAFAFA', paddingHorizontal: 12, paddingTop: 8 },
   // Filtro de localização — igual ao SearchScreen de Agendamento
   locationBar: {
     flexDirection: 'row',
@@ -289,9 +312,34 @@ const styles = StyleSheet.create({
   detailButton: { marginTop: 10, alignSelf: 'flex-start' },
   detailButtonText: { color: '#4B73B2', fontWeight: '600' },
   nextStepsContainer: { paddingLeft: 4, marginBottom: 10 },
-  shortcutsContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 6, marginBottom: 16, marginHorizontal: 4 },
-  shortcutItem: { alignItems: 'center', width: '30%', marginBottom: 8 },
-  shortcutText: { fontSize: 11, marginTop: 6, fontWeight: '500', color: '#555', textAlign: 'center' },
+  articleCard: {
+    backgroundColor: '#FFF',
+    padding: 10,
+    borderRadius: 12,
+    elevation: 2,
+    marginBottom: 8,
+    marginRight: 12,
+    width: 280,
+    height: 80,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  articleIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  articleTitle: { fontSize: 14, fontWeight: '700', color: '#333' },
+  articleSub: { fontSize: 12, color: '#666', marginTop: 2 },
   menuOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.25)', zIndex: 50 },
   menuBox: { position: 'absolute', top: 60, left: 12, width: 230, backgroundColor: '#FFF', borderRadius: 12, elevation: 8, paddingVertical: 8, paddingHorizontal: 6, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
   menuItem: { paddingVertical: 8, paddingHorizontal: 6 },
