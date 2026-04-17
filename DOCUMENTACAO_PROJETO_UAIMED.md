@@ -629,6 +629,32 @@ Role: medico
 }
 ```
 
+### 7.3 Pipeline de Analytics
+
+```
+┌─────────────────────────────────────────────────┐
+│  COLETA DE DADOS                                │
+│  - Eventos de agendamento                       │
+│  - Transações de pagamento                      │
+│  - Interações de usuário                        │
+└──────────────────┬──────────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────────┐
+│  PROCESSAMENTO                                  │
+│  - Agregações em tempo real (Prisma)            │
+│  - Cálculo de métricas                          │
+│  - Agrupamentos por período                     │
+└──────────────────┬──────────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────────┐
+│  ARMAZENAMENTO                                  │
+│  - PostgreSQL (dados transacionais)             │
+│  - Cache (futuro: Redis)                        │
+└─────────────────────────────────────────────────┘
+```
+
 ---
 
 ## 8. Relatório Técnico
@@ -656,7 +682,7 @@ Role: medico
 - ✅ Autenticação integrada (JWT + AsyncStorage)
 - ✅ **Fluxo de agendamento completo**: Busca → Calendário → Horário → Confirmação → Pagamento → Avaliação
 - ✅ **Recuperação de senha**: `RecuperarSenhaScreen` + `EmailEnviadoScreen`
-- ✅ **Tela de Ajuda**: `HelpScreen` com FAQ e suporte
+- ✅ **Tela de Ajuda**: `HelpScreen` disponível no menu
 - ✅ **Seleção de tipo de usuário**: `TipoSelecaoScreen` no fluxo de cadastro
 - ✅ Telas `MinhasConsultasScreen` e `MeusPagamentosScreen` com dados reais
 - ✅ Logo real do projeto na `LoginScreen`
@@ -754,35 +780,125 @@ Role: medico
 
 #### 9.1.1 Painel de Categorias
 
+**Objetivo**: Agrupar e analisar dados por categorias de especialidades médicas
+
+**Funcionalidades:**
+- Dashboard por especialidade
+- Comparativo de performance entre especialidades
+- Análise de demanda por categoria
+- Previsão de demanda por especialidade
+
+**Métricas:**
+- Agendamentos por especialidade
+- Receita por especialidade
+- Tempo médio de espera por categoria
+- Taxa de ocupação por especialidade
+
 **Endpoint Proposto:**
 ```
 GET /api/admin/analytics/categories?from=YYYY-MM-DD&to=YYYY-MM-DD
 ```
 
+**Estrutura de Resposta:**
+```json
+{
+  "categories": [
+    {
+      "especialidade": "Cardiologia",
+      "totalAgendamentos": 450,
+      "receita": 67500.00,
+      "mediaAvaliacao": 4.7,
+      "taxaOcupacao": 85.5,
+      "crescimento": 12.5,
+      "profissionaisAtivos": 8
+    }
+  ]
+}
+```
+
 #### 9.1.2 Localização por Região
+
+**Objetivo**: Analisar dados geográficos e otimizar cobertura
+
+**Funcionalidades:**
+- Mapa de calor de agendamentos por região
+- Análise de demanda por cidade/estado
+- Identificação de áreas com baixa cobertura
+- Sugestões de expansão geográfica
+
+**Métricas:**
+- Agendamentos por cidade
+- Agendamentos por estado
+- Profissionais por região
+- Taxa de crescimento por região
 
 **Endpoint Proposto:**
 ```
 GET /api/admin/analytics/location?granularity=city|state
 ```
 
+**Estrutura de Resposta:**
+```json
+{
+  "byCity": [
+    {
+      "cidade": "São Paulo",
+      "estado": "SP",
+      "agendamentos": 1200,
+      "profissionais": 45,
+      "receita": 180000.00,
+      "crescimento": 15.3
+    }
+  ],
+  "byState": [
+    { "estado": "SP", "agendamentos": 3500, "receita": 525000.00 }
+  ],
+  "heatmap": [
+    { "lat": -23.5505, "lng": -46.6333, "intensity": 0.85 }
+  ]
+}
+```
+
 ### 9.2 Fase 3 - Inteligência de Negócio (Q2 2026)
 
-- Machine Learning para prever picos de demanda
-- Análise de churn (pacientes inativos)
-- Otimização de preços
+#### 9.2.1 Previsão de Demanda
+- Machine Learning para prever picos
+- Recomendações de horários
+- Otimização de disponibilidade
+
+#### 9.2.2 Análise de Churn
+- Identificação de pacientes inativos
+- Campanhas de retenção
+- Análise de cancelamentos
+
+#### 9.2.3 Otimização de Preços
+- Análise de elasticidade
+- Precificação dinâmica
+- Análise competitiva
 
 ### 9.3 Fase 4 - Integrações (Q3 2026)
 
+#### 9.3.1 Integração com Sistemas de Saúde
 - HL7/FHIR para prontuários
+- Integração com laboratórios
+- Integração com farmácias
+
+#### 9.3.2 Pagamentos Avançados
 - Gateways de pagamento (Stripe/PagSeguro)
 - Assinaturas recorrentes
+- Planos de saúde digitais
 
 ### 9.4 Fase 5 - Mobile Avançado (Q4 2026)
 
+#### 9.4.1 Notificações Inteligentes
 - Push notifications personalizadas (development build)
-- Geolocalização e busca por proximidade
-- `npx expo run:android`
+- Lembretes de consulta
+- Notificações de resultados
+
+#### 9.4.2 Geolocalização
+- Busca por proximidade
+- Navegação até clínica
+- Check-in geográfico
 
 ---
 
@@ -807,49 +923,120 @@ GET /api/admin/analytics/location?granularity=city|state
 └─────────────────────────────────────┘
 ```
 
-### 10.2 Qualidade de Dados
+### 10.2 Pipeline ETL
 
+#### 10.2.1 Extract (Extração)
+
+**Fontes:**
+- PostgreSQL (dados transacionais)
+- Logs de aplicação
+- Métricas de sistema
+
+**Frequência:**
+- Tempo real (agendamentos, pagamentos)
+- Diária (agregações)
+- Semanal (relatórios)
+
+#### 10.2.2 Transform (Transformação)
+
+**Operações:**
+- Limpeza de dados
+- Validação
+- Enriquecimento
+- Agregação
+- Normalização/Desnormalização
+
+#### 10.2.3 Load (Carga)
+
+**Destinos:**
+- Tabelas de analytics (futuro)
+- Cache (Redis - futuro)
+- Data Warehouse (futuro)
+
+### 10.3 Qualidade de Dados
+
+#### 10.3.1 Validação
 - **Schema Validation**: Zod schemas
 - **Business Rules**: Validação em services
 - **Data Integrity**: Constraints do banco
+
+#### 10.3.2 Limpeza
 - **Deduplicação**: Constraints únicos (email, CPF, CRM)
+- **Normalização**: Formatação consistente
+- **Enriquecimento**: Dados derivados
 
-### 10.3 Governança de Dados (LGPD)
+### 10.4 Governança de Dados
 
+#### 10.4.1 Privacidade (LGPD)
 - **Anonimização**: Dados sensíveis protegidos
 - **Consentimento**: Controle de uso
 - **Auditoria**: Log de acessos
-- **Backup Diário**: Automatizado via PostgreSQL WAL
+
+#### 10.4.2 Backup e Recuperação
+- **Backup Diário**: Automatizado
+- **Point-in-Time Recovery**: PostgreSQL WAL
+- **Disaster Recovery**: Plano documentado
 
 ---
 
 ## 11. Aspectos Analíticos
 
-### 11.1 KPIs Principais
+### 11.1 Métricas de Negócio
+
+#### 11.1.1 KPIs Principais
 
 **Para Clínicas:**
 - Total de usuários ativos
 - Taxa de conversão (visitas → agendamentos)
 - Receita total e por período
 - Taxa de ocupação de profissionais
+- Tempo médio de resposta
+- Taxa de cancelamento
 
 **Para Médicos:**
 - Número de agendamentos
 - Receita mensal/anual
 - Média de avaliações
 - Taxa de ocupação da agenda
+- Tempo médio de consulta
 
 **Para Pacientes:**
 - Facilidade de agendamento
 - Tempo de espera
 - Satisfação com atendimento
 
-### 11.2 Métricas Técnicas
+#### 11.1.2 Métricas Técnicas
 
 - **Uptime**: 99.5%+
 - **Response Time**: < 500ms (p95)
 - **Error Rate**: < 0.1%
+- **Throughput**: 1000 req/s
+- **Database Performance**: Query time < 100ms
 - **Test Coverage**: 32 casos automatizados
+
+### 11.2 Análise Preditiva (Futuro)
+
+#### 11.2.1 Previsão de Demanda
+- Modelos de séries temporais
+- Análise sazonal
+- Previsão de picos
+
+#### 11.2.2 Recomendação
+- Recomendação de profissionais
+- Sugestão de horários
+- Personalização
+
+### 11.3 Relatórios
+
+#### 11.3.1 Relatórios Operacionais
+- Agendamentos do dia/semana/mês
+- Receita por período
+- Performance de profissionais
+
+#### 11.3.2 Relatórios Estratégicos
+- Crescimento de usuários
+- Análise de mercado
+- ROI de campanhas
 
 ---
 
@@ -857,21 +1044,40 @@ GET /api/admin/analytics/location?granularity=city|state
 
 ### 12.1 Comunicação Usuário-Sistema
 
+#### 12.1.1 Feedback Visual
 - Loading states em todas as telas
+- Mensagens de sucesso/erro
+- Confirmações de ações
 - Modais de confirmação (em vez de Alert nativo)
-- Feedback de sucesso/erro
-- Confirmações antes de ações críticas (agendamento, pagamento)
+
+#### 12.1.2 Notificações
+- Confirmação de agendamento
+- Lembretes de consulta
+- Atualizações de status
 
 ### 12.2 Comunicação Entre Usuários
 
-- Paciente → Profissional (Contatos)
-- Sistema de avaliações (estrelas + comentário)
+#### 12.2.1 Sistema de Mensagens
+- Paciente → Profissional
+- Status de leitura
+- Histórico de conversas
+
+#### 12.2.2 Avaliações e Feedback
+- Sistema de estrelas
+- Comentários
+- Respostas de profissionais
 
 ### 12.3 Comunicação Técnica
 
+#### 12.3.1 Logs e Monitoramento
 - Logs estruturados com `logger` customizado
-- Documentação de API em `uaimed-back/documents/API.md`
-- Documento de testes em `uaimed-back/documents/TESTES.md`
+- Error tracking nos controllers
+- Performance monitoring
+
+#### 12.3.2 Documentação
+- API Documentation: `uaimed-back/documents/API.md`
+- Estratégia de Testes: `uaimed-back/documents/TESTES.md`
+- Guias técnicos e changelogs
 
 ---
 
