@@ -1,6 +1,6 @@
 # 🧪 Estratégia e Documentação de Testes — UaiMED Backend
 
-**Versão**: 1.0.0  
+**Versão**: 1.1.0  
 **Data**: 17 de Abril de 2026  
 **Framework**: Vitest 1.4 + Supertest 6.3  
 **Banco de Teste**: PostgreSQL (`uaimed_test`) — isolado do banco de desenvolvimento
@@ -22,14 +22,14 @@
 
 ## 1. Estratégia de Testes
 
-O UaiMED adota uma estratégia de testes em camadas, priorizando **testes de integração** da API como base de confiança, complementados por testes unitários de lógica de negócio e verificação E2E do fluxo completo.
+O UaiMED adota uma estratégia de testes em camadas, priorizando **testes de integração** da API como base de confiança, complementados por **testes unitários** de lógica de negócio e verificação E2E do fluxo completo.
 
 ### Princípios
 
 - **Isolamento**: cada suíte cria e limpa seus próprios dados por ID
 - **Repetibilidade**: UUIDs únicos garantem que testes paralelos não colidam
 - **Confiabilidade**: banco de teste isolado (`uaimed_test`) com schema migrado automaticamente via `globalSetup`
-- **Velocidade**: 32 casos de integração rodam em menos de 3 segundos no total
+- **Velocidade**: 66 casos (unitários + integração) rodam em menos de 4 segundos no total
 
 ---
 
@@ -176,41 +176,65 @@ Os testes de integração são a **camada principal** de validação automatizad
 
 ## 4. Testes Unitários
 
-Os testes unitários validam lógica isolada **sem necessidade de banco de dados**. São rápidos, focados e usam mocks do Prisma.
+Os testes unitários validam lógica isolada **sem necessidade de banco de dados**. São rápidos, focados e não dependem do Docker ou do PostgreSQL.
 
-### Candidatos Recomendados para Próxima Sprint
+### 4.1 `jwt.unit.test.ts`
+**Localização**: `src/__tests__/unit/jwt.unit.test.ts`
 
-| Módulo | O que testar | Prioridade |
-|--------|-------------|------------|
-| `utils/jwt.ts` | `generateToken` e `verifyToken` com payloads válidos e inválidos | Alta |
-| `utils/hash.ts` | `hashPassword` e `comparePassword` | Alta |
-| `schemas/auth.schema.ts` | Validação Zod: campos obrigatórios, formatos, enum `tipo` | Média |
-| `services/auth.service.ts` | Lógica de cadastro e login com Prisma mockado | Média |
-| `controllers/pagamentos.controller.ts` | Cálculo de desconto de cupom e plano de saúde | Alta |
-| `controllers/avaliacoes.controller.ts` | Validação nota 1–5, cálculo de média | Média |
+| # | Caso de Teste | Resultado Esperado |
+|---|---------------|--------------------|
+| 1 | Gera token como string não vazia | `typeof token === 'string'` e `length > 0` |
+| 2 | Token tem 3 partes separadas por ponto (formato JWT) | `token.split('.').length === 3` |
+| 3 | Verifica token válido e retorna payload correto | `{ id, email, tipo }` idênticos ao original |
+| 4 | Retorna `null` para token completamente inválido | `null` |
+| 5 | Retorna `null` para string vazia | `null` |
+| 6 | Retorna `null` para token adulterado (assinatura falsa) | `null` |
+| 7 | Dois tokens de payloads diferentes são diferentes | `token1 !== token2` |
+| 8 | Preserva campo `tipo` no payload decodificado | `decoded.tipo === 'medico'` |
 
-### Exemplo de Estrutura (futuro)
+---
 
-```typescript
-// src/__tests__/unit/jwt.unit.test.ts
-import { describe, it, expect } from 'vitest';
-import { generateToken, verifyToken } from '../../utils/jwt';
+### 4.2 `hash.unit.test.ts`
+**Localização**: `src/__tests__/unit/hash.unit.test.ts`
 
-describe('JWT utils', () => {
-  it('gera token válido com payload correto', () => {
-    const payload = { id: 'uuid-123', email: 'test@test.com', tipo: 'paciente' };
-    const token = generateToken(payload);
-    expect(token).toBeTruthy();
-    const decoded = verifyToken(token);
-    expect(decoded).toMatchObject({ id: 'uuid-123' });
-  });
+| # | Caso de Teste | Resultado Esperado |
+|---|---------------|--------------------|
+| 1 | Hash é diferente da senha original | `hash !== senha` |
+| 2 | Hash é uma string não vazia | `typeof hash === 'string'` e `length > 0` |
+| 3 | Hash começa com prefixo bcrypt válido (`$2a$` ou `$2b$`) | `startsWith('$2a$') \|\| startsWith('$2b$')` |
+| 4 | Dois hashes da mesma senha são diferentes (salt aleatório) | `hash1 !== hash2` |
+| 5 | `comparePassword` retorna `true` para senha correta | `true` |
+| 6 | `comparePassword` retorna `false` para senha errada | `false` |
+| 7 | `comparePassword` retorna `false` para string vazia | `false` |
+| 8 | `comparePassword` retorna `false` para hash inválido | `false` |
 
-  it('retorna null para token inválido', () => {
-    const result = verifyToken('token-invalido');
-    expect(result).toBeNull();
-  });
-});
-```
+> **Nota**: o prefixo `$2a$` é gerado pelo `bcryptjs` neste ambiente. Ambos `$2a$` e `$2b$` são equivalentes em segurança — diferem apenas na versão interna do algoritmo.
+
+---
+
+### 4.3 `auth.schema.unit.test.ts`
+**Localização**: `src/__tests__/unit/auth.schema.unit.test.ts`
+
+| # | Grupo | Caso de Teste | Resultado Esperado |
+|---|-------|---------------|--------------------|
+| 1 | `signinSchema` | Aceita email e password válidos | `success: true` |
+| 2 | `signinSchema` | Rejeita email inválido | `success: false` |
+| 3 | `signinSchema` | Rejeita password com menos de 6 chars | `success: false` |
+| 4 | `signinSchema` | Rejeita sem email | `success: false` |
+| 5 | `signinSchema` | Rejeita sem password | `success: false` |
+| 6 | `signupSchema` | Aceita dados válidos de paciente | `success: true` |
+| 7 | `signupSchema` | Aceita sem campo tipo (default implícito) | `success: true` |
+| 8 | `signupSchema` | Aceita tipo médico com campos opcionais | `success: true` |
+| 9 | `signupSchema` | Rejeita tipo inválido (`admin`) | `success: false` |
+| 10 | `signupSchema` | Rejeita nome com menos de 2 chars | `success: false` |
+| 11 | `signupSchema` | Rejeita email inválido | `success: false` |
+| 12 | `signupSchema` | Rejeita CPF com menos de 11 chars | `success: false` |
+| 13 | `signupSchema` | Rejeita telefone com menos de 8 chars | `success: false` |
+| 14 | `signupSchema` | Rejeita senha com menos de 6 chars | `success: false` |
+| 15 | `signupSchemaValidated` | Rejeita médico sem especialidade e CRM | `success: false` |
+| 16 | `signupSchemaValidated` | Rejeita médico com especialidade mas sem CRM | `success: false` |
+| 17 | `signupSchemaValidated` | Aceita médico com especialidade e CRM | `success: true` |
+| 18 | `signupSchemaValidated` | Aceita paciente sem especialidade e CRM | `success: true` |
 
 ---
 
@@ -319,6 +343,8 @@ npx vitest run --coverage
 
 ### Resumo por Suíte
 
+#### Testes de Integração (API)
+
 | Suíte | Casos | Tipo | Status |
 |-------|-------|------|--------|
 | `health.test.ts` | 1 | Integração | ✅ Passando |
@@ -331,7 +357,25 @@ npx vitest run --coverage
 | `pagamentos.test.ts` | 8 | Integração | ✅ Passando |
 | `admin.test.ts` | 1 | Integração | ✅ Passando |
 | `professional.test.ts` | 1 | Integração | ✅ Passando |
-| **Total** | **32** | | **✅ 32/32** |
+| **Subtotal** | **32** | | **✅ 32/32** |
+
+#### Testes Unitários
+
+| Suíte | Casos | Tipo | Status |
+|-------|-------|------|--------|
+| `unit/jwt.unit.test.ts` | 8 | Unitário | ✅ Passando |
+| `unit/hash.unit.test.ts` | 8 | Unitário | ✅ Passando |
+| `unit/auth.schema.unit.test.ts` | 18 | Unitário | ✅ Passando |
+| **Subtotal** | **34** | | **✅ 34/34** |
+
+#### Total Geral
+
+| Tipo | Casos | Status |
+|------|-------|--------|
+| Integração (API) | 32 | ✅ |
+| Unitários | 34 | ✅ |
+| E2E automatizado | 0 | ⚠️ Planejado |
+| **Total** | **66** | **✅ 66/66** |
 
 ### Endpoints Cobertos
 
