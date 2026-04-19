@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated } from 'react-native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from '../../navigation/types';
 import { useAuth } from '../../hooks/useAuth';
@@ -8,8 +8,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import FeaturedProfessionalsCarousel from '../../components/FeaturedProfessionalsCarousel';
 import FeaturedClinicsCarousel from '../../components/FeaturedClinicsCarousel';
 import LocationModal, { LocationValue } from '../../components/LocationModal';
-import uaiMedApi from '../../api/uaiMedApi';
-import NextAppointmentCard from '../../components/NextAppointmentCard';
 
 const LOCATION_STORAGE_KEY = '@uaimed:location';
 
@@ -28,14 +26,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
     new Animated.Value(0),
     new Animated.Value(0),
     new Animated.Value(0),
-    new Animated.Value(0),
   ]).current;
 
   // Escuta o parâmetro openMenu vindo do Header
   useEffect(() => {
     if ((route.params as any)?.openMenu) {
       setMenuOpen(true);
-      // Limpa o parâmetro para não abrir de novo acidentalmente ao voltar para a tela
       navigation.setParams({ openMenu: undefined } as any);
     }
   }, [(route.params as any)?.openMenu]);
@@ -73,61 +69,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
     await AsyncStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(loc));
   };
 
-  const locationLabel = location.uf
-    ? `${location.cidade ? location.cidade + ', ' : ''}${location.uf}`
-    : 'Brasil';
-
-  // Next appointment
-  const [nextAppointments, setNextAppointments] = useState<any[]>([]);
-  const [nextLoading, setNextLoading] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-    const fetchNext = async () => {
-      setNextLoading(true);
-      try {
-        const res = await uaiMedApi.get('/agendamentos');
-        const list: any[] = Array.isArray(res.data) ? res.data : [];
-        const future = list
-          .map((a) => ({ ...a, _date: new Date(a.data) }))
-          .filter((a) => a._date > new Date())
-          .sort((a, b) => a._date.getTime() - b._date.getTime());
-
-        if (mounted && future.length >= 3) {
-          setNextAppointments(future.slice(0, 3));
-        } else if (mounted) {
-          // Mock data if not enough real future appointments
-          const mockData = [
-            { id: 'mock-1', medico: 'Dra. Ana Silva', especialidade: 'Cardiologia', data: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString() },
-            { id: 'mock-2', medico: 'Dr. Roberto Santos', especialidade: 'Ortopedia', data: new Date(Date.now() + 1000 * 60 * 60 * 48).toISOString() },
-            { id: 'mock-3', medico: 'Dra. Juliana Lima', especialidade: 'Dermatologia', data: new Date(Date.now() + 1000 * 60 * 60 * 72).toISOString() },
-          ];
-          setNextAppointments(future.length > 0 ? [...future, ...mockData].slice(0, 3) : mockData);
-        }
-      } catch (e) {
-        console.warn('Erro ao buscar agendamentos:', e);
-        if (mounted) {
-          setNextAppointments([
-            { id: 'mock-1', medico: 'Dra. Ana Silva', especialidade: 'Cardiologia', data: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString() },
-            { id: 'mock-2', medico: 'Dr. Roberto Santos', especialidade: 'Ortopedia', data: new Date(Date.now() + 1000 * 60 * 60 * 48).toISOString() },
-            { id: 'mock-3', medico: 'Dra. Juliana Lima', especialidade: 'Dermatologia', data: new Date(Date.now() + 1000 * 60 * 60 * 72).toISOString() },
-          ]);
-        }
-      } finally {
-        if (mounted) setNextLoading(false);
-      }
-    };
-
-    fetchNext();
-    return () => { mounted = false; };
-  }, []);
-
   return (
     <ScrollView
-      contentContainerStyle={{
-        paddingHorizontal: 12,
-        paddingBottom: 40, // Aumentado um pouco o padding inferior para melhor rolagem
-      }}
+      contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 40 }}
       showsVerticalScrollIndicator={false}
     >
       {menuOpen && (
@@ -145,7 +89,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
               },
             ]}
           >
-            {/* Meu Perfil */}
             <Animated.View style={[styles.menuItem, { opacity: itemAnims[0], transform: [{ translateY: itemAnims[0].interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }] }]}>
               <TouchableOpacity onPress={() => { setMenuOpen(false); navigation.navigate('Perfil'); }} style={styles.menuRow}>
                 <Ionicons name="person-outline" size={18} color="#4B73B2" style={{ marginRight: 10 }} />
@@ -153,7 +96,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
               </TouchableOpacity>
             </Animated.View>
 
-            {/* Minhas Consultas */}
             <Animated.View style={[styles.menuItem, { opacity: itemAnims[1], transform: [{ translateY: itemAnims[1].interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }] }]}>
               <TouchableOpacity onPress={() => { setMenuOpen(false); navigation.navigate('Agendamentos', { screen: 'MinhasConsultas' }); }} style={styles.menuRow}>
                 <Ionicons name="calendar-outline" size={18} color="#4B73B2" style={{ marginRight: 10 }} />
@@ -161,7 +103,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
               </TouchableOpacity>
             </Animated.View>
 
-            {/* Meus Pagamentos */}
             <Animated.View style={[styles.menuItem, { opacity: itemAnims[2], transform: [{ translateY: itemAnims[2].interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }] }]}>
               <TouchableOpacity onPress={() => { setMenuOpen(false); navigation.navigate('Agendamentos', { screen: 'MeusPagamentos' }); }} style={styles.menuRow}>
                 <Ionicons name="card-outline" size={18} color="#4B73B2" style={{ marginRight: 10 }} />
@@ -169,24 +110,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
               </TouchableOpacity>
             </Animated.View>
 
-            {/* Ajuda */}
             <Animated.View style={[styles.menuItem, { opacity: itemAnims[3], transform: [{ translateY: itemAnims[3].interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }] }]}>
-              <TouchableOpacity
-                onPress={() => {
-                  setMenuOpen(false);
-                  navigation.navigate('Ajuda');
-                }}
-                style={styles.menuRow}
-              >
+              <TouchableOpacity onPress={() => { setMenuOpen(false); navigation.navigate('Ajuda'); }} style={styles.menuRow}>
                 <Ionicons name="help-circle-outline" size={18} color="#4CAF50" style={{ marginRight: 10 }} />
                 <Text style={styles.menuText}>Ajuda</Text>
               </TouchableOpacity>
             </Animated.View>
 
-            {/* Divisor */}
             <View style={styles.menuDivider} />
 
-            {/* Sair */}
             <Animated.View style={[styles.menuItem, { opacity: itemAnims[4], transform: [{ translateY: itemAnims[4].interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }] }]}>
               <TouchableOpacity onPress={() => { setMenuOpen(false); signOut(); }} style={styles.menuRow}>
                 <Ionicons name="log-out-outline" size={18} color="#D9534F" style={{ marginRight: 10 }} />
@@ -222,35 +154,20 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
       </View>
 
       <Text style={styles.sectionTitle}>Profissionais em destaque</Text>
-      <FeaturedProfessionalsCarousel estado={location.uf || undefined} cidade={location.cidade || undefined} />
-
-      {nextLoading ? (
-        <ActivityIndicator size="small" color="#4CAF50" style={{ marginVertical: 8 }} />
-      ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.nextStepsContainer}>
-          {nextAppointments.map((appointment) => (
-            <NextAppointmentCard
-              key={appointment.id || appointment.agendamentoId}
-              medico={appointment.medico || appointment.medicoNome || 'Profissional'}
-              especialidade={appointment.especialidade}
-              data={appointment.data}
-              onPress={() => navigation.navigate('Agendamentos', {
-                screen: 'DetalhesMedico',
-                params: { medicoId: appointment.medicoId || appointment.medico_id }
-              })}
-            />
-          ))}
-        </ScrollView>
-      )}
+      <FeaturedProfessionalsCarousel
+        estado={location.uf || undefined}
+        cidade={location.cidade || undefined}
+      />
 
       <Text style={styles.sectionTitle}>Clínicas em destaque</Text>
-      <FeaturedClinicsCarousel />
+      <FeaturedClinicsCarousel
+        estado={location.uf || undefined}
+        cidade={location.cidade || undefined}
+      />
 
       <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Artigos de Saúde</Text>
 
-      {/* Nova seção de artigos verticais */}
       <View style={styles.articlesContainer}>
-        {/* Card 1 */}
         <TouchableOpacity style={styles.largeArticleCard} activeOpacity={0.9}>
           <View style={[styles.articleBanner, { backgroundColor: '#E1F5FE' }]}>
             <Ionicons name="fitness-outline" size={48} color="#03A9F4" />
@@ -264,7 +181,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
           </View>
         </TouchableOpacity>
 
-        {/* Card 2 */}
         <TouchableOpacity style={styles.largeArticleCard} activeOpacity={0.9}>
           <View style={[styles.articleBanner, { backgroundColor: '#F3E5F5' }]}>
             <Ionicons name="moon-outline" size={48} color="#9C27B0" />
@@ -279,7 +195,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Modal de Localização */}
       <LocationModal
         visible={locationModalVisible}
         onClose={() => setLocationModalVisible(false)}
@@ -287,13 +202,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
         initialUF={location.uf}
         initialCidade={location.cidade}
       />
-
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: '#FAFAFA', paddingHorizontal: 12, paddingTop: 8 },
   locationBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -313,13 +226,7 @@ const styles = StyleSheet.create({
   locationText: { flex: 1, fontSize: 14, color: '#888', fontWeight: '500' },
   locationTextActive: { color: '#2E7D32', fontWeight: '600' },
   sectionTitle: { fontSize: 18, fontWeight: '700', marginTop: 12, marginBottom: 10, marginHorizontal: 4, color: '#111' },
-  nextStepsContainer: { paddingLeft: 4, marginBottom: 10 },
-
-  /* Novos Estilos de Artigo Vertical */
-  articlesContainer: {
-    paddingHorizontal: 4,
-    marginTop: 4,
-  },
+  articlesContainer: { paddingHorizontal: 4, marginTop: 4 },
   largeArticleCard: {
     backgroundColor: '#FFF',
     borderRadius: 16,
@@ -333,15 +240,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F0F0F0',
   },
-  articleBanner: {
-    height: 140,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  articleContent: {
-    padding: 16,
-  },
+  articleBanner: { height: 140, width: '100%', justifyContent: 'center', alignItems: 'center' },
+  articleContent: { padding: 16 },
   articleBadge: {
     alignSelf: 'flex-start',
     backgroundColor: '#E1F5FE',
@@ -350,25 +250,9 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginBottom: 8,
   },
-  articleBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#03A9F4',
-    letterSpacing: 0.5,
-  },
-  largeArticleTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#222',
-    marginBottom: 6,
-  },
-  largeArticleSub: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-  },
-  /* Fim dos novos estilos */
-
+  articleBadgeText: { fontSize: 10, fontWeight: '700', color: '#03A9F4', letterSpacing: 0.5 },
+  largeArticleTitle: { fontSize: 16, fontWeight: '700', color: '#222', marginBottom: 6 },
+  largeArticleSub: { fontSize: 14, color: '#666', lineHeight: 20 },
   menuOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.25)', zIndex: 50 },
   menuBox: { position: 'absolute', top: 60, left: 12, width: 230, backgroundColor: '#FFF', borderRadius: 12, elevation: 8, paddingVertical: 8, paddingHorizontal: 6, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
   menuItem: { paddingVertical: 8, paddingHorizontal: 6 },
