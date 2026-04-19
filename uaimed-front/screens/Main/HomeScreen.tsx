@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Animated, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, ActivityIndicator } from 'react-native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from '../../navigation/types';
 import { useAuth } from '../../hooks/useAuth';
@@ -122,15 +122,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
     return () => { mounted = false; };
   }, []);
 
-
-
   return (
-<ScrollView
-  contentContainerStyle={{
-    paddingHorizontal: 12,
-    paddingBottom: 20,
-  }}
->      {menuOpen && (
+    <ScrollView
+      contentContainerStyle={{
+        paddingHorizontal: 12,
+        paddingBottom: 40, // Aumentado um pouco o padding inferior para melhor rolagem
+      }}
+      showsVerticalScrollIndicator={false}
+    >
+      {menuOpen && (
         <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setMenuOpen(false)}>
           <Animated.View
             pointerEvents={menuOpen ? 'auto' : 'none'}
@@ -197,7 +197,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
         </TouchableOpacity>
       )}
 
-      {/* Filtro de região — agora no topo */}
+      {/* Filtro de região */}
       <View style={{ marginTop: 16 }}>
         <TouchableOpacity
           style={[styles.locationBar, (location.uf || location.cidade) && styles.locationBarActive]}
@@ -246,28 +246,38 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
       <Text style={styles.sectionTitle}>Clínicas em destaque</Text>
       <FeaturedClinicsCarousel />
 
-      <Text style={styles.sectionTitle}>Artigos de Saúde</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.nextStepsContainer}>
-        <TouchableOpacity style={styles.articleCard} activeOpacity={0.8}>
-          <View style={[styles.articleIcon, { backgroundColor: '#E1F5FE' }]}>
-            <Ionicons name="fitness-outline" size={24} color="#03A9F4" />
+      <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Artigos de Saúde</Text>
+
+      {/* Nova seção de artigos verticais */}
+      <View style={styles.articlesContainer}>
+        {/* Card 1 */}
+        <TouchableOpacity style={styles.largeArticleCard} activeOpacity={0.9}>
+          <View style={[styles.articleBanner, { backgroundColor: '#E1F5FE' }]}>
+            <Ionicons name="fitness-outline" size={48} color="#03A9F4" />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.articleTitle} numberOfLines={1}>Dicas para uma vida saudável</Text>
-            <Text style={styles.articleSub} numberOfLines={1}>Alimentação e exercícios diários</Text>
+          <View style={styles.articleContent}>
+            <View style={styles.articleBadge}>
+              <Text style={styles.articleBadgeText}>BEM-ESTAR</Text>
+            </View>
+            <Text style={styles.largeArticleTitle} numberOfLines={2}>Dicas para uma vida saudável</Text>
+            <Text style={styles.largeArticleSub} numberOfLines={2}>Descubra os principais pilares da alimentação e dos exercícios diários para maximizar sua energia.</Text>
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.articleCard} activeOpacity={0.8}>
-          <View style={[styles.articleIcon, { backgroundColor: '#F3E5F5' }]}>
-            <Ionicons name="moon-outline" size={24} color="#9C27B0" />
+        {/* Card 2 */}
+        <TouchableOpacity style={styles.largeArticleCard} activeOpacity={0.9}>
+          <View style={[styles.articleBanner, { backgroundColor: '#F3E5F5' }]}>
+            <Ionicons name="moon-outline" size={48} color="#9C27B0" />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.articleTitle} numberOfLines={1}>A importância do sono</Text>
-            <Text style={styles.articleSub} numberOfLines={1}>Como dormir melhor e render mais</Text>
+          <View style={styles.articleContent}>
+            <View style={[styles.articleBadge, { backgroundColor: '#F3E5F5' }]}>
+              <Text style={[styles.articleBadgeText, { color: '#9C27B0' }]}>SAÚDE DO SONO</Text>
+            </View>
+            <Text style={styles.largeArticleTitle} numberOfLines={2}>A importância do sono de qualidade</Text>
+            <Text style={styles.largeArticleSub} numberOfLines={2}>Como dormir melhor, render mais durante o dia e evitar problemas crônicos de saúde a longo prazo.</Text>
           </View>
         </TouchableOpacity>
-      </ScrollView>
+      </View>
 
       {/* Modal de Localização */}
       <LocationModal
@@ -284,7 +294,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, backgroundColor: '#FAFAFA', paddingHorizontal: 12, paddingTop: 8 },
-  // Filtro de localização — igual ao SearchScreen de Agendamento
   locationBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -303,43 +312,63 @@ const styles = StyleSheet.create({
   },
   locationText: { flex: 1, fontSize: 14, color: '#888', fontWeight: '500' },
   locationTextActive: { color: '#2E7D32', fontWeight: '600' },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderRadius: 10, padding: 12, marginVertical: 8, marginHorizontal: 4, elevation: 1, borderWidth: 1, borderColor: '#F5F5F5' },
-  searchInput: { flex: 1, fontSize: 14, color: '#333' },
-  sectionTitle: { fontSize: 16, fontWeight: '700', marginTop: 8, marginBottom: 6, marginHorizontal: 4, color: '#222' },
-  card: { backgroundColor: '#FFF', borderRadius: 10, padding: 15, borderWidth: 1, borderColor: '#F5F5F5' },
-  cardTitle: { fontSize: 16, fontWeight: '600' },
-  cardSubtitle: { fontSize: 14, color: '#666', marginVertical: 5 },
-  detailButton: { marginTop: 10, alignSelf: 'flex-start' },
-  detailButtonText: { color: '#4B73B2', fontWeight: '600' },
+  sectionTitle: { fontSize: 18, fontWeight: '700', marginTop: 12, marginBottom: 10, marginHorizontal: 4, color: '#111' },
   nextStepsContainer: { paddingLeft: 4, marginBottom: 10 },
-  articleCard: {
+
+  /* Novos Estilos de Artigo Vertical */
+  articlesContainer: {
+    paddingHorizontal: 4,
+    marginTop: 4,
+  },
+  largeArticleCard: {
     backgroundColor: '#FFF',
-    padding: 10,
-    borderRadius: 12,
-    elevation: 2,
-    marginBottom: 8,
-    marginRight: 12,
-    width: 280,
-    height: 80,
-    flexDirection: 'row',
-    alignItems: 'center',
+    borderRadius: 16,
+    marginBottom: 16,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
     borderWidth: 1,
     borderColor: '#F0F0F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
   },
-  articleIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+  articleBanner: {
+    height: 140,
+    width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
   },
-  articleTitle: { fontSize: 14, fontWeight: '700', color: '#333' },
-  articleSub: { fontSize: 12, color: '#666', marginTop: 2 },
+  articleContent: {
+    padding: 16,
+  },
+  articleBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#E1F5FE',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  articleBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#03A9F4',
+    letterSpacing: 0.5,
+  },
+  largeArticleTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#222',
+    marginBottom: 6,
+  },
+  largeArticleSub: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
+  /* Fim dos novos estilos */
+
   menuOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.25)', zIndex: 50 },
   menuBox: { position: 'absolute', top: 60, left: 12, width: 230, backgroundColor: '#FFF', borderRadius: 12, elevation: 8, paddingVertical: 8, paddingHorizontal: 6, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
   menuItem: { paddingVertical: 8, paddingHorizontal: 6 },
