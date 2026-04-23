@@ -1,5 +1,17 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Modal,
+  Animated,
+  Dimensions,
+  SafeAreaView,
+  TouchableWithoutFeedback,
+  Image,
+} from 'react-native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from '../../navigation/types';
 import { useAuth } from '../../hooks/useAuth';
@@ -10,28 +22,209 @@ import FeaturedClinicsCarousel from '../../components/FeaturedClinicsCarousel';
 import LocationModal, { LocationValue } from '../../components/LocationModal';
 
 const LOCATION_STORAGE_KEY = '@uaimed:location';
+const DRAWER_WIDTH = Dimensions.get('window').width * 0.78;
 
 type HomeScreenProps = BottomTabScreenProps<MainTabParamList, 'Home'>;
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
+// ─────────────────────────────────────────────
+// Sub-componente: Item do Drawer
+// ─────────────────────────────────────────────
+interface DrawerItemProps {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  color?: string;
+}
+
+const DrawerItem: React.FC<DrawerItemProps> = ({ icon, label, onPress, color = '#333' }) => (
+  <TouchableOpacity style={drawerStyles.item} onPress={onPress} activeOpacity={0.7}>
+    <Ionicons name={icon} size={22} color={color} style={{ marginRight: 16 }} />
+    <Text style={[drawerStyles.itemLabel, { color }]}>{label}</Text>
+  </TouchableOpacity>
+);
+
+// ─────────────────────────────────────────────
+// Sub-componente: CustomDrawer
+// ─────────────────────────────────────────────
+interface DrawerProps {
+  visible: boolean;
+  onClose: () => void;
+  navigation: HomeScreenProps['navigation'];
+}
+
+const CustomDrawer: React.FC<DrawerProps> = ({ visible, onClose, navigation }) => {
   const { user, signOut } = useAuth();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const slideAnim = React.useRef(new Animated.Value(-DRAWER_WIDTH)).current;
+  const overlayAnim = React.useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 280,
+          useNativeDriver: true,
+        }),
+        Animated.timing(overlayAnim, {
+          toValue: 1,
+          duration: 280,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: -DRAWER_WIDTH,
+          duration: 220,
+          useNativeDriver: true,
+        }),
+        Animated.timing(overlayAnim, {
+          toValue: 0,
+          duration: 220,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [visible]);
+
+  const navigate = (screen: string, params?: object) => {
+    onClose();
+    setTimeout(() => navigation.navigate(screen as any, params as any), 260);
+  };
+
+  const handleSignOut = () => {
+    onClose();
+    setTimeout(() => signOut(), 260);
+  };
+
+  const isPaciente = user?.tipo === 'paciente';
+  const isMedico   = user?.tipo === 'medico';
+  const isClinica  = user?.tipo === 'clinica';
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      {/* Overlay */}
+      <TouchableWithoutFeedback onPress={onClose}>
+        <Animated.View style={[drawerStyles.overlay, { opacity: overlayAnim }]} />
+      </TouchableWithoutFeedback>
+
+      {/* Painel deslizante */}
+      <Animated.View
+        style={[drawerStyles.panel, { transform: [{ translateX: slideAnim }] }]}
+      >
+        <SafeAreaView style={{ flex: 1 }}>
+
+          {/* Cabeçalho verde */}
+          <View style={drawerStyles.header}>
+            <View style={drawerStyles.avatarCircle}>
+              <Text style={drawerStyles.avatarText}>
+                {user?.nome ? user.nome.charAt(0).toUpperCase() : '?'}
+              </Text>
+            </View>
+            <Text style={drawerStyles.userName} numberOfLines={1}>
+              {user?.nome ?? 'Usuário'}
+            </Text>
+            <Text style={drawerStyles.userEmail} numberOfLines={1}>
+              {user?.email ?? ''}
+            </Text>
+          </View>
+
+          {/* Itens de navegação */}
+          <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+            <View style={drawerStyles.section}>
+              <DrawerItem
+                icon="home-outline"
+                label="Início"
+                onPress={() => onClose()}
+              />
+
+              {isPaciente && (
+                <>
+                  <DrawerItem
+                    icon="calendar-outline"
+                    label="Minhas Consultas"
+                    onPress={() => navigate('Agendamentos', { screen: 'MinhasConsultas' })}
+                  />
+                  <DrawerItem
+                    icon="card-outline"
+                    label="Meus Pagamentos"
+                    onPress={() => navigate('Agendamentos', { screen: 'MeusPagamentos' })}
+                  />
+                </>
+              )}
+
+              {isMedico && (
+                <DrawerItem
+                  icon="calendar-outline"
+                  label="Minha Agenda"
+                  onPress={() => navigate('MedicoAgenda')}
+                />
+              )}
+
+              {isClinica && (
+                <DrawerItem
+                  icon="bar-chart-outline"
+                  label="Gestão"
+                  onPress={() => navigate('ClinicDashboard')}
+                />
+              )}
+
+              <DrawerItem
+                icon="person-outline"
+                label="Meu Perfil"
+                onPress={() => navigate('Perfil')}
+              />
+
+              <DrawerItem
+                icon="help-circle-outline"
+                label="Ajuda e Suporte"
+                onPress={() => navigate('Ajuda')}
+                color="#4CAF50"
+              />
+            </View>
+
+            {/* Divisor */}
+            <View style={drawerStyles.divider} />
+
+            <View style={drawerStyles.section}>
+              <DrawerItem
+                icon="log-out-outline"
+                label="Sair"
+                onPress={handleSignOut}
+                color="#D9534F"
+              />
+            </View>
+          </ScrollView>
+
+          {/* Rodapé com versão */}
+          <View style={drawerStyles.footer}>
+            <Text style={drawerStyles.footerText}>UaiMED v1.0</Text>
+          </View>
+
+        </SafeAreaView>
+      </Animated.View>
+    </Modal>
+  );
+};
+
+// ─────────────────────────────────────────────
+// Tela Principal: HomeScreen
+// ─────────────────────────────────────────────
+const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
+  const [drawerOpen, setDrawerOpen]   = useState(false);
   const [locationModalVisible, setLocationModalVisible] = useState(false);
-  const [location, setLocation] = useState<LocationValue>({ uf: '', estado: '', cidade: '' });
+  const [location, setLocation]       = useState<LocationValue>({ uf: '', estado: '', cidade: '' });
 
-  const menuAnim = useRef(new Animated.Value(0)).current;
-  const itemAnims = useRef([
-    new Animated.Value(0),
-    new Animated.Value(0),
-    new Animated.Value(0),
-    new Animated.Value(0),
-    new Animated.Value(0),
-  ]).current;
-
-  // Escuta o parâmetro openMenu vindo do Header
+  // Escuta o parâmetro openMenu vindo do headerLeft do MainTabNavigator
   useEffect(() => {
     if ((route.params as any)?.openMenu) {
-      setMenuOpen(true);
+      setDrawerOpen(true);
       navigation.setParams({ openMenu: undefined } as any);
     }
   }, [(route.params as any)?.openMenu]);
@@ -45,156 +238,110 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
     });
   }, []);
 
-  useEffect(() => {
-    Animated.timing(menuAnim, {
-      toValue: menuOpen ? 1 : 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-
-    if (menuOpen) {
-      const seq = itemAnims.map((anim, i) =>
-        Animated.timing(anim, { toValue: 1, duration: 180, delay: i * 50, useNativeDriver: true })
-      );
-      Animated.stagger(50, seq).start();
-    } else {
-      itemAnims.forEach(anim =>
-        Animated.timing(anim, { toValue: 0, duration: 100, useNativeDriver: true }).start()
-      );
-    }
-  }, [menuOpen, menuAnim, itemAnims]);
-
   const handleLocationConfirm = async (loc: LocationValue) => {
     setLocation(loc);
     await AsyncStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(loc));
   };
 
+  const hasLocation = !!(location.uf || location.cidade);
+
   return (
-    <ScrollView
-      contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 40 }}
-      showsVerticalScrollIndicator={false}
-    >
-      {menuOpen && (
-        <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setMenuOpen(false)}>
-          <Animated.View
-            pointerEvents={menuOpen ? 'auto' : 'none'}
-            style={[
-              styles.menuBox,
-              {
-                opacity: menuAnim,
-                transform: [
-                  { translateY: menuAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] }) },
-                  { scale: menuAnim.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1] }) },
-                ],
-              },
-            ]}
+    <View style={{ flex: 1 }}>
+      {/* ── Drawer lateral ── */}
+      <CustomDrawer
+        visible={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        navigation={navigation}
+      />
+
+      {/* ── Conteúdo principal ── */}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Filtro de região */}
+        <View style={{ marginTop: 16 }}>
+          <TouchableOpacity
+            style={[styles.locationBar, hasLocation && styles.locationBarActive]}
+            onPress={() => setLocationModalVisible(true)}
+            activeOpacity={0.7}
           >
-            <Animated.View style={[styles.menuItem, { opacity: itemAnims[0], transform: [{ translateY: itemAnims[0].interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }] }]}>
-              <TouchableOpacity onPress={() => { setMenuOpen(false); navigation.navigate('Perfil'); }} style={styles.menuRow}>
-                <Ionicons name="person-outline" size={18} color="#4B73B2" style={{ marginRight: 10 }} />
-                <Text style={styles.menuText}>Meu Perfil</Text>
-              </TouchableOpacity>
-            </Animated.View>
+            <Ionicons
+              name="location-outline"
+              size={18}
+              color={hasLocation ? '#2E7D32' : '#888'}
+              style={{ marginRight: 8 }}
+            />
+            <Text style={[styles.locationText, hasLocation && styles.locationTextActive]}>
+              {location.uf
+                ? `${location.cidade ? location.cidade + ', ' : ''}${location.uf}`
+                : 'Qualquer localização'}
+            </Text>
+            <Ionicons
+              name="chevron-down-outline"
+              size={16}
+              color={hasLocation ? '#2E7D32' : '#888'}
+            />
+          </TouchableOpacity>
+        </View>
 
-            <Animated.View style={[styles.menuItem, { opacity: itemAnims[1], transform: [{ translateY: itemAnims[1].interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }] }]}>
-              <TouchableOpacity onPress={() => { setMenuOpen(false); navigation.navigate('Agendamentos', { screen: 'MinhasConsultas' }); }} style={styles.menuRow}>
-                <Ionicons name="calendar-outline" size={18} color="#4B73B2" style={{ marginRight: 10 }} />
-                <Text style={styles.menuText}>Minhas Consultas</Text>
-              </TouchableOpacity>
-            </Animated.View>
+        {/* Profissionais em destaque */}
+        <Text style={styles.sectionTitle}>Profissionais em destaque</Text>
+        <FeaturedProfessionalsCarousel
+          estado={location.uf || undefined}
+          cidade={location.cidade || undefined}
+        />
 
-            <Animated.View style={[styles.menuItem, { opacity: itemAnims[2], transform: [{ translateY: itemAnims[2].interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }] }]}>
-              <TouchableOpacity onPress={() => { setMenuOpen(false); navigation.navigate('Agendamentos', { screen: 'MeusPagamentos' }); }} style={styles.menuRow}>
-                <Ionicons name="card-outline" size={18} color="#4B73B2" style={{ marginRight: 10 }} />
-                <Text style={styles.menuText}>Meus Pagamentos</Text>
-              </TouchableOpacity>
-            </Animated.View>
+        {/* Clínicas em destaque */}
+        <Text style={styles.sectionTitle}>Clínicas em destaque</Text>
+        <FeaturedClinicsCarousel
+          estado={location.uf || undefined}
+          cidade={location.cidade || undefined}
+        />
 
-            <Animated.View style={[styles.menuItem, { opacity: itemAnims[3], transform: [{ translateY: itemAnims[3].interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }] }]}>
-              <TouchableOpacity onPress={() => { setMenuOpen(false); navigation.navigate('Ajuda'); }} style={styles.menuRow}>
-                <Ionicons name="help-circle-outline" size={18} color="#4CAF50" style={{ marginRight: 10 }} />
-                <Text style={styles.menuText}>Ajuda</Text>
-              </TouchableOpacity>
-            </Animated.View>
+        {/* Artigos de Saúde */}
+        <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Artigos de Saúde</Text>
 
-            <View style={styles.menuDivider} />
-
-            <Animated.View style={[styles.menuItem, { opacity: itemAnims[4], transform: [{ translateY: itemAnims[4].interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }] }]}>
-              <TouchableOpacity onPress={() => { setMenuOpen(false); signOut(); }} style={styles.menuRow}>
-                <Ionicons name="log-out-outline" size={18} color="#D9534F" style={{ marginRight: 10 }} />
-                <Text style={[styles.menuText, { color: '#D9534F' }]}>Sair</Text>
-              </TouchableOpacity>
-            </Animated.View>
-          </Animated.View>
-        </TouchableOpacity>
-      )}
-
-      {/* Filtro de região */}
-      <View style={{ marginTop: 16 }}>
-        <TouchableOpacity
-          style={[styles.locationBar, (location.uf || location.cidade) && styles.locationBarActive]}
-          onPress={() => setLocationModalVisible(true)}
-          activeOpacity={0.7}
-        >
-          <Ionicons
-            name="location-outline"
-            size={18}
-            color={(location.uf || location.cidade) ? '#2E7D32' : '#888'}
-            style={{ marginRight: 8 }}
-          />
-          <Text style={[styles.locationText, (location.uf || location.cidade) && styles.locationTextActive]}>
-            {location.uf ? `${location.cidade ? location.cidade + ', ' : ''}${location.uf}` : 'Qualquer localização'}
-          </Text>
-          <Ionicons
-            name="chevron-down-outline"
-            size={16}
-            color={(location.uf || location.cidade) ? '#2E7D32' : '#888'}
-          />
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.sectionTitle}>Profissionais em destaque</Text>
-      <FeaturedProfessionalsCarousel
-        estado={location.uf || undefined}
-        cidade={location.cidade || undefined}
-      />
-
-      <Text style={styles.sectionTitle}>Clínicas em destaque</Text>
-      <FeaturedClinicsCarousel
-        estado={location.uf || undefined}
-        cidade={location.cidade || undefined}
-      />
-
-      <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Artigos de Saúde</Text>
-
-      <View style={styles.articlesContainer}>
-        <TouchableOpacity style={styles.largeArticleCard} activeOpacity={0.9}>
-          <View style={[styles.articleBanner, { backgroundColor: '#E1F5FE' }]}>
-            <Ionicons name="fitness-outline" size={48} color="#03A9F4" />
-          </View>
-          <View style={styles.articleContent}>
-            <View style={styles.articleBadge}>
-              <Text style={styles.articleBadgeText}>BEM-ESTAR</Text>
+        <View style={styles.articlesContainer}>
+          <TouchableOpacity style={styles.largeArticleCard} activeOpacity={0.9}>
+            <View style={[styles.articleBanner, { backgroundColor: '#E1F5FE' }]}>
+              <Ionicons name="fitness-outline" size={48} color="#03A9F4" />
             </View>
-            <Text style={styles.largeArticleTitle} numberOfLines={2}>Dicas para uma vida saudável</Text>
-            <Text style={styles.largeArticleSub} numberOfLines={2}>Descubra os principais pilares da alimentação e dos exercícios diários para maximizar sua energia.</Text>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.largeArticleCard} activeOpacity={0.9}>
-          <View style={[styles.articleBanner, { backgroundColor: '#F3E5F5' }]}>
-            <Ionicons name="moon-outline" size={48} color="#9C27B0" />
-          </View>
-          <View style={styles.articleContent}>
-            <View style={[styles.articleBadge, { backgroundColor: '#F3E5F5' }]}>
-              <Text style={[styles.articleBadgeText, { color: '#9C27B0' }]}>SAÚDE DO SONO</Text>
+            <View style={styles.articleContent}>
+              <View style={styles.articleBadge}>
+                <Text style={styles.articleBadgeText}>BEM-ESTAR</Text>
+              </View>
+              <Text style={styles.largeArticleTitle} numberOfLines={2}>
+                Dicas para uma vida saudável
+              </Text>
+              <Text style={styles.largeArticleSub} numberOfLines={2}>
+                Descubra os principais pilares da alimentação e dos exercícios diários para maximizar sua energia.
+              </Text>
             </View>
-            <Text style={styles.largeArticleTitle} numberOfLines={2}>A importância do sono de qualidade</Text>
-            <Text style={styles.largeArticleSub} numberOfLines={2}>Como dormir melhor, render mais durante o dia e evitar problemas crônicos de saúde a longo prazo.</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
+          </TouchableOpacity>
 
+          <TouchableOpacity style={styles.largeArticleCard} activeOpacity={0.9}>
+            <View style={[styles.articleBanner, { backgroundColor: '#F3E5F5' }]}>
+              <Ionicons name="moon-outline" size={48} color="#9C27B0" />
+            </View>
+            <View style={styles.articleContent}>
+              <View style={[styles.articleBadge, { backgroundColor: '#F3E5F5' }]}>
+                <Text style={[styles.articleBadgeText, { color: '#9C27B0' }]}>
+                  SAÚDE DO SONO
+                </Text>
+              </View>
+              <Text style={styles.largeArticleTitle} numberOfLines={2}>
+                A importância do sono de qualidade
+              </Text>
+              <Text style={styles.largeArticleSub} numberOfLines={2}>
+                Como dormir melhor, render mais durante o dia e evitar problemas crônicos de saúde a longo prazo.
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      {/* Modal de localização */}
       <LocationModal
         visible={locationModalVisible}
         onClose={() => setLocationModalVisible(false)}
@@ -202,11 +349,101 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
         initialUF={location.uf}
         initialCidade={location.cidade}
       />
-    </ScrollView>
+    </View>
   );
 };
 
+// ─────────────────────────────────────────────
+// Estilos do Drawer
+// ─────────────────────────────────────────────
+const drawerStyles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  panel: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    width: DRAWER_WIDTH,
+    backgroundColor: '#FFF',
+    elevation: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 0 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+  },
+  header: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 20,
+  },
+  avatarCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  avatarText: {
+    color: '#FFF',
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  userName: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  userEmail: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 13,
+    marginTop: 2,
+  },
+  section: {
+    paddingVertical: 4,
+  },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+  },
+  itemLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginHorizontal: 16,
+    marginVertical: 4,
+  },
+  footer: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  footerText: {
+    fontSize: 12,
+    color: '#BBB',
+  },
+});
+
+// ─────────────────────────────────────────────
+// Estilos da HomeScreen
+// ─────────────────────────────────────────────
 const styles = StyleSheet.create({
+  scrollContent: {
+    paddingHorizontal: 12,
+    paddingBottom: 40,
+  },
   locationBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -223,10 +460,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#E8F5E9',
     borderColor: '#A5D6A7',
   },
-  locationText: { flex: 1, fontSize: 14, color: '#888', fontWeight: '500' },
-  locationTextActive: { color: '#2E7D32', fontWeight: '600' },
-  sectionTitle: { fontSize: 18, fontWeight: '700', marginTop: 12, marginBottom: 10, marginHorizontal: 4, color: '#111' },
-  articlesContainer: { paddingHorizontal: 4, marginTop: 4 },
+  locationText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#888',
+    fontWeight: '500',
+  },
+  locationTextActive: {
+    color: '#2E7D32',
+    fontWeight: '600',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: 12,
+    marginBottom: 10,
+    marginHorizontal: 4,
+    color: '#111',
+  },
+  articlesContainer: {
+    paddingHorizontal: 4,
+    marginTop: 4,
+  },
   largeArticleCard: {
     backgroundColor: '#FFF',
     borderRadius: 16,
@@ -240,8 +495,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F0F0F0',
   },
-  articleBanner: { height: 140, width: '100%', justifyContent: 'center', alignItems: 'center' },
-  articleContent: { padding: 16 },
+  articleBanner: {
+    height: 140,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  articleContent: {
+    padding: 16,
+  },
   articleBadge: {
     alignSelf: 'flex-start',
     backgroundColor: '#E1F5FE',
@@ -250,15 +512,23 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginBottom: 8,
   },
-  articleBadgeText: { fontSize: 10, fontWeight: '700', color: '#03A9F4', letterSpacing: 0.5 },
-  largeArticleTitle: { fontSize: 16, fontWeight: '700', color: '#222', marginBottom: 6 },
-  largeArticleSub: { fontSize: 14, color: '#666', lineHeight: 20 },
-  menuOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.25)', zIndex: 50 },
-  menuBox: { position: 'absolute', top: 60, left: 12, width: 230, backgroundColor: '#FFF', borderRadius: 12, elevation: 8, paddingVertical: 8, paddingHorizontal: 6, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
-  menuItem: { paddingVertical: 8, paddingHorizontal: 6 },
-  menuRow: { flexDirection: 'row', alignItems: 'center' },
-  menuText: { fontSize: 15, color: '#333', fontWeight: '500' },
-  menuDivider: { height: 1, backgroundColor: '#F0F0F0', marginVertical: 4, marginHorizontal: 6 },
+  articleBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#03A9F4',
+    letterSpacing: 0.5,
+  },
+  largeArticleTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#222',
+    marginBottom: 6,
+  },
+  largeArticleSub: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
 });
 
 export default HomeScreen;
