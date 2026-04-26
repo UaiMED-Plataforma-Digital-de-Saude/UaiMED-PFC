@@ -182,6 +182,12 @@ const CustomDrawer: React.FC<DrawerProps> = ({ visible, onClose, navigation }) =
               />
 
               <DrawerItem
+                icon="newspaper-outline"
+                label="Artigos de Saúde"
+                onPress={() => navigate('Artigos')}
+              />
+
+              <DrawerItem
                 icon="help-circle-outline"
                 label="Ajuda e Suporte"
                 onPress={() => navigate('Ajuda')}
@@ -303,7 +309,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
         <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Artigos de Saúde</Text>
 
         <View style={styles.articlesContainer}>
-          <TouchableOpacity style={styles.largeArticleCard} activeOpacity={0.9}>
+          <TouchableOpacity
+            style={styles.largeArticleCard}
+            activeOpacity={0.9}
+            onPress={() => navigation.navigate('ArtigoDetalhes', { artigoId: '1' })}
+          >
             <View style={[styles.articleBanner, { backgroundColor: '#E1F5FE' }]}>
               <Ionicons name="fitness-outline" size={48} color="#03A9F4" />
             </View>
@@ -320,7 +330,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.largeArticleCard} activeOpacity={0.9}>
+          <TouchableOpacity
+            style={styles.largeArticleCard}
+            activeOpacity={0.9}
+            onPress={() => navigation.navigate('ArtigoDetalhes', { artigoId: '2' })}
+          >
             <View style={[styles.articleBanner, { backgroundColor: '#F3E5F5' }]}>
               <Ionicons name="moon-outline" size={48} color="#9C27B0" />
             </View>

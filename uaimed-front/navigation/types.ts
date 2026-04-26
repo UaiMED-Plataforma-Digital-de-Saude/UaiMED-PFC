@@ -17,6 +17,9 @@ export type MainTabParamList = {
   ClinicDashboard?: undefined;
   Perfil: undefined;
   Ajuda: undefined;
+  Artigos: undefined;
+  ArtigoDetalhes: { artigoId: string };
+  ArtigoCadastro: undefined;
 };
 
 // 3. Tipagem para a Pilha de Agendamento (Search)
