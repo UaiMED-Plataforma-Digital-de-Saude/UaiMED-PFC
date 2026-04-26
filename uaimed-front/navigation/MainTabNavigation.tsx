@@ -13,6 +13,9 @@ import PerfilScreen from '../screens/Main/PerfilScreen';
 import MedicoAgendaScreen from '../screens/Main/MedicoAgendaScreen';
 import ClinicDashboard from '../screens/Admin/ClinicDashboard';
 import HelpScreen from '../screens/Main/HelpScreen';
+import ArtigosListaScreen from '../screens/Main/ArtigosListaScreen';
+import ArtigoDetalhesScreen from '../screens/Main/ArtigoDetalhesScreen';
+import ArtigoCadastroScreen from '../screens/Main/ArtigoCadastroScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -155,6 +158,33 @@ const MainTabNavigator: React.FC = () => {
         component={HelpScreen}
         options={{
           title: 'Ajuda e Suporte',
+          tabBarItemStyle: hiddenTab,
+        }}
+      />
+
+      <Tab.Screen
+        name="Artigos"
+        component={ArtigosListaScreen}
+        options={{
+          title: 'Artigos de Saúde',
+          tabBarItemStyle: hiddenTab,
+        }}
+      />
+
+      <Tab.Screen
+        name="ArtigoDetalhes"
+        component={ArtigoDetalhesScreen}
+        options={{
+          title: 'Artigo',
+          tabBarItemStyle: hiddenTab,
+        }}
+      />
+
+      <Tab.Screen
+        name="ArtigoCadastro"
+        component={ArtigoCadastroScreen}
+        options={{
+          title: 'Novo Artigo',
           tabBarItemStyle: hiddenTab,
         }}
       />
