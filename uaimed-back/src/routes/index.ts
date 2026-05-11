@@ -9,6 +9,7 @@ import usersRoutes from "./users.routes";
 import adminRoutes from "./admin.routes";
 import professionalsRoutes from "./professionals.routes";
 import clinicasRoutes from "./clinicas.routes";
+import especialidadesRoutes from "./especialidades.routes";
 
 const router = Router();
 
@@ -22,5 +23,6 @@ router.use(usersRoutes);
 router.use(adminRoutes);
 router.use(professionalsRoutes);
 router.use(clinicasRoutes);
+router.use(especialidadesRoutes);
 
 export default router;
