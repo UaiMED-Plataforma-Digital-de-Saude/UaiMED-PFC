@@ -23,6 +23,18 @@ interface Agendamento {
 const AgendamentosScreen: React.FC<AgendamentosScreenProps> = ({ navigation }) => {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const QUICK_SPECIALTIES = [
+    { id: '1', nome: 'Cardiologia', icon: 'heart-outline', color: '#4CAF50' },
+    { id: '2', nome: 'Dermatologia', icon: 'sparkles-outline', color: '#4CAF50' },
+    { id: '3', nome: 'Pediatria', icon: 'happy-outline', color: '#4CAF50' },
+    { id: '4', nome: 'Psicologia', icon: 'chatbubbles-outline', color: '#4CAF50' },
+    { id: '5', nome: 'Ginecologia', icon: 'female-outline', color: '#4CAF50' },
+    { id: '6', nome: 'Ortopedia', icon: 'body-outline', color: '#4CAF50' },
+    { id: '7', nome: 'Nutrição', icon: 'nutrition-outline', color: '#4CAF50' },
+    { id: '8', nome: 'Oftalmologia', icon: 'eye-outline', color: '#4CAF50' },
+  ];
+
   // Estado para controlar qual Tab interna está ativa (Futuros/Anteriores)
   const [activeTab, setActiveTab] = useState<'futuros' | 'anteriores'>('futuros');
 
@@ -146,15 +158,41 @@ const AgendamentosScreen: React.FC<AgendamentosScreenProps> = ({ navigation }) =
           data={filteredAgendamentos}
           renderItem={renderItem}
           keyExtractor={item => item.id}
-          ListEmptyComponent={() => <Text style={styles.emptyText}>Nenhum agendamento nesta categoria.</Text>}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          ListEmptyComponent={() => (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>Nenhum agendamento nesta categoria.</Text>
+            </View>
+          )}
+          ListFooterComponent={() => (
+            <View style={styles.quickSearchSection}>
+              <Text style={styles.quickSearchTitle}>Nova Consulta Rápida</Text>
+              <View style={styles.quickGrid}>
+                {QUICK_SPECIALTIES.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.quickCard}
+                    onPress={() => navigation.navigate('Agendamentos', {
+                      screen: 'Busca',
+                      params: { especialidade: item.nome }
+                    })}
+                  >
+                    <View style={[styles.quickIconWrapper, { backgroundColor: item.color + '15' }]}>
+                      <Ionicons name={item.icon as any} size={20} color={item.color} />
+                    </View>
+                    <Text style={styles.quickText}>{item.nome}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+          contentContainerStyle={{ paddingBottom: 100 }}
         />
       )}
 
       {/* Botão Flutuante para Novo Agendamento */}
       <TouchableOpacity 
         style={styles.floatingButton} 
-        onPress={() => console.log('Navegar para a tela de busca/agendamento')}
+        onPress={() => navigation.navigate('Agendamentos', { screen: 'Busca' })}
       >
         <Ionicons name="add" size={30} color="#FFF" />
       </TouchableOpacity>
@@ -174,7 +212,31 @@ const styles = StyleSheet.create({
   cardSubtitle: { fontSize: 13, color: '#777', lineHeight: 20 },
   statusConfirmed: { color: '#4CAF50', fontWeight: '700', marginTop: 10, fontSize: 12 },
   statusCompleted: { color: '#4B73B2', fontWeight: '700', marginTop: 10, fontSize: 12 },
-  emptyText: { textAlign: 'center', marginTop: 60, fontSize: 16, color: '#999' },
+  emptyContainer: { alignItems: 'center', paddingVertical: 40 },
+  emptyText: { textAlign: 'center', fontSize: 16, color: '#999' },
+  quickSearchSection: { padding: 20, marginTop: 10, paddingBottom: 40 },
+  quickSearchTitle: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 15 },
+  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  quickCard: {
+    width: '23%',
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 10,
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#EEE',
+    elevation: 1,
+  },
+  quickIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  quickText: { fontSize: 9, fontWeight: '700', color: '#666', textAlign: 'center' },
   floatingButton: {
     position: 'absolute',
     bottom: 30,

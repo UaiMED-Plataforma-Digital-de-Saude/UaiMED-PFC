@@ -23,6 +23,17 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation }) => {
   const [location, setLocation] = useState<LocationValue>({ uf: '', estado: '', cidade: '' });
   const [locationModalVisible, setLocationModalVisible] = useState(false);
 
+  const QUICK_SPECIALTIES = [
+    { id: '1', nome: 'Cardiologia', icon: 'heart-outline', color: '#FF5252' },
+    { id: '2', nome: 'Dermatologia', icon: 'sparkles-outline', color: '#FF4081' },
+    { id: '3', nome: 'Pediatria', icon: 'happy-outline', color: '#448AFF' },
+    { id: '4', nome: 'Psicologia', icon: 'chatbubbles-outline', color: '#7C4DFF' },
+    { id: '5', nome: 'Ginecologia', icon: 'female-outline', color: '#E91E63' },
+    { id: '6', nome: 'Ortopedia', icon: 'body-outline', color: '#FF9800' },
+    { id: '7', nome: 'Nutrição', icon: 'nutrition-outline', color: '#4CAF50' },
+    { id: '8', nome: 'Oftalmologia', icon: 'eye-outline', color: '#00BCD4' },
+  ];
+
   // Estados para Especialidades
   const [especialidades, setEspecialidades] = useState<{ id: string, nome: string }[]>([]);
   const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
@@ -124,7 +135,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation }) => {
           />
         </TouchableOpacity>
 
-        {/* 4. Botão Buscar (Substituindo Favoritos) */}
+        {/* 4. Botão Buscar */}
         <TouchableOpacity
           style={styles.searchActionButton}
           onPress={handleFinalSearch}
@@ -132,6 +143,26 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation }) => {
           <Ionicons name="search" size={22} color="#FFF" />
           <Text style={styles.searchActionText}>Buscar Profissionais</Text>
         </TouchableOpacity>
+
+        {/* 5. Busca Rápida (Mosaico de Especialidades) */}
+        <Text style={[styles.inputLabel, { marginTop: 30 }]}>Busca Rápida</Text>
+        <View style={styles.quickGrid}>
+          {QUICK_SPECIALTIES.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.quickCard}
+              onPress={() => {
+                setSelectedSpecialty(item.nome);
+                navigation.navigate('Resultados', { ...buildParams(), especialidade: item.nome });
+              }}
+            >
+              <View style={[styles.quickIconWrapper, { backgroundColor: item.color + '15' }]}>
+                <Ionicons name={item.icon as any} size={22} color={item.color} />
+              </View>
+              <Text style={styles.quickText} numberOfLines={1}>{item.nome}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
       </ScrollView>
 
@@ -288,6 +319,42 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     marginLeft: 12,
+  },
+  // Quick Search Styles
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  quickCard: {
+    width: '23%',
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 10,
+    alignItems: 'center',
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  quickIconWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  quickText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#555',
+    textAlign: 'center',
   },
 
   // Modal Styles
