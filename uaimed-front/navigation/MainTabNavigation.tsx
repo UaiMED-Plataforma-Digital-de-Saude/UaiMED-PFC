@@ -4,7 +4,7 @@ import { MainTabParamList } from './types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
 import { CommonActions } from '@react-navigation/native';
-import { TouchableOpacity, Alert, View, Image } from 'react-native';
+import { TouchableOpacity, View, Image, Text } from 'react-native';
 
 // Importe as telas
 import HomeScreen from '../screens/Main/HomeScreen';
@@ -26,7 +26,6 @@ const hiddenTab = { display: 'none' as const, width: 0, height: 0, overflow: 'hi
 
 /**
  * Navegador Principal com Abas (Bottom Tabs)
- * Home agora centralizada no meio da barra.
  */
 const MainTabNavigator: React.FC = () => {
   const { user } = useAuth();
@@ -41,7 +40,7 @@ const MainTabNavigator: React.FC = () => {
       screenOptions={({ route, navigation }) => ({
         tabBarActiveTintColor: '#4CAF50',
         tabBarInactiveTintColor: '#999',
-        headerShown: true, // Habilitado para mostrar o botão de ajuda em todas as telas
+        headerShown: true,
         headerTitleAlign: 'center',
         headerTitle: () => (
           <Image
@@ -81,18 +80,22 @@ const MainTabNavigator: React.FC = () => {
         ),
         tabBarIcon: ({ color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home-outline';
+          let iconColor = color;
 
           switch (route.name) {
-            case 'Home':         iconName = 'home';               break; // Home preenchida quando ativa?
+            case 'Home':
+              iconName = 'home';
+              iconColor = '#4CAF50'; // Sempre verde
+              break;
             case 'Agendamentos': iconName = 'calendar-outline';   break;
             case 'MedicoAgenda': iconName = 'calendar-outline';   break;
             case 'ClinicDashboard': iconName = 'bar-chart-outline'; break;
             case 'Perfil':       iconName = 'person-outline';     break;
           }
 
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <Ionicons name={iconName} size={route.name === 'Home' ? size + 10 : size} color={iconColor} />;
         },
-        tabBarLabel: route.name === 'Home' ? '' : route.name, // Remove label da home para destaque central
+        tabBarLabel: route.name === 'Home' ? '' : route.name,
       })}
     >
       {/* Lado Esquerdo: Agendamentos / Agenda */}
@@ -140,9 +143,14 @@ const MainTabNavigator: React.FC = () => {
         component={HomeScreen}
         options={{
           title: 'UaiMED',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size + 10} color={color} /> // Home maior no meio
-          ),
+          headerTitle: () => {
+            const firstName = user?.nome ? user.nome.split(' ')[0] : 'Usuário';
+            return (
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#333' }}>
+                Olá, {firstName}!
+              </Text>
+            );
+          }
         }}
       />
 
