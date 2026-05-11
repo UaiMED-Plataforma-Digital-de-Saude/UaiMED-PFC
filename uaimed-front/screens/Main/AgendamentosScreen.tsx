@@ -111,48 +111,43 @@ const AgendamentosScreen: React.FC<AgendamentosScreenProps> = ({ navigation }) =
 
   return (
     <View style={styles.container}>
-      <Text style={styles.headerTitle}>Meus Agendamentos</Text>
-
       {/* Navegação Interna (Tabs) */}
       <View style={styles.tabContainer}>
         <TouchableOpacity 
           style={[styles.tabButton, activeTab === 'futuros' && styles.tabActive]}
           onPress={() => setActiveTab('futuros')}
         >
-          <Text style={styles.tabText}>Futuros</Text>
+          <Text style={styles.tabText}>Próximas</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.tabButton, activeTab === 'anteriores' && styles.tabActive]}
           onPress={() => setActiveTab('anteriores')}
         >
-          <Text style={styles.tabText}>Anteriores</Text>
+          <Text style={styles.tabText}>Histórico</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Filtros Avançados */}
-      <View style={{ flexDirection: 'row', padding: 10, backgroundColor: '#FFF', alignItems: 'center', gap: 8 }}>
+      {/* Filtros Rápidos */}
+      <View style={styles.filterContainer}>
+        <Ionicons name="filter-outline" size={20} color="#4CAF50" style={{ marginRight: 5 }} />
         <TextInput
-          style={{ flex: 1, backgroundColor: '#F5F5F5', borderRadius: 8, paddingHorizontal: 8, marginRight: 4, height: 36 }}
-          placeholder="Filtrar por especialidade"
+          style={styles.filterInput}
+          placeholder="Especialidade..."
           value={especialidadeFilter}
           onChangeText={setEspecialidadeFilter}
         />
         <TextInput
-          style={{ width: 90, backgroundColor: '#F5F5F5', borderRadius: 8, paddingHorizontal: 8, marginRight: 4, height: 36 }}
-          placeholder="Data (aaaa-mm-dd)"
+          style={[styles.filterInput, { width: 110 }]}
+          placeholder="AAAA-MM-DD"
           value={dataFilter}
           onChangeText={setDataFilter}
-        />
-        <TextInput
-          style={{ width: 100, backgroundColor: '#F5F5F5', borderRadius: 8, paddingHorizontal: 8, height: 36 }}
-          placeholder="Status"
-          value={statusFilter}
-          onChangeText={setStatusFilter}
         />
       </View>
 
       {isLoading ? (
-        <ActivityIndicator size="large" color="#4CAF50" style={{ marginTop: 50 }} />
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color="#4CAF50" />
+        </View>
       ) : (
         <FlatList
           data={filteredAgendamentos}
@@ -160,32 +155,6 @@ const AgendamentosScreen: React.FC<AgendamentosScreenProps> = ({ navigation }) =
           keyExtractor={item => item.id}
           ListEmptyComponent={() => (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>Nenhum agendamento nesta categoria.</Text>
-            </View>
-          )}
-          ListFooterComponent={() => (
-            <View style={styles.quickSearchSection}>
-              <Text style={styles.quickSearchTitle}>Nova Consulta Rápida</Text>
-              <View style={styles.quickGrid}>
-                {QUICK_SPECIALTIES.map((item) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={styles.quickCard}
-                    onPress={() => navigation.navigate('Agendamentos', {
-                      screen: 'Busca',
-                      params: { especialidade: item.nome }
-                    })}
-                  >
-                    <View style={[styles.quickIconWrapper, { backgroundColor: item.color + '15' }]}>
-                      <Ionicons name={item.icon as any} size={20} color={item.color} />
-                    </View>
-                    <Text style={styles.quickText}>{item.nome}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
-          contentContainerStyle={{ paddingBottom: 100 }}
         />
       )}
 
@@ -194,65 +163,18 @@ const AgendamentosScreen: React.FC<AgendamentosScreenProps> = ({ navigation }) =
         style={styles.floatingButton} 
         onPress={() => navigation.navigate('Agendamentos', { screen: 'Busca' })}
       >
-        <Ionicons name="add" size={30} color="#FFF" />
+        <Ionicons name="add" size={32} color="#FFF" />
       </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAFA', paddingTop: 0, marginTop: 12 },
-  headerTitle: { fontSize: 26, fontWeight: '700', padding: 20, paddingTop: 56, marginTop: 8, backgroundColor: '#FFF', marginBottom: 2 },
-  tabContainer: { flexDirection: 'row', backgroundColor: '#FFF', paddingHorizontal: 0, borderBottomWidth: 1, borderColor: '#F0F0F0' },
-  tabButton: { flex: 1, paddingVertical: 16, alignItems: 'center', backgroundColor: '#FFF' },
+  container: { flex: 1, backgroundColor: '#FAFAFA' },
+  tabContainer: { flexDirection: 'row', backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#EEE' },
+  tabButton: { flex: 1, paddingVertical: 15, alignItems: 'center' },
   tabActive: { borderBottomWidth: 3, borderColor: '#4CAF50' },
-  tabText: { fontSize: 15, fontWeight: '600', color: '#666' },
-  card: { backgroundColor: '#FFF', padding: 16, marginHorizontal: 12, marginTop: 12, marginBottom: 0, borderRadius: 10, elevation: 1, borderWidth: 1, borderColor: '#F5F5F5' },
-  cardTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8, color: '#222' },
-  cardSubtitle: { fontSize: 13, color: '#777', lineHeight: 20 },
-  statusConfirmed: { color: '#4CAF50', fontWeight: '700', marginTop: 10, fontSize: 12 },
-  statusCompleted: { color: '#4B73B2', fontWeight: '700', marginTop: 10, fontSize: 12 },
-  emptyContainer: { alignItems: 'center', paddingVertical: 40 },
-  emptyText: { textAlign: 'center', fontSize: 16, color: '#999' },
-  quickSearchSection: { padding: 20, marginTop: 10, paddingBottom: 40 },
-  quickSearchTitle: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 15 },
-  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  quickCard: {
-    width: '23%',
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 10,
-    alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#EEE',
-    elevation: 1,
-  },
-  quickIconWrapper: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  quickText: { fontSize: 9, fontWeight: '700', color: '#666', textAlign: 'center' },
-  floatingButton: {
-    position: 'absolute',
-    bottom: 30,
-    right: 20,
-    backgroundColor: '#4CAF50',
-    borderRadius: 28,
-    width: 56,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 6,
-    shadowColor: '#4CAF50',
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-  },
+
 });
 
 export default AgendamentosScreen;

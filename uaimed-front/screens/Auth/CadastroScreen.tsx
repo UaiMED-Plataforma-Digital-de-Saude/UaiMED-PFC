@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -20,12 +20,25 @@ import { useModal } from '../../hooks/useModal';
 
 type CadastroScreenProps = StackScreenProps<AuthStackParamList, 'Cadastro'>;
 
-const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) => {
-  const initialTipo = route?.params?.tipoUsuario ?? 'paciente';
-  const hideTipoSelector = Boolean(route?.params?.tipoUsuario);
+// Enumerado conforme solicitado
+enum TipoUsuario {
+  CLIENTE = 1,
+  PROFISSIONAL = 2,
+  CLINICA = 3,
+}
 
+const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) => {
+  // Mapeamento inicial baseado nos params
+  const getInitialTipo = () => {
+    const param = route?.params?.tipoUsuario;
+    if (param === 'medico') return TipoUsuario.PROFISSIONAL;
+    if (param === 'clinica') return TipoUsuario.CLINICA;
+    return TipoUsuario.CLIENTE;
+  };
+
+  const [tipo, setTipo] = useState<TipoUsuario>(getInitialTipo());
   const [nome, setNome] = useState('');
-  const [cpf, setCpf] = useState('');
+  const [documento, setDocumento] = useState(''); // CPF ou CNPJ
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
   const [senha, setSenha] = useState('');
@@ -33,10 +46,10 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [tipo, setTipo] = useState<'paciente' | 'medico' | 'clinica'>(initialTipo);
+
+  // Campos específicos
   const [especialidade, setEspecialidade] = useState('');
   const [crm, setCrm] = useState('');
-  const [dataFormacao, setDataFormacao] = useState('');
   const [endereco, setEndereco] = useState('');
   const [cidade, setCidade] = useState('');
   const [estado, setEstado] = useState('');
@@ -44,215 +57,249 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
 
   const { modal, showModal, hideModal } = useModal();
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
+  // Limpa campos específicos ao trocar de aba
+  useEffect(() => {
+    setDocumento('');
+  }, [tipo]);
+
+  // ── Formatadores ───────────────────────────────────────────────────────────
   const formatCPF = (v: string) => {
     const c = v.replace(/\D/g, '');
-    if (c.length <= 3) return c;
-    if (c.length <= 6) return `${c.slice(0, 3)}.${c.slice(3)}`;
-    if (c.length <= 9) return `${c.slice(0, 3)}.${c.slice(3, 6)}.${c.slice(6)}`;
-    return `${c.slice(0, 3)}.${c.slice(3, 6)}.${c.slice(6, 9)}-${c.slice(9, 11)}`;
+    return c.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4').substring(0, 14);
+  };
+
+  const formatCNPJ = (v: string) => {
+    const c = v.replace(/\D/g, '');
+    return c.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5').substring(0, 18);
   };
 
   const formatPhone = (v: string) => {
     const c = v.replace(/\D/g, '');
-    if (c.length <= 2) return c;
-    if (c.length <= 7) return `(${c.slice(0, 2)}) ${c.slice(2)}`;
-    return `(${c.slice(0, 2)}) ${c.slice(2, 7)}-${c.slice(7, 11)}`;
+    if (c.length <= 10) return c.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+    return c.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
   };
-
-  const isValidCPF = (v: string) => {
-    const c = v.replace(/\D/g, '');
-    if (c.length !== 11 || /^(\d)\1{10}$/.test(c)) return false;
-    let s = 0, r;
-    for (let i = 1; i <= 9; i++) s += parseInt(c[i - 1]) * (11 - i);
-    r = (s * 10) % 11;
-    if (r === 10 || r === 11) r = 0;
-    if (r !== parseInt(c[9])) return false;
-    s = 0;
-    for (let i = 1; i <= 10; i++) s += parseInt(c[i - 1]) * (12 - i);
-    r = (s * 10) % 11;
-    if (r === 10 || r === 11) r = 0;
-    return r === parseInt(c[10]);
-  };
-
-  const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-  const isValidPassword = (v: string) => v.length >= 6;
 
   // ── Cadastro ───────────────────────────────────────────────────────────────
   const handleCadastro = async () => {
-    if (!nome.trim()) {
-      showModal('Campo obrigatório', 'Preencha seu nome completo.', { type: 'warning' }); return;
+    if (!nome.trim() || !documento || !email || !senha) {
+      showModal('Campos obrigatórios', 'Por favor, preencha todos os campos marcados com *', { type: 'warning' });
+      return;
     }
-    if (!isValidCPF(cpf)) {
-      showModal('CPF inválido', 'Verifique o número de CPF digitado.', { type: 'error' }); return;
-    }
-    if (!isValidEmail(email)) {
-      showModal('E-mail inválido', 'Verifique o formato do e-mail.', { type: 'error' }); return;
-    }
-    if (!telefone.replace(/\D/g, '') || telefone.replace(/\D/g, '').length < 10) {
-      showModal('Telefone inválido', 'Verifique o número de telefone.', { type: 'error' }); return;
-    }
-    if (!isValidPassword(senha)) {
-      showModal('Senha fraca', 'A senha deve ter pelo menos 6 caracteres.', { type: 'warning' }); return;
-    }
+
     if (senha !== confirmaSenha) {
-      showModal('Senhas diferentes', 'A confirmação da senha não coincide.', { type: 'error' }); return;
-    }
-    if (tipo === 'medico' && (!especialidade.trim() || !crm.trim())) {
-      showModal('Dados incompletos', 'Preencha especialidade e CRM para prosseguir.', { type: 'warning' }); return;
+      showModal('Erro na senha', 'As senhas não coincidem.', { type: 'error' });
+      return;
     }
 
     setLoading(true);
     try {
+      // Mapeia o tipo numérico para o que o backend espera (ou envia o número se o backend já aceitar)
+      const tipoBackend = tipo === TipoUsuario.CLIENTE ? 'paciente' : (tipo === TipoUsuario.PROFISSIONAL ? 'medico' : 'clinica');
+
       const payload: any = {
-        nome: nome.trim(), cpf: cpf.replace(/\D/g, ''),
-        email: email.trim(), telefone: telefone.replace(/\D/g, ''),
-        senha, tipo,
+        nome: nome.trim(),
+        email: email.trim(),
+        telefone: telefone.replace(/\D/g, ''),
+        senha,
+        tipo: tipoBackend, // Mantendo string para compatibilidade, ou use 'tipo' para enviar 1, 2, 3
+        tipoEnum: tipo, // Enviando o enumerado como campo adicional
       };
-      if (tipo === 'medico') {
-        Object.assign(payload, {
-          especialidade: especialidade.trim(), crm: crm.trim(),
-          ...(dataFormacao ? { dataFormacao } : {}),
-          endereco: endereco.trim(), cidade: cidade.trim(),
-          estado: estado.trim(), cep: cep.replace(/\D/g, ''),
-        });
+
+      if (tipo === TipoUsuario.CLINICA) {
+        payload.cnpj = documento.replace(/\D/g, '');
+        payload.endereco = endereco;
+        payload.cidade = cidade;
+        payload.estado = estado;
+        payload.cep = cep.replace(/\D/g, '');
+      } else {
+        payload.cpf = documento.replace(/\D/g, '');
       }
+
+      if (tipo === TipoUsuario.PROFISSIONAL) {
+        payload.especialidade = especialidade;
+        payload.crm = crm;
+        payload.endereco = endereco;
+        payload.cidade = cidade;
+        payload.estado = estado;
+        payload.cep = cep.replace(/\D/g, '');
+      }
+
       const res = await uaiMedApi.post('/usuarios', payload);
-      if (res.status === 201 || res.status === 200) {
-        setNome(''); setCpf(''); setEmail(''); setTelefone(''); setSenha(''); setConfirmaSenha('');
-        showModal('Cadastro realizado!', 'Seu cadastro foi concluído. Faça login para continuar.', {
-          type: 'success',
-          buttons: [{ text: 'Fazer Login', onPress: () => navigation.navigate('Login') }],
-        });
-      }
+
+      showModal('Sucesso!', 'Seu cadastro foi realizado com sucesso.', {
+        type: 'success',
+        buttons: [{ text: 'Ir para Login', onPress: () => navigation.navigate('Login') }]
+      });
     } catch (err: any) {
-      const msg = err.response?.status === 409
-        ? 'CPF ou E-mail já cadastrado.'
-        : err.response?.data?.message
-          ?? (err.message === 'Network Error' ? 'Erro de conexão. Verifique sua internet.' : 'Não foi possível completar o cadastro.');
-      showModal('Erro no Cadastro', msg, { type: 'error' });
+      showModal('Erro', err.response?.data?.error || 'Não foi possível realizar o cadastro.', { type: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardAvoid}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Header */}
-          <View style={styles.headerSection}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+
+          <View style={styles.header}>
             <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Ionicons name="chevron-back" size={28} color="#333" />
+              <Ionicons name="arrow-back" size={24} color="#333" />
             </TouchableOpacity>
-            <Text style={styles.title}>Novo Cadastro</Text>
-            <View style={{ width: 28 }} />
+            <Text style={styles.title}>Criar Conta</Text>
+            <View style={{ width: 24 }} />
           </View>
 
-          <View style={styles.formSection}>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Nome Completo *</Text>
-              <TextInput style={styles.input} placeholder="João Silva" value={nome} onChangeText={setNome} editable={!loading} />
-            </View>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>CPF *</Text>
-              <TextInput style={styles.input} placeholder="000.000.000-00" value={formatCPF(cpf)} onChangeText={setCpf} keyboardType="numeric" editable={!loading} />
-            </View>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>E-mail *</Text>
-              <TextInput style={styles.input} placeholder="seu@email.com" keyboardType="email-address" autoCapitalize="none" value={email} onChangeText={setEmail} editable={!loading} />
-            </View>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Telefone *</Text>
-              <TextInput style={styles.input} placeholder="(11) 98765-4321" keyboardType="phone-pad" value={formatPhone(telefone)} onChangeText={setTelefone} editable={!loading} />
-            </View>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Senha *</Text>
-              <View style={styles.passwordContainer}>
-                <TextInput style={styles.passwordInput} placeholder="••••••••" secureTextEntry={!showPassword} value={senha} onChangeText={setSenha} editable={!loading} />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} disabled={loading}>
-                  <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={24} color="#999" />
-                </TouchableOpacity>
-              </View>
-            </View>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Confirmar Senha *</Text>
-              <View style={styles.passwordContainer}>
-                <TextInput style={styles.passwordInput} placeholder="••••••••" secureTextEntry={!showConfirmPassword} value={confirmaSenha} onChangeText={setConfirmaSenha} editable={!loading} />
-                <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} disabled={loading}>
-                  <Ionicons name={showConfirmPassword ? 'eye-off' : 'eye'} size={24} color="#999" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-          {!hideTipoSelector && (
-            <View style={[styles.inputContainer, { marginTop: 6 }]}>
-              <Text style={styles.label}>Você é</Text>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                {(['paciente', 'medico'] as const).map(t => (
-                  <TouchableOpacity key={t} style={[styles.pill, tipo === t ? styles.pillActive : styles.pillInactive]} onPress={() => setTipo(t)}>
-                    <Text style={tipo === t ? styles.pillTextActive : styles.pillTextInactive}>{t === 'paciente' ? 'Paciente' : 'Profissional'}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {tipo === 'medico' && (
-            <>
-              <View style={styles.inputContainer}><Text style={styles.label}>Especialidade *</Text><TextInput style={styles.input} placeholder="Cardiologia" value={especialidade} onChangeText={setEspecialidade} editable={!loading} /></View>
-              <View style={styles.inputContainer}><Text style={styles.label}>CRM *</Text><TextInput style={styles.input} placeholder="CRM00000" value={crm} onChangeText={setCrm} editable={!loading} /></View>
-              <View style={styles.inputContainer}><Text style={styles.label}>Data de Formação</Text><TextInput style={styles.input} placeholder="YYYY-MM-DD" value={dataFormacao} onChangeText={setDataFormacao} editable={!loading} /></View>
-              <View style={styles.inputContainer}><Text style={styles.label}>Endereço</Text><TextInput style={styles.input} placeholder="Rua, número" value={endereco} onChangeText={setEndereco} editable={!loading} /></View>
-              <View style={styles.inputContainer}><Text style={styles.label}>Cidade</Text><TextInput style={styles.input} placeholder="Cidade" value={cidade} onChangeText={setCidade} editable={!loading} /></View>
-              <View style={styles.inputContainer}><Text style={styles.label}>Estado</Text><TextInput style={styles.input} placeholder="Estado" value={estado} onChangeText={setEstado} editable={!loading} /></View>
-              <View style={styles.inputContainer}><Text style={styles.label}>CEP</Text><TextInput style={styles.input} placeholder="00000-000" value={cep} onChangeText={setCep} editable={!loading} keyboardType="numeric" /></View>
-            </>
-          )}
-
-          <View style={styles.buttonsSection}>
-            <TouchableOpacity style={[styles.buttonPrimary, loading && styles.buttonDisabled]} onPress={handleCadastro} disabled={loading}>
-              {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>CADASTRAR</Text>}
+          {/* TAB SELECTOR */}
+          <View style={styles.tabContainer}>
+            <TouchableOpacity
+              style={[styles.tab, tipo === TipoUsuario.CLIENTE && styles.activeTab]}
+              onPress={() => setTipo(TipoUsuario.CLIENTE)}
+            >
+              <Text style={[styles.tabText, tipo === TipoUsuario.CLIENTE && styles.activeTabText]}>Cliente</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.buttonSecondary} onPress={() => navigation.goBack()} disabled={loading}>
-              <Text style={styles.buttonSecondaryText}>Voltar ao Login</Text>
+
+            <TouchableOpacity
+              style={[styles.tab, tipo === TipoUsuario.PROFISSIONAL && styles.activeTab]}
+              onPress={() => setTipo(TipoUsuario.PROFISSIONAL)}
+            >
+              <Text style={[styles.tabText, tipo === TipoUsuario.PROFISSIONAL && styles.activeTabText]}>Profissional</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.tab, tipo === TipoUsuario.CLINICA && styles.activeTab]}
+              onPress={() => setTipo(TipoUsuario.CLINICA)}
+            >
+              <Text style={[styles.tabText, tipo === TipoUsuario.CLINICA && styles.activeTabText]}>Clínica</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.requiredNote}>* Campo obrigatório</Text>
+
+          <View style={styles.form}>
+            <Text style={styles.label}>{tipo === TipoUsuario.CLINICA ? 'Razão Social *' : 'Nome Completo *'}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder={tipo === TipoUsuario.CLINICA ? "Ex: Clínica Saúde Ltda" : "Ex: João Silva"}
+              value={nome}
+              onChangeText={setNome}
+            />
+
+            <Text style={styles.label}>{tipo === TipoUsuario.CLINICA ? 'CNPJ *' : 'CPF *'}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder={tipo === TipoUsuario.CLINICA ? "00.000.000/0000-00" : "000.000.000-00"}
+              keyboardType="numeric"
+              value={tipo === TipoUsuario.CLINICA ? formatCNPJ(documento) : formatCPF(documento)}
+              onChangeText={setDocumento}
+            />
+
+            <Text style={styles.label}>E-mail *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="exemplo@email.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+            />
+
+            <Text style={styles.label}>Telefone *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="(31) 99999-9999"
+              keyboardType="phone-pad"
+              value={formatPhone(telefone)}
+              onChangeText={setTelefone}
+            />
+
+            {/* Campos de Profissional */}
+            {tipo === TipoUsuario.PROFISSIONAL && (
+              <>
+                <Text style={styles.label}>Especialidade *</Text>
+                <TextInput style={styles.input} placeholder="Ex: Cardiologia" value={especialidade} onChangeText={setEspecialidade} />
+
+                <Text style={styles.label}>CRM *</Text>
+                <TextInput style={styles.input} placeholder="000000-MG" value={crm} onChangeText={setCrm} />
+              </>
+            )}
+
+            {/* Campos de Endereço (Profissional e Clínica) */}
+            {(tipo === TipoUsuario.PROFISSIONAL || tipo === TipoUsuario.CLINICA) && (
+              <>
+                <Text style={styles.label}>Endereço Completo</Text>
+                <TextInput style={styles.input} placeholder="Rua, Número, Bairro" value={endereco} onChangeText={setEndereco} />
+
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <View style={{ flex: 2 }}>
+                    <Text style={styles.label}>Cidade</Text>
+                    <TextInput style={styles.input} placeholder="Belo Horizonte" value={cidade} onChangeText={setCidade} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.label}>UF</Text>
+                    <TextInput style={styles.input} placeholder="MG" maxLength={2} autoCapitalize="characters" value={estado} onChangeText={setEstado} />
+                  </View>
+                </View>
+              </>
+            )}
+
+            <Text style={styles.label}>Senha *</Text>
+            <View style={styles.passwordWrapper}>
+              <TextInput
+                style={styles.passwordInput}
+                secureTextEntry={!showPassword}
+                value={senha}
+                onChangeText={setSenha}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                <Ionicons name={showPassword ? "eye-off" : "eye"} size={20} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.label}>Confirmar Senha *</Text>
+            <View style={styles.passwordWrapper}>
+              <TextInput
+                style={styles.passwordInput}
+                secureTextEntry={!showConfirmPassword}
+                value={confirmaSenha}
+                onChangeText={setConfirmaSenha}
+              />
+              <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                <Ionicons name={showConfirmPassword ? "eye-off" : "eye"} size={20} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.btnPrimary, loading && { opacity: 0.7 }]}
+              onPress={handleCadastro}
+              disabled={loading}
+            >
+              {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnText}>CADASTRAR</Text>}
+            </TouchableOpacity>
+          </View>
+
         </ScrollView>
       </KeyboardAvoidingView>
-
       <AppModal {...modal} onClose={hideModal} />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
-  keyboardAvoid: { flex: 1 },
-  scrollContent: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 30 },
-  headerSection: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, marginBottom: 30 },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#333' },
-  formSection: { flex: 1 },
-  inputContainer: { marginBottom: 18 },
-  label: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 8 },
-  input: { borderWidth: 1, borderColor: '#DDD', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, color: '#333' },
-  passwordContainer: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#DDD', borderRadius: 8, paddingHorizontal: 12 },
-  passwordInput: { flex: 1, paddingVertical: 12, fontSize: 16, color: '#333' },
-  buttonsSection: { marginTop: 20, gap: 12 },
-  buttonPrimary: { backgroundColor: '#4CAF50', borderRadius: 8, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
-  buttonDisabled: { opacity: 0.6 },
-  buttonSecondary: { borderWidth: 1, borderColor: '#4CAF50', borderRadius: 8, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
-  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
-  buttonSecondaryText: { color: '#4CAF50', fontSize: 16, fontWeight: 'bold' },
-  requiredNote: { fontSize: 12, color: '#999', textAlign: 'center', marginTop: 10 },
-  pill: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20 },
-  pillActive: { backgroundColor: '#4CAF50' },
-  pillInactive: { backgroundColor: '#F0F0F0' },
-  pillTextActive: { color: '#FFF', fontWeight: '600' },
-  pillTextInactive: { color: '#333', fontWeight: '600' },
+  container: { flex: 1, backgroundColor: '#FFF' },
+  scrollContent: { padding: 20 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
+  title: { fontSize: 20, fontWeight: 'bold', color: '#333' },
+  tabContainer: { flexDirection: 'row', backgroundColor: '#F5F5F5', borderRadius: 10, padding: 4, marginBottom: 25 },
+  tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
+  activeTab: { backgroundColor: '#FFF', elevation: 2, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4 },
+  tabText: { fontSize: 14, color: '#666', fontWeight: '600' },
+  activeTabText: { color: '#4CAF50' },
+  form: { flex: 1 },
+  label: { fontSize: 14, fontWeight: '600', color: '#444', marginBottom: 8, marginTop: 12 },
+  input: { borderBottomWidth: 1.5, borderColor: '#EEE', paddingVertical: 8, fontSize: 16, color: '#333' },
+  passwordWrapper: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1.5, borderColor: '#EEE' },
+  passwordInput: { flex: 1, paddingVertical: 8, fontSize: 16 },
+  btnPrimary: { backgroundColor: '#4CAF50', paddingVertical: 15, borderRadius: 10, alignItems: 'center', marginTop: 40 },
+  btnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
 });
 
 export default CadastroScreen;
