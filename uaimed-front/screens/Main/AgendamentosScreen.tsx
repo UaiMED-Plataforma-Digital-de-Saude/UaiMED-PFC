@@ -99,98 +99,86 @@ const AgendamentosScreen: React.FC<AgendamentosScreenProps> = ({ navigation }) =
 
   return (
     <View style={styles.container}>
-      <Text style={styles.headerTitle}>Meus Agendamentos</Text>
-
       {/* Navegação Interna (Tabs) */}
       <View style={styles.tabContainer}>
         <TouchableOpacity 
           style={[styles.tabButton, activeTab === 'futuros' && styles.tabActive]}
           onPress={() => setActiveTab('futuros')}
         >
-          <Text style={styles.tabText}>Futuros</Text>
+          <Text style={styles.tabText}>Próximas</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.tabButton, activeTab === 'anteriores' && styles.tabActive]}
           onPress={() => setActiveTab('anteriores')}
         >
-          <Text style={styles.tabText}>Anteriores</Text>
+          <Text style={styles.tabText}>Histórico</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Filtros Avançados */}
-      <View style={{ flexDirection: 'row', padding: 10, backgroundColor: '#FFF', alignItems: 'center', gap: 8 }}>
+      {/* Filtros Rápidos */}
+      <View style={styles.filterContainer}>
+        <Ionicons name="filter-outline" size={20} color="#4CAF50" style={{ marginRight: 5 }} />
         <TextInput
-          style={{ flex: 1, backgroundColor: '#F5F5F5', borderRadius: 8, paddingHorizontal: 8, marginRight: 4, height: 36 }}
-          placeholder="Filtrar por especialidade"
+          style={styles.filterInput}
+          placeholder="Especialidade..."
           value={especialidadeFilter}
           onChangeText={setEspecialidadeFilter}
         />
         <TextInput
-          style={{ width: 90, backgroundColor: '#F5F5F5', borderRadius: 8, paddingHorizontal: 8, marginRight: 4, height: 36 }}
-          placeholder="Data (aaaa-mm-dd)"
+          style={[styles.filterInput, { width: 110 }]}
+          placeholder="AAAA-MM-DD"
           value={dataFilter}
           onChangeText={setDataFilter}
-        />
-        <TextInput
-          style={{ width: 100, backgroundColor: '#F5F5F5', borderRadius: 8, paddingHorizontal: 8, height: 36 }}
-          placeholder="Status"
-          value={statusFilter}
-          onChangeText={setStatusFilter}
         />
       </View>
 
       {isLoading ? (
-        <ActivityIndicator size="large" color="#4CAF50" style={{ marginTop: 50 }} />
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color="#4CAF50" />
+        </View>
       ) : (
         <FlatList
           data={filteredAgendamentos}
           renderItem={renderItem}
           keyExtractor={item => item.id}
-          ListEmptyComponent={() => <Text style={styles.emptyText}>Nenhum agendamento nesta categoria.</Text>}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          ListEmptyComponent={() => (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="calendar-outline" size={60} color="#DDD" />
+              <Text style={styles.emptyText}>Nenhuma consulta encontrada.</Text>
+            </View>
+          )}
+          contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
         />
       )}
 
       {/* Botão Flutuante para Novo Agendamento */}
       <TouchableOpacity 
         style={styles.floatingButton} 
-        onPress={() => console.log('Navegar para a tela de busca/agendamento')}
+        onPress={() => navigation.navigate('Agendamentos', { screen: 'Busca' })}
       >
-        <Ionicons name="add" size={30} color="#FFF" />
+        <Ionicons name="add" size={32} color="#FFF" />
       </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAFA', paddingTop: 0, marginTop: 12 },
-  headerTitle: { fontSize: 26, fontWeight: '700', padding: 20, paddingTop: 56, marginTop: 8, backgroundColor: '#FFF', marginBottom: 2 },
-  tabContainer: { flexDirection: 'row', backgroundColor: '#FFF', paddingHorizontal: 0, borderBottomWidth: 1, borderColor: '#F0F0F0' },
-  tabButton: { flex: 1, paddingVertical: 16, alignItems: 'center', backgroundColor: '#FFF' },
+  container: { flex: 1, backgroundColor: '#FAFAFA' },
+  tabContainer: { flexDirection: 'row', backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#EEE' },
+  tabButton: { flex: 1, paddingVertical: 15, alignItems: 'center' },
   tabActive: { borderBottomWidth: 3, borderColor: '#4CAF50' },
-  tabText: { fontSize: 15, fontWeight: '600', color: '#666' },
-  card: { backgroundColor: '#FFF', padding: 16, marginHorizontal: 12, marginTop: 12, marginBottom: 0, borderRadius: 10, elevation: 1, borderWidth: 1, borderColor: '#F5F5F5' },
-  cardTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8, color: '#222' },
-  cardSubtitle: { fontSize: 13, color: '#777', lineHeight: 20 },
-  statusConfirmed: { color: '#4CAF50', fontWeight: '700', marginTop: 10, fontSize: 12 },
-  statusCompleted: { color: '#4B73B2', fontWeight: '700', marginTop: 10, fontSize: 12 },
-  emptyText: { textAlign: 'center', marginTop: 60, fontSize: 16, color: '#999' },
-  floatingButton: {
-    position: 'absolute',
-    bottom: 30,
-    right: 20,
-    backgroundColor: '#4CAF50',
-    borderRadius: 28,
-    width: 56,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 6,
-    shadowColor: '#4CAF50',
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-  },
+  tabText: { fontSize: 14, fontWeight: '700', color: '#444' },
+  filterContainer: { flexDirection: 'row', padding: 12, backgroundColor: '#FFF', alignItems: 'center', borderBottomWidth: 1, borderColor: '#F0F0F0' },
+  filterInput: { flex: 1, backgroundColor: '#F5F5F5', borderRadius: 8, paddingHorizontal: 10, height: 40, fontSize: 13, marginRight: 8 },
+  card: { backgroundColor: '#FFF', padding: 16, marginHorizontal: 15, marginTop: 12, borderRadius: 12, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 5 },
+  cardSubtitle: { fontSize: 14, color: '#666', marginBottom: 10 },
+  statusConfirmed: { color: '#4CAF50', fontWeight: 'bold', fontSize: 12, backgroundColor: '#E8F5E9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, alignSelf: 'flex-start' },
+  statusCompleted: { color: '#2196F3', fontWeight: 'bold', fontSize: 12, backgroundColor: '#E3F2FD', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, alignSelf: 'flex-start' },
+  loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyContainer: { alignItems: 'center', marginTop: 100 },
+  emptyText: { marginTop: 15, fontSize: 16, color: '#999', fontWeight: '500' },
+  floatingButton: { position: 'absolute', bottom: 25, right: 20, backgroundColor: '#4CAF50', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', elevation: 5, shadowColor: '#4CAF50', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } },
 });
 
 export default AgendamentosScreen;
