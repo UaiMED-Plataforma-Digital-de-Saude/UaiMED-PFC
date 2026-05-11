@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import prisma from '../prisma/prismaClient';
+import { prisma } from '../config/database';
 
 class ClinicasController {
   async recomendadas(req: Request, res: Response) {
@@ -8,12 +8,12 @@ class ClinicasController {
 
       const where: any = {
         tipo: 'clinica',
+        ativo: true,
       };
 
       if (estado) where.estado = estado;
       if (cidade) where.cidade = cidade;
 
-      // Busca usuários do tipo clinica que tenham nome e localização (simplificado)
       const clinicas = await prisma.usuario.findMany({
         where,
         select: {
@@ -22,18 +22,18 @@ class ClinicasController {
           email: true,
           cidade: true,
           estado: true,
-          fotoPerfil: true, // Ou avatar se preferir padronizar
+          avatar: true,
         },
         take: 10,
+        orderBy: { criado_em: 'desc' },
       });
 
-      // Mapeia para o formato esperado pelo front
       const formatted = clinicas.map(c => ({
         id: c.id,
         nome: c.nome,
-        avatar: c.fotoPerfil,
-        localizacao: `${c.cidade}, ${c.estado}`,
-        nota: 5.0, // Mock de nota por enquanto
+        avatar: c.avatar ?? null,
+        localizacao: c.cidade && c.estado ? `${c.cidade}, ${c.estado}` : c.cidade || c.estado || null,
+        nota: 5.0,
       }));
 
       return res.json(formatted);
@@ -44,9 +44,25 @@ class ClinicasController {
   }
 
   async listar(req: Request, res: Response) {
-      // Implementação básica de listagem se necessário
-      const clinicas = await prisma.usuario.findMany({ where: { tipo: 'clinica' } });
+    try {
+      const clinicas = await prisma.usuario.findMany({
+        where: { tipo: 'clinica', ativo: true },
+        select: {
+          id: true,
+          nome: true,
+          email: true,
+          cidade: true,
+          estado: true,
+          avatar: true,
+          criado_em: true,
+        },
+        orderBy: { nome: 'asc' },
+      });
       return res.json(clinicas);
+    } catch (error) {
+      console.error('Erro ao listar clínicas:', error);
+      return res.status(500).json({ error: 'Erro interno do servidor' });
+    }
   }
 }
 
