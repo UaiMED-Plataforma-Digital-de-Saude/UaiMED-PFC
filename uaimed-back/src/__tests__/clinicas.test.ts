@@ -170,7 +170,7 @@ describe('Clínicas — listagem e recomendadas', () => {
     });
 
     it('filtra clínicas por cidade', async () => {
-      const res = await request(app).get('/api/clinicas/recomendadas?cidade=Goiânia');
+      const res = await request(app).get('/api/clinicas/recomendadas').query({ cidade: 'Goiânia' });
 
       expect(res.status).toBe(200);
       const ids = res.body.map((c: any) => c.id);
@@ -179,7 +179,7 @@ describe('Clínicas — listagem e recomendadas', () => {
     });
 
     it('filtra clínicas por cidade e estado combinados', async () => {
-      const res = await request(app).get('/api/clinicas/recomendadas?cidade=São Paulo&estado=SP');
+      const res = await request(app).get('/api/clinicas/recomendadas').query({ cidade: 'São Paulo', estado: 'SP' });
 
       expect(res.status).toBe(200);
       const ids = res.body.map((c: any) => c.id);
