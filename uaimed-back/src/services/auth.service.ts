@@ -50,6 +50,9 @@ class AuthService {
           telefone: data.telefone,
           senha: senhaHash,
           tipo,
+          // Para clínicas, salva localização diretamente no usuário
+          cidade: tipo === 'clinica' ? (data.cidade || null) : undefined,
+          estado: tipo === 'clinica' ? (data.estado || null) : undefined,
         },
         select: { id: true, nome: true, email: true, tipo: true },
       });

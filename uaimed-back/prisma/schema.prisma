@@ -16,6 +16,8 @@ model Usuario {
   senha         String
   tipo          String        @default("paciente")
   avatar        String?
+  cidade        String?
+  estado        String?
   ativo         Boolean       @default(true)
   criado_em     DateTime      @default(now())
   atualizado_em DateTime      @updatedAt

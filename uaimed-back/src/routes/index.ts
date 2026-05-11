@@ -8,6 +8,7 @@ import agendamentosRoutes from "./agendamentos.routes";
 import usersRoutes from "./users.routes";
 import adminRoutes from "./admin.routes";
 import professionalsRoutes from "./professionals.routes";
+import clinicasRoutes from "./clinicas.routes";
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use(agendamentosRoutes);
 router.use(usersRoutes);
 router.use(adminRoutes);
 router.use(professionalsRoutes);
+router.use(clinicasRoutes);
 
 export default router;
