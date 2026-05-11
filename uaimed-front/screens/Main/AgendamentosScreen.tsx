@@ -23,6 +23,18 @@ interface Agendamento {
 const AgendamentosScreen: React.FC<AgendamentosScreenProps> = ({ navigation }) => {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const QUICK_SPECIALTIES = [
+    { id: '1', nome: 'Cardiologia', icon: 'heart-outline', color: '#4CAF50' },
+    { id: '2', nome: 'Dermatologia', icon: 'sparkles-outline', color: '#4CAF50' },
+    { id: '3', nome: 'Pediatria', icon: 'happy-outline', color: '#4CAF50' },
+    { id: '4', nome: 'Psicologia', icon: 'chatbubbles-outline', color: '#4CAF50' },
+    { id: '5', nome: 'Ginecologia', icon: 'female-outline', color: '#4CAF50' },
+    { id: '6', nome: 'Ortopedia', icon: 'body-outline', color: '#4CAF50' },
+    { id: '7', nome: 'Nutrição', icon: 'nutrition-outline', color: '#4CAF50' },
+    { id: '8', nome: 'Oftalmologia', icon: 'eye-outline', color: '#4CAF50' },
+  ];
+
   // Estado para controlar qual Tab interna está ativa (Futuros/Anteriores)
   const [activeTab, setActiveTab] = useState<'futuros' | 'anteriores'>('futuros');
 
@@ -143,11 +155,6 @@ const AgendamentosScreen: React.FC<AgendamentosScreenProps> = ({ navigation }) =
           keyExtractor={item => item.id}
           ListEmptyComponent={() => (
             <View style={styles.emptyContainer}>
-              <Ionicons name="calendar-outline" size={60} color="#DDD" />
-              <Text style={styles.emptyText}>Nenhuma consulta encontrada.</Text>
-            </View>
-          )}
-          contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
         />
       )}
 
@@ -167,18 +174,7 @@ const styles = StyleSheet.create({
   tabContainer: { flexDirection: 'row', backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#EEE' },
   tabButton: { flex: 1, paddingVertical: 15, alignItems: 'center' },
   tabActive: { borderBottomWidth: 3, borderColor: '#4CAF50' },
-  tabText: { fontSize: 14, fontWeight: '700', color: '#444' },
-  filterContainer: { flexDirection: 'row', padding: 12, backgroundColor: '#FFF', alignItems: 'center', borderBottomWidth: 1, borderColor: '#F0F0F0' },
-  filterInput: { flex: 1, backgroundColor: '#F5F5F5', borderRadius: 8, paddingHorizontal: 10, height: 40, fontSize: 13, marginRight: 8 },
-  card: { backgroundColor: '#FFF', padding: 16, marginHorizontal: 15, marginTop: 12, borderRadius: 12, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 5 },
-  cardSubtitle: { fontSize: 14, color: '#666', marginBottom: 10 },
-  statusConfirmed: { color: '#4CAF50', fontWeight: 'bold', fontSize: 12, backgroundColor: '#E8F5E9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, alignSelf: 'flex-start' },
-  statusCompleted: { color: '#2196F3', fontWeight: 'bold', fontSize: 12, backgroundColor: '#E3F2FD', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, alignSelf: 'flex-start' },
-  loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyContainer: { alignItems: 'center', marginTop: 100 },
-  emptyText: { marginTop: 15, fontSize: 16, color: '#999', fontWeight: '500' },
-  floatingButton: { position: 'absolute', bottom: 25, right: 20, backgroundColor: '#4CAF50', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', elevation: 5, shadowColor: '#4CAF50', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } },
+
 });
 
 export default AgendamentosScreen;
