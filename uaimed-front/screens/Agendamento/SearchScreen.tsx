@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,70 +6,66 @@ import {
   TextInput,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
+  FlatList,
+  Modal,
 } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { AgendamentoStackParamList } from '../../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
 import LocationModal, { LocationValue } from '../../components/LocationModal';
+import uaiMedApi from '../../api/uaiMedApi';
 
 type SearchScreenProps = StackScreenProps<AgendamentoStackParamList, 'Busca'>;
 
-/**
- * Lista de especialidades comuns
- */
-const especialidades = [
-  { name: 'Cardiologia', icon: 'heart-outline' },
-  { name: 'Pediatria', icon: 'accessibility-outline' },
-  { name: 'Dermatologia', icon: 'leaf-outline' },
-  { name: 'Ginecologia', icon: 'woman-outline' },
-  { name: 'Odontologia', icon: 'happy-outline' },
-  { name: 'Ortopedia', icon: 'body-outline' },
-  { name: 'Oftalmologia', icon: 'eye-outline' },
-  { name: 'Psicologia', icon: 'brain-outline' },
-];
-
-/**
- * SearchScreen
- * Tela de busca de médicos e especialidades para agendamento
- */
 const SearchScreen: React.FC<SearchScreenProps> = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [location, setLocation] = useState<LocationValue>({ uf: '', estado: '', cidade: '' });
   const [locationModalVisible, setLocationModalVisible] = useState(false);
 
-  const buildParams = (extra: object = {}) => ({
-    ...(location.estado ? { estado: location.uf } : {}),
+  // Estados para Especialidades
+  const [especialidades, setEspecialidades] = useState<{ id: string, nome: string }[]>([]);
+  const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
+  const [loadingSpecs, setLoadingSpecs] = useState(false);
+  const [specModalVisible, setSpecModalVisible] = useState(false);
+
+  // Busca especialidades do back-end
+  useEffect(() => {
+    const fetchSpecialties = async () => {
+      setLoadingSpecs(true);
+      try {
+        // Tentativa de buscar do backend real
+        const response = await uaiMedApi.get('/especialidades');
+        setEspecialidades(response.data);
+      } catch (err) {
+        console.warn('Backend /especialidades não encontrado, usando mocks');
+        // MOCK solicitado para teste
+        setEspecialidades([
+          { id: '1', nome: 'Cardiologia' },
+          { id: '2', nome: 'Dermatologia' },
+          { id: '3', nome: 'Pediatria' },
+        ]);
+      } finally {
+        setLoadingSpecs(false);
+      }
+    };
+    fetchSpecialties();
+  }, []);
+
+  const buildParams = () => ({
+    ...(location.uf ? { estado: location.uf } : {}),
     ...(location.cidade ? { cidade: location.cidade } : {}),
-    ...extra,
+    ...(selectedSpecialty ? { especialidade: selectedSpecialty } : {}),
+    ...(searchQuery.trim() ? { query: searchQuery.trim() } : {}),
   });
 
-  /**
-   * Função para realizar a busca
-   */
-  const handleSearch = (query: string) => {
-    if (query.trim()) {
-      navigation.navigate('Resultados', { query: query.trim(), ...buildParams() });
-    }
+  const handleFinalSearch = () => {
+    navigation.navigate('Resultados', buildParams());
   };
 
-  /**
-   * Função para filtrar por especialidade
-   */
-  const handleSpecialtyPress = (specialtyName: string) => {
-    navigation.navigate('Resultados', { especialidade: specialtyName, ...buildParams() });
-  };
-
-  /**
-   * Função para confirmar a localização
-   */
   const handleLocationConfirm = (loc: LocationValue) => {
     setLocation(loc);
   };
-
-  const locationLabel =
-    location.uf
-      ? `${location.cidade ? location.cidade + ', ' : ''}${location.uf}`
-      : 'Qualquer localização';
 
   const hasLocation = !!location.uf || !!location.cidade;
 
@@ -77,71 +73,112 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation }) => {
     <View style={styles.container}>
       <Text style={styles.headerTitle}>Agende sua Consulta</Text>
 
-      {/* Campo de Busca Principal */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={24} color="#666" style={{ marginRight: 10 }} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Busque por médicos e clínicas"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          onSubmitEditing={() => handleSearch(searchQuery)}
-          placeholderTextColor="#999"
-        />
-      </View>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-      {/* Seletor de Localização */}
-      <TouchableOpacity
-        style={[styles.locationBar, hasLocation && styles.locationBarActive]}
-        onPress={() => setLocationModalVisible(true)}
-        activeOpacity={0.7}
-      >
-        <Ionicons
-          name="location-outline"
-          size={18}
-          color={hasLocation ? '#2E7D32' : '#888'}
-          style={{ marginRight: 8 }}
-        />
-        <Text style={[styles.locationText, hasLocation && styles.locationTextActive]}>
-          {locationLabel}
-        </Text>
-        <Ionicons
-          name="chevron-down-outline"
-          size={16}
-          color={hasLocation ? '#2E7D32' : '#888'}
-        />
-      </TouchableOpacity>
-
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Seção de Especialidades */}
-        <Text style={styles.sectionTitle}>Busque por Especialidade</Text>
-        <View style={styles.specialtiesGrid}>
-          {especialidades.map((spec) => (
-            <TouchableOpacity
-              key={spec.name}
-              style={styles.specialtyCard}
-              onPress={() => handleSpecialtyPress(spec.name)}
-            >
-              <Ionicons
-                name={spec.icon as keyof typeof Ionicons.glyphMap}
-                size={36}
-                color="#4CAF50"
-              />
-              <Text style={styles.specialtyText}>{spec.name}</Text>
-            </TouchableOpacity>
-          ))}
+        {/* 1. Busca por Nome/Clínica */}
+        <Text style={styles.inputLabel}>O que você procura?</Text>
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={22} color="#666" style={{ marginRight: 10 }} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Ex: Dr. Silva ou Clínica Uai"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor="#999"
+          />
         </View>
 
-        {/* Ação Rápida */}
-        <Text style={styles.sectionTitle}>Agendamento Rápido</Text>
+        {/* 2. Seleção de Especialidade (Dropdown) */}
+        <Text style={styles.inputLabel}>Especialidade</Text>
         <TouchableOpacity
-          style={styles.quickActionButton}
-          onPress={() => console.log('TODO: Implementar médicos favoritos')}
+          style={styles.dropdownButton}
+          onPress={() => setSpecModalVisible(true)}
         >
-          <Ionicons name="star-outline" size={20} color="#FFF" />
-          <Text style={styles.quickActionText}>Meus Médicos Favoritos</Text>
+          <Ionicons name="medical-outline" size={20} color="#4CAF50" style={{ marginRight: 10 }} />
+          <Text style={[styles.dropdownText, !selectedSpecialty && { color: '#999' }]}>
+            {selectedSpecialty || 'Selecione uma especialidade'}
+          </Text>
+          <Ionicons name="chevron-down" size={18} color="#999" />
         </TouchableOpacity>
+
+        {/* 3. Seletor de Localização */}
+        <Text style={styles.inputLabel}>Onde?</Text>
+        <TouchableOpacity
+          style={[styles.locationBar, hasLocation && styles.locationBarActive]}
+          onPress={() => setLocationModalVisible(true)}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name="location-outline"
+            size={20}
+            color={hasLocation ? '#2E7D32' : '#4CAF50'}
+            style={{ marginRight: 10 }}
+          />
+          <Text style={[styles.locationText, hasLocation && styles.locationTextActive]}>
+            {location.uf ? `${location.cidade ? location.cidade + ', ' : ''}${location.uf}` : 'Qualquer localização'}
+          </Text>
+          <Ionicons
+            name="chevron-down-outline"
+            size={18}
+            color={hasLocation ? '#2E7D32' : '#999'}
+          />
+        </TouchableOpacity>
+
+        {/* 4. Botão Buscar (Substituindo Favoritos) */}
+        <TouchableOpacity
+          style={styles.searchActionButton}
+          onPress={handleFinalSearch}
+        >
+          <Ionicons name="search" size={22} color="#FFF" />
+          <Text style={styles.searchActionText}>Buscar Profissionais</Text>
+        </TouchableOpacity>
+
       </ScrollView>
+
+      {/* Modal de Especialidades */}
+      <Modal visible={specModalVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Especialidades</Text>
+              <TouchableOpacity onPress={() => setSpecModalVisible(false)}>
+                <Ionicons name="close" size={28} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            {loadingSpecs ? (
+              <ActivityIndicator size="large" color="#4CAF50" style={{ margin: 20 }} />
+            ) : (
+              <FlatList
+                data={especialidades}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.specItem}
+                    onPress={() => {
+                      setSelectedSpecialty(item.nome);
+                      setSpecModalVisible(false);
+                    }}
+                  >
+                    <Text style={styles.specItemText}>{item.nome}</Text>
+                    {selectedSpecialty === item.nome && (
+                      <Ionicons name="checkmark" size={20} color="#4CAF50" />
+                    )}
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={<Text style={styles.emptyText}>Nenhuma especialidade encontrada.</Text>}
+              />
+            )}
+
+            <TouchableOpacity
+              style={styles.clearButton}
+              onPress={() => { setSelectedSpecialty(null); setSpecModalVisible(false); }}
+            >
+              <Text style={styles.clearButtonText}>Limpar Filtro</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Modal de Localização */}
       <LocationModal
@@ -159,24 +196,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFF',
-    paddingHorizontal: 15,
-    paddingTop: 32,
+    paddingHorizontal: 20,
+    paddingTop: 40,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 8,
-    marginBottom: 16,
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#111',
+    marginBottom: 24,
   },
-
-  // Busca
+  scrollContent: { paddingBottom: 40 },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#444',
+    marginBottom: 8,
+    marginTop: 10,
+  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0F0F0',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 10,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: '#EEE',
   },
@@ -185,18 +229,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
   },
-
-  // Localização
+  dropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    paddingVertical: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#EEE',
+  },
+  dropdownText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+  },
   locationBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F7F7F7',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    marginBottom: 18,
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    paddingVertical: 14,
+    marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderColor: '#EEE',
   },
   locationBarActive: {
     backgroundColor: '#E8F5E9',
@@ -204,64 +262,86 @@ const styles = StyleSheet.create({
   },
   locationText: {
     flex: 1,
-    fontSize: 14,
-    color: '#888',
-    fontWeight: '500',
+    fontSize: 16,
+    color: '#333',
   },
   locationTextActive: {
     color: '#2E7D32',
     fontWeight: '600',
   },
-
-  scrollContent: { paddingBottom: 50 },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginVertical: 15,
-    color: '#333',
-  },
-
-  // Grid de Especialidades
-  specialtiesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  specialtyCard: {
-    width: '30%',
-    backgroundColor: '#F9F9F9',
-    borderRadius: 10,
-    padding: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#EEE',
-  },
-  specialtyText: {
-    marginTop: 8,
-    fontSize: 12,
-    textAlign: 'center',
-    fontWeight: '500',
-    color: '#333',
-  },
-
-  // Ações Rápidas
-  quickActionButton: {
+  searchActionButton: {
     flexDirection: 'row',
     backgroundColor: '#4CAF50',
-    padding: 15,
-    borderRadius: 10,
+    padding: 18,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 10,
+    elevation: 4,
+    shadowColor: '#4CAF50',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
   },
-  quickActionText: {
+  searchActionText: {
     color: '#FFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 10,
+    fontSize: 18,
+    fontWeight: '800',
+    marginLeft: 12,
   },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#111',
+  },
+  specItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  specItemText: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#999',
+    marginVertical: 20,
+  },
+  clearButton: {
+    marginTop: 10,
+    padding: 15,
+    alignItems: 'center',
+  },
+  clearButtonText: {
+    color: '#F44336',
+    fontWeight: '700',
+    fontSize: 14,
+  }
 });
 
 export default SearchScreen;
