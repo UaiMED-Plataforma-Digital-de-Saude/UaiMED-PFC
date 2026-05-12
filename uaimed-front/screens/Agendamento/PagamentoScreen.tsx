@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Pressable,
   Share,
   Platform,
+  Clipboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackScreenProps } from '@react-navigation/stack';
@@ -19,10 +20,191 @@ import { Ionicons } from '@expo/vector-icons';
 import { usePayments } from '../../hooks/usePayments';
 import AppModal from '../../components/AppModal';
 import { useModal } from '../../hooks/useModal';
+import QRCode from 'react-native-qrcode-svg';
 
 type Props = StackScreenProps<AgendamentoStackParamList, 'Pagamento'>;
 
-// ── Geração de código de barras simulado ──────────────────────────────────────
+// ── Geração do payload PIX (formato EMV simplificado) ─────────────────────────
+function gerarPayloadPix(pixKey: string, valor: number, nome: string): string {
+  const valorStr = valor.toFixed(2);
+  const nomeFormatado = nome.substring(0, 25).toUpperCase().padEnd(25, ' ').trim();
+  const merchantKey = `0014br.gov.bcb.pix01${String(pixKey.length).padStart(2, '0')}${pixKey}`;
+  const merchantInfo = `26${String(merchantKey.length).padStart(2, '0')}${merchantKey}`;
+  const payload =
+    `000201` +
+    merchantInfo +
+    `52040000` +
+    `5303986` +
+    `54${String(valorStr.length).padStart(2, '0')}${valorStr}` +
+    `5802BR` +
+    `59${String(nomeFormatado.length).padStart(2, '0')}${nomeFormatado}` +
+    `6009BRASILIA` +
+    `62070503***` +
+    `6304`;
+  return payload + 'ABCD'; // CRC simulado para demo
+}
+
+// ── Componente PIX ────────────────────────────────────────────────────────────
+interface PixViewProps {
+  valor: number;
+  pixKey: string;
+  nomeProfissional: string;
+  onCopiado: () => void;
+}
+
+const PixView: React.FC<PixViewProps> = ({ valor, pixKey, nomeProfissional, onCopiado }) => {
+  const [copiado, setCopiado] = useState(false);
+  const [segundos, setSegundos] = useState(600); // 10 minutos
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const payload = useMemo(
+    () => gerarPayloadPix(pixKey, valor, nomeProfissional),
+    [pixKey, valor, nomeProfissional]
+  );
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      setSegundos((s) => {
+        if (s <= 1) {
+          clearInterval(intervalRef.current!);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(intervalRef.current!);
+  }, []);
+
+  const minutos = Math.floor(segundos / 60);
+  const secs = segundos % 60;
+  const timerStr = `${String(minutos).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  const expirado = segundos === 0;
+
+  const handleCopiar = () => {
+    Clipboard.setString(pixKey);
+    setCopiado(true);
+    onCopiado();
+    setTimeout(() => setCopiado(false), 3000);
+  };
+
+  const handleCompartilhar = async () => {
+    await Share.share({
+      message: `Chave PIX UaiMED:\n${pixKey}\n\nValor: R$ ${valor.toFixed(2)}\nBeneficiário: ${nomeProfissional}`,
+      title: 'Pagamento via PIX',
+    });
+  };
+
+  return (
+    <View style={pixStyles.container}>
+      {/* Cabeçalho */}
+      <View style={pixStyles.header}>
+        <View style={pixStyles.pixLogo}>
+          <Ionicons name="scan-outline" size={20} color="#FFF" />
+          <Text style={pixStyles.pixLogoText}>PIX</Text>
+        </View>
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text style={pixStyles.headerTitle}>Pagamento Instantâneo</Text>
+          <Text style={pixStyles.headerSub}>Escaneie o QR Code ou copie a chave</Text>
+        </View>
+      </View>
+
+      {/* Timer */}
+      <View style={[pixStyles.timerRow, expirado && pixStyles.timerExpired]}>
+        <Ionicons
+          name={expirado ? 'close-circle-outline' : 'time-outline'}
+          size={16}
+          color={expirado ? '#D32F2F' : '#F57F17'}
+        />
+        <Text style={[pixStyles.timerText, expirado && pixStyles.timerTextExpired]}>
+          {expirado ? 'QR Code expirado. Gere um novo.' : `Válido por ${timerStr}`}
+        </Text>
+      </View>
+
+      {/* QR Code */}
+      <View style={pixStyles.qrWrapper}>
+        {expirado ? (
+          <View style={pixStyles.qrExpired}>
+            <Ionicons name="refresh-outline" size={40} color="#9E9E9E" />
+            <Text style={pixStyles.qrExpiredText}>Expirado</Text>
+          </View>
+        ) : (
+          <QRCode
+            value={payload}
+            size={200}
+            color="#1B5E20"
+            backgroundColor="#FFFFFF"
+            logo={undefined}
+          />
+        )}
+      </View>
+
+      <Text style={pixStyles.qrNote}>
+        Aponte a câmera do seu app bancário para o QR Code acima
+      </Text>
+
+      {/* Divisor */}
+      <View style={pixStyles.divider}>
+        <View style={pixStyles.dividerLine} />
+        <Text style={pixStyles.dividerText}>ou use a chave PIX</Text>
+        <View style={pixStyles.dividerLine} />
+      </View>
+
+      {/* Dados do beneficiário */}
+      <View style={pixStyles.beneficiaryCard}>
+        <View style={pixStyles.beneficiaryRow}>
+          <Ionicons name="person-circle-outline" size={20} color="#4CAF50" />
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={pixStyles.beneficiaryLabel}>Beneficiário</Text>
+            <Text style={pixStyles.beneficiaryValue}>{nomeProfissional}</Text>
+          </View>
+        </View>
+        <View style={pixStyles.beneficiaryRow}>
+          <Ionicons name="key-outline" size={20} color="#4CAF50" />
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={pixStyles.beneficiaryLabel}>Chave PIX</Text>
+            <Text style={pixStyles.beneficiaryValue} selectable>{pixKey}</Text>
+          </View>
+        </View>
+        <View style={pixStyles.beneficiaryRow}>
+          <Ionicons name="cash-outline" size={20} color="#4CAF50" />
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={pixStyles.beneficiaryLabel}>Valor</Text>
+            <Text style={[pixStyles.beneficiaryValue, { color: '#1B5E20', fontWeight: '800' }]}>
+              R$ {valor.toFixed(2)}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Botões */}
+      <TouchableOpacity
+        style={[pixStyles.copyBtn, copiado && pixStyles.copyBtnSuccess]}
+        onPress={handleCopiar}
+        activeOpacity={0.8}
+      >
+        <Ionicons name={copiado ? 'checkmark-outline' : 'copy-outline'} size={18} color="#FFF" />
+        <Text style={pixStyles.copyBtnText}>
+          {copiado ? 'Chave copiada!' : 'Copiar Chave PIX'}
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={pixStyles.shareBtn} onPress={handleCompartilhar} activeOpacity={0.8}>
+        <Ionicons name="share-social-outline" size={18} color="#4CAF50" />
+        <Text style={pixStyles.shareBtnText}>Compartilhar dados PIX</Text>
+      </TouchableOpacity>
+
+      {/* Instruções */}
+      <View style={pixStyles.instructions}>
+        <Text style={pixStyles.instructionsTitle}>Como pagar via PIX</Text>
+        <Text style={pixStyles.instructionsItem}>1. Abra o app do seu banco</Text>
+        <Text style={pixStyles.instructionsItem}>2. Acesse a área PIX → Pagar</Text>
+        <Text style={pixStyles.instructionsItem}>3. Escaneie o QR Code ou cole a chave PIX</Text>
+        <Text style={pixStyles.instructionsItem}>4. Confirme o valor e pague</Text>
+        <Text style={pixStyles.instructionsItem}>5. O pagamento é confirmado em instantes</Text>
+      </View>
+    </View>
+  );
+};
 function gerarCodigoBoleto(valor: number): string {
   const rand = (n: number) => Math.floor(Math.random() * n).toString().padStart(n.toString().length, '0');
   const v = valor.toFixed(2).replace('.', '').padStart(10, '0');
@@ -189,6 +371,8 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
   const amount = route.params?.amount ?? 0;
   const agendamentoId = route.params?.agendamentoId;
   const medicoId = route.params?.medicoId;
+  const pixKey = route.params?.pixKey ?? `${medicoId ?? 'uaimed'}@uaimed.com.br`;
+  const nomeProfissional = route.params?.nomeProfissional ?? 'Profissional UaiMED';
   const { processarPagamento, loading, validarCupom, calcularValorFinal } = usePayments();
   
   const [method, setMethod] = useState<'pix' | 'card' | 'boleto'>('pix');
@@ -309,6 +493,17 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
             </TouchableOpacity>
           </View>
         </View>
+
+        {method === 'pix' && (
+          <PixView
+            valor={finalAmount}
+            pixKey={pixKey}
+            nomeProfissional={nomeProfissional}
+            onCopiado={() =>
+              showModal('Chave copiada!', 'Cole no seu app bancário para pagar via PIX.', { type: 'success' })
+            }
+          />
+        )}
 
         {method === 'card' && (
           <View style={styles.section}>
@@ -590,7 +785,159 @@ const styles = StyleSheet.create({
 
 export default PagamentoScreen;
 
-// ── Estilos do Boleto ─────────────────────────────────────────────────────────
+// ── Estilos do PIX ────────────────────────────────────────────────────────────
+const pixStyles = StyleSheet.create({
+  container: {
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+    borderRadius: 12,
+    backgroundColor: '#F9FFF9',
+    marginBottom: 14,
+    overflow: 'hidden',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2E7D32',
+    padding: 14,
+  },
+  pixLogo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 6,
+  },
+  pixLogoText: {
+    color: '#FFF',
+    fontWeight: '900',
+    fontSize: 16,
+    letterSpacing: 1,
+  },
+  headerTitle: { color: '#FFF', fontWeight: '700', fontSize: 15 },
+  headerSub: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 2 },
+  timerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFF8E1',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FFE082',
+  },
+  timerExpired: {
+    backgroundColor: '#FFEBEE',
+    borderBottomColor: '#FFCDD2',
+  },
+  timerText: { fontSize: 13, color: '#F57F17', fontWeight: '600' },
+  timerTextExpired: { color: '#D32F2F' },
+  qrWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: '#FFF',
+  },
+  qrExpired: {
+    width: 200,
+    height: 200,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+  },
+  qrExpiredText: { color: '#9E9E9E', marginTop: 8, fontWeight: '600' },
+  qrNote: {
+    textAlign: 'center',
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 16,
+    paddingHorizontal: 20,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    gap: 8,
+  },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#C8E6C9' },
+  dividerText: { fontSize: 12, color: '#81C784', fontWeight: '600' },
+  beneficiaryCard: {
+    marginHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+    backgroundColor: '#FFF',
+    paddingVertical: 4,
+    marginBottom: 14,
+  },
+  beneficiaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F8F1',
+  },
+  beneficiaryLabel: { fontSize: 11, color: '#888', fontWeight: '600', textTransform: 'uppercase' },
+  beneficiaryValue: { fontSize: 14, color: '#222', fontWeight: '600', marginTop: 2 },
+  copyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#4CAF50',
+    marginHorizontal: 14,
+    paddingVertical: 14,
+    borderRadius: 10,
+    marginBottom: 10,
+    elevation: 2,
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  copyBtnSuccess: { backgroundColor: '#2E7D32' },
+  copyBtnText: { color: '#FFF', fontWeight: '700', fontSize: 15 },
+  shareBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1.5,
+    borderColor: '#4CAF50',
+    marginHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginBottom: 16,
+  },
+  shareBtnText: { color: '#4CAF50', fontWeight: '700', fontSize: 14 },
+  instructions: {
+    backgroundColor: '#E8F5E9',
+    marginHorizontal: 14,
+    padding: 14,
+    borderRadius: 8,
+    marginBottom: 14,
+    borderLeftWidth: 3,
+    borderLeftColor: '#4CAF50',
+  },
+  instructionsTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#2E7D32',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  instructionsItem: {
+    fontSize: 13,
+    color: '#388E3C',
+    lineHeight: 22,
+  },
+});
 const boletoStyles = StyleSheet.create({
   boletoCard: {
     borderWidth: 1,

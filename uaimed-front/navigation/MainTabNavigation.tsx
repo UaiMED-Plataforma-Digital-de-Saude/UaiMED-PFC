@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from './types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
-import { CommonActions } from '@react-navigation/native';
+import { CommonActions, getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { TouchableOpacity, View, Image, Text } from 'react-native';
 
 // Importe as telas
@@ -16,6 +16,7 @@ import HelpScreen from '../screens/Main/HelpScreen';
 import ArtigosListaScreen from '../screens/Main/ArtigosListaScreen';
 import ArtigoDetalhesScreen from '../screens/Main/ArtigoDetalhesScreen';
 import ArtigoCadastroScreen from '../screens/Main/ArtigoCadastroScreen';
+import ConversasStack from './ConversasStack';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -78,22 +79,21 @@ const MainTabNavigator: React.FC = () => {
             </TouchableOpacity>
           </View>
         ),
-        tabBarIcon: ({ color, size }) => {
+        tabBarIcon: ({ color, size, focused }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home-outline';
-          let iconColor = color;
 
           switch (route.name) {
             case 'Home':
-              iconName = 'home';
-              iconColor = '#4CAF50'; // Sempre verde
+              iconName = focused ? 'home' : 'home-outline';
               break;
-            case 'Agendamentos': iconName = 'calendar-outline';   break;
-            case 'MedicoAgenda': iconName = 'calendar-outline';   break;
-            case 'ClinicDashboard': iconName = 'bar-chart-outline'; break;
-            case 'Perfil':       iconName = 'person-outline';     break;
+            case 'Agendamentos': iconName = focused ? 'calendar' : 'calendar-outline';   break;
+            case 'MedicoAgenda': iconName = focused ? 'calendar' : 'calendar-outline';   break;
+            case 'ClinicDashboard': iconName = focused ? 'bar-chart' : 'bar-chart-outline'; break;
+            case 'Conversas':    iconName = focused ? 'chatbubbles' : 'chatbubbles-outline'; break;
+            case 'Perfil':       iconName = focused ? 'person' : 'person-outline';     break;
           }
 
-          return <Ionicons name={iconName} size={route.name === 'Home' ? size + 10 : size} color={iconColor} />;
+          return <Ionicons name={iconName} size={route.name === 'Home' ? size + 10 : size} color={color} />;
         },
         tabBarLabel: route.name === 'Home' ? '' : route.name,
       })}
@@ -154,38 +154,86 @@ const MainTabNavigator: React.FC = () => {
         }}
       />
 
-      {/* Lado Direito: Perfil */}
+      {/* Conversas — header principal com voltar; oculta quando estiver no chat */}
+      <Tab.Screen
+        name="Conversas"
+        component={ConversasStack}
+        options={({ route, navigation }) => {
+          const rotaAtiva = getFocusedRouteNameFromRoute(route) ?? 'ConversasLista';
+          const noChat = rotaAtiva === 'ConversaDetalhe';
+          return {
+            tabBarItemStyle: hiddenTab,
+            headerShown: !noChat,
+            title: 'Conversas',
+            headerLeft: () => (
+              <TouchableOpacity
+                style={{ marginLeft: 16 }}
+                onPress={() => navigation.navigate('Home')}
+              >
+                <Ionicons name="arrow-back" size={24} color="#333" />
+              </TouchableOpacity>
+            ),
+          };
+        }}
+      />
+
+      {/* Perfil */}
       <Tab.Screen
         name="Perfil"
         component={PerfilScreen}
         options={{ title: 'Meu Perfil' }}
       />
 
+      {/* Ajuda — header principal com voltar */}
       <Tab.Screen
         name="Ajuda"
         component={HelpScreen}
-        options={{
+        options={({ navigation }) => ({
           title: 'Ajuda e Suporte',
           tabBarItemStyle: hiddenTab,
-        }}
+          headerLeft: () => (
+            <TouchableOpacity
+              style={{ marginLeft: 16 }}
+              onPress={() => navigation.navigate('Home')}
+            >
+              <Ionicons name="arrow-back" size={24} color="#333" />
+            </TouchableOpacity>
+          ),
+        })}
       />
 
       <Tab.Screen
         name="Artigos"
         component={ArtigosListaScreen}
-        options={{
+        options={({ navigation }) => ({
           title: 'Artigos de Saúde',
           tabBarItemStyle: hiddenTab,
-        }}
+          headerLeft: () => (
+            <TouchableOpacity
+              style={{ marginLeft: 16 }}
+              onPress={() => navigation.navigate('Home')}
+            >
+              <Ionicons name="arrow-back" size={24} color="#333" />
+            </TouchableOpacity>
+          ),
+        })}
       />
 
       <Tab.Screen
         name="ArtigoDetalhes"
         component={ArtigoDetalhesScreen}
-        options={{
+        options={({ navigation }) => ({
           title: 'Artigo',
           tabBarItemStyle: hiddenTab,
-        }}
+          headerLeft: () => (
+            <TouchableOpacity
+              style={{ marginLeft: 16 }}
+              onPress={() => navigation.navigate('Home')}
+            >
+              <Ionicons name="arrow-back" size={24} color="#333" />
+            </TouchableOpacity>
+          ),
+        })}
       />
 
       <Tab.Screen

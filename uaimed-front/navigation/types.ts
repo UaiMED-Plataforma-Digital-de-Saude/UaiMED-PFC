@@ -20,6 +20,7 @@ export type MainTabParamList = {
   Artigos: undefined;
   ArtigoDetalhes: { artigoId: string };
   ArtigoCadastro: undefined;
+  Conversas: NavigatorScreenParams<ConversasStackParamList> | undefined;
 };
 
 // 3. Tipagem para a Pilha de Agendamento (Search)
@@ -31,19 +32,34 @@ export type AgendamentoStackParamList = {
     cidade?: string;
     estado?: string;
   };
-  DetalhesMedico?: { medicoId: string; amount?: number };
-  SelecaoHorario?: { medicoId: string; amount?: number };
-  SelecaoHorariosDia?: { medicoId: string; dateKey: string; displayDate: string; amount?: number };
-  Confirmacao?: { horario?: string; medicoId?: string; agendamentoId?: string; amount?: number };
+  DetalhesMedico?: { medicoId: string; amount?: number; pixKey?: string; nomeProfissional?: string };
+  ClinicaPerfil?: { clinicaId: string; nomeClinica?: string };
+  SelecaoHorario?: { medicoId: string; amount?: number; pixKey?: string; nomeProfissional?: string };
+  SelecaoHorariosDia?: { medicoId: string; dateKey: string; displayDate: string; amount?: number; pixKey?: string; nomeProfissional?: string };
+  Confirmacao?: { horario?: string; medicoId?: string; agendamentoId?: string; amount?: number; pixKey?: string; nomeProfissional?: string };
   Avaliacao?: { agendamentoId: string; medicoId: string };
   HistoricoAvaliacoes?: undefined;
-  Pagamento?: { amount?: number; agendamentoId?: string; medicoId?: string };
+  Pagamento?: { amount?: number; agendamentoId?: string; medicoId?: string; pixKey?: string; nomeProfissional?: string; };
   MeusPagamentos?: undefined;
   MinhasConsultas?: undefined;
   ContatoProfissional?: { medicoId: string };
 };
 
-// 4. Tipagem para a Pilha Principal que une tudo
+// 4. Tipagem para a Pilha de Conversas
+export type ConversasStackParamList = {
+  ConversasLista: undefined;
+  ConversaDetalhe: {
+    conversaId: string;
+    titulo: string;
+    nomeOutro: string;
+  };
+  NovaConversa: {
+    profissionalId: string;
+    nomeProfissional: string;
+  };
+};
+
+// 5. Tipagem para a Pilha Principal que une tudo
 export type RootStackParamList = {
   Auth: AuthStackParamList;
   Main: MainTabParamList;

@@ -7,7 +7,7 @@ import { AgendamentoStackParamList } from '../../navigation/types';
 type Props = StackScreenProps<AgendamentoStackParamList, 'Confirmacao'>;
 
 const ConfirmacaoScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { horario, medicoId, agendamentoId, amount } = route.params ?? {};
+  const { horario, medicoId, agendamentoId, amount, pixKey, nomeProfissional } = route.params ?? {};
 
   const dataFormatada = horario
     ? new Date(horario).toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' })
@@ -73,6 +73,8 @@ const ConfirmacaoScreen: React.FC<Props> = ({ route, navigation }) => {
               amount: valorConsulta,
               agendamentoId,
               medicoId,
+              pixKey: pixKey ?? `${medicoId}@uaimed.com.br`,
+              nomeProfissional: nomeProfissional ?? 'Profissional UaiMED',
             })
           }
         >

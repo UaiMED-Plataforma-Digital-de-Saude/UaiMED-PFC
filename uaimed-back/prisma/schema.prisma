@@ -18,6 +18,11 @@ model Usuario {
   avatar        String?
   cidade        String?
   estado        String?
+  pixKey        String?
+  banco         String?
+  agencia       String?
+  conta         String?
+  tipoConta     String?
   ativo         Boolean       @default(true)
   criado_em     DateTime      @default(now())
   atualizado_em DateTime      @updatedAt
@@ -26,6 +31,8 @@ model Usuario {
   contatos      Contato[]
   pagamentos    Pagamento[]
   profissional  Profissional?
+  conversas     Conversa[]
+  mensagens     Mensagem[]
 
   @@map("usuarios")
 }
@@ -40,12 +47,18 @@ model Profissional {
   cidade        String
   estado        String
   cep           String
+  pixKey        String?
+  banco         String?
+  agencia       String?
+  conta         String?
+  tipoConta     String?
   criado_em     DateTime      @default(now())
   atualizado_em DateTime      @updatedAt
   agendamentos  Agendamento[]
   avaliacoes    Avaliacao[]
   contatos      Contato[]
   usuario       Usuario       @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  conversas     Conversa[]
 
   @@map("profissionais")
 }
@@ -130,3 +143,32 @@ model Cupom {
 
   @@map("cupons")
 }
+
+model Conversa {
+  id             String       @id @default(uuid())
+  usuarioId      String
+  profissionalId String
+  titulo         String?
+  criado_em      DateTime     @default(now())
+  atualizado_em  DateTime     @updatedAt
+  usuario        Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  profissional   Profissional @relation(fields: [profissionalId], references: [id], onDelete: Cascade)
+  mensagens      Mensagem[]
+
+  @@unique([usuarioId, profissionalId])
+  @@map("conversas")
+}
+
+model Mensagem {
+  id          String   @id @default(uuid())
+  conversaId  String
+  remetenteId String
+  texto       String
+  lida        Boolean  @default(false)
+  criado_em   DateTime @default(now())
+  conversa    Conversa @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+  remetente   Usuario  @relation(fields: [remetenteId], references: [id], onDelete: Cascade)
+
+  @@map("mensagens")
+}
+

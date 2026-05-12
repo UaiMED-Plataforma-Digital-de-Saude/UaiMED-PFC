@@ -5,11 +5,19 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e61d2434-ba4d-419d-881c-3d5c109eac10" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/uaimed-back/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-back/prisma/schema.prisma" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/prisma/schema.prisma" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/ClinicaPerfilScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/copilotDiffState.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/copilotDiffState.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/uaimed-back/src/controllers/clinicas.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/controllers/clinicas.controller.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-back/src/routes/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/routes/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-back/src/services/auth.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/services/auth.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-back/src/controllers/medicos.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/controllers/medicos.controller.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-back/src/prisma/seed.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/prisma/seed.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-back/src/routes/clinicas.routes.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/routes/clinicas.routes.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-back/src/routes/medicos.routes.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/routes/medicos.routes.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/navigation/AgendamentoStack.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/navigation/AgendamentoStack.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/navigation/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/navigation/types.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/MedicoDetalhesScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/MedicoDetalhesScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Main/HomeScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Main/HomeScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Main/PerfilScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Main/PerfilScreen.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -22,7 +30,7 @@
   <component name="CopilotChats">
     <option name="panelChat">
       <chat>
-        <option name="activeSessionId" value="1c4957a1-1bfa-484c-883b-223a20d39257" />
+        <option name="activeSessionId" value="fb8d9bb3-a76f-44bd-b152-b3aaca12892b" />
         <option name="sessions">
           <session>
             <option name="chatType" value="PANEL" />
@@ -61,6 +69,14 @@
           <session>
             <option name="chatType" value="PANEL" />
             <option name="id" value="1c4957a1-1bfa-484c-883b-223a20d39257" />
+            <option name="modeId" value="Ask" />
+            <option name="modelType" value="builtin_family" />
+            <option name="modelValue" value="claude-sonnet-4.6" />
+            <option name="targetType" value="LOCAL" />
+          </session>
+          <session>
+            <option name="chatType" value="PANEL" />
+            <option name="id" value="fb8d9bb3-a76f-44bd-b152-b3aaca12892b" />
             <option name="modeId" value="Ask" />
             <option name="modelType" value="builtin_family" />
             <option name="modelValue" value="claude-sonnet-4.6" />
@@ -117,7 +133,7 @@
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "feat/config-back-clinicas",
+    "git-widget-placeholder": "feat/ajustes-preparatorios-do-projeto",
     "settings.editor.selected.configurable": "preferences.pluginManager"
   }
 }]]></component>

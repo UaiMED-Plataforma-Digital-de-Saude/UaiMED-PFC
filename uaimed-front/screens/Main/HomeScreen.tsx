@@ -107,7 +107,6 @@ const CustomDrawer: React.FC<DrawerProps> = ({ visible, onClose, navigation }) =
       transparent
       animationType="none"
       onRequestClose={onClose}
-      statusBarTranslucent
     >
       {/* Overlay */}
       <TouchableWithoutFeedback onPress={onClose}>
@@ -136,6 +135,7 @@ const CustomDrawer: React.FC<DrawerProps> = ({ visible, onClose, navigation }) =
           </View>
 
           {/* Itens de navegação */}
+          {/* ── Itens de navegação principais ── */}
           <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
             <View style={drawerStyles.section}>
               <DrawerItem
@@ -182,35 +182,40 @@ const CustomDrawer: React.FC<DrawerProps> = ({ visible, onClose, navigation }) =
               />
 
               <DrawerItem
+                icon="chatbubbles-outline"
+                label="Conversas"
+                onPress={() => navigate('Conversas')}
+              />
+
+              <DrawerItem
                 icon="newspaper-outline"
                 label="Artigos de Saúde"
                 onPress={() => navigate('Artigos')}
               />
-
-              <DrawerItem
-                icon="help-circle-outline"
-                label="Ajuda e Suporte"
-                onPress={() => navigate('Ajuda')}
-                color="#4CAF50"
-              />
-            </View>
-
-            {/* Divisor */}
-            <View style={drawerStyles.divider} />
-
-            <View style={drawerStyles.section}>
-              <DrawerItem
-                icon="log-out-outline"
-                label="Sair"
-                onPress={handleSignOut}
-                color="#D9534F"
-              />
             </View>
           </ScrollView>
 
-          {/* Rodapé com versão */}
-          <View style={drawerStyles.footer}>
-            <Text style={drawerStyles.footerText}>UaiMED v1.0</Text>
+          {/* ── Rodapé fixo: Ajuda + Sair ── */}
+          <View style={drawerStyles.bottomActions}>
+            <View style={drawerStyles.divider} />
+
+            <DrawerItem
+              icon="help-circle-outline"
+              label="Ajuda e Suporte"
+              onPress={() => navigate('Ajuda')}
+              color="#4CAF50"
+            />
+
+            <DrawerItem
+              icon="log-out-outline"
+              label="Sair da Conta"
+              onPress={handleSignOut}
+              color="#D9534F"
+            />
+
+            <View style={drawerStyles.footer}>
+              <Text style={drawerStyles.footerText}>UaiMED v1.0</Text>
+            </View>
           </View>
 
         </SafeAreaView>
@@ -296,6 +301,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
         <FeaturedProfessionalsCarousel
           estado={location.uf || undefined}
           cidade={location.cidade || undefined}
+          onPress={(id) =>
+            navigation.navigate('Agendamentos', {
+              screen: 'DetalhesMedico',
+              params: { medicoId: id },
+            } as any)
+          }
         />
 
         {/* Clínicas em destaque */}
@@ -303,6 +314,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
         <FeaturedClinicsCarousel
           estado={location.uf || undefined}
           cidade={location.cidade || undefined}
+          onPress={(id) =>
+            navigation.navigate('Agendamentos', {
+              screen: 'ClinicaPerfil',
+              params: { clinicaId: id },
+            } as any)
+          }
         />
 
         {/* Artigos de Saúde */}
@@ -441,12 +458,13 @@ const drawerStyles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
     paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
   },
   footerText: {
     fontSize: 12,
     color: '#BBB',
+  },
+  bottomActions: {
+    borderTopWidth: 0,
   },
 });
 

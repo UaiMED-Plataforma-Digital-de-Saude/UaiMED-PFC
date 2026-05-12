@@ -1,8 +1,9 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, SafeAreaView } from 'react-native';
+import React, { useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, BackHandler } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from '../../navigation/types';
+import { useFocusEffect } from '@react-navigation/native';
 
 type Props = BottomTabScreenProps<MainTabParamList, 'Artigos'>;
 
@@ -37,6 +38,17 @@ const MOCK_ARTIGOS = [
 ];
 
 const ArtigosListaScreen: React.FC<Props> = ({ navigation }) => {
+  // Intercepta o botão físico de voltar do Android → vai para Home
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+        navigation.navigate('Home');
+        return true;
+      });
+      return () => subscription.remove();
+    }, [navigation])
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <FlatList

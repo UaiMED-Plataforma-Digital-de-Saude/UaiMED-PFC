@@ -80,6 +80,8 @@ async function main() {
   logger.info("🌱 Iniciando seed com Faker (pt_BR)...");
 
   // Limpa tudo respeitando ordem de FK
+  await prisma.mensagem.deleteMany();
+  await prisma.conversa.deleteMany();
   await prisma.pagamento.deleteMany();
   await prisma.avaliacao.deleteMany();
   await prisma.contato.deleteMany();
@@ -113,8 +115,152 @@ async function main() {
       telefone: "(31) 3000-0000",
       senha,
       tipo: "clinica",
+      cidade: "Belo Horizonte",
+      estado: "MG",
+      pixKey: "00.000.000/0001-00",
+      banco: "Bradesco",
+      agencia: "1234",
+      conta: "98765-4",
+      tipoConta: "corrente",
     },
   });
+
+  // ── Clínicas fixas para o carrossel ────────────────────────────────────────
+  logger.info("Criando clínicas fixas...");
+  const clinicasFixasData = [
+    {
+      nome: "Clínica Saúde Plena",
+      email: "contato@saudeplena.com.br",
+      telefone: "(11) 3200-1100",
+      cidade: "São Paulo",
+      estado: "SP",
+      pixKey: "contato@saudeplena.com.br",
+      banco: "Itaú",
+      agencia: "0001",
+      conta: "11111-1",
+      tipoConta: "corrente",
+    },
+    {
+      nome: "Centro Médico Vida Nova",
+      email: "atendimento@vidanova.med.br",
+      telefone: "(21) 2500-8800",
+      cidade: "Rio de Janeiro",
+      estado: "RJ",
+      pixKey: "atendimento@vidanova.med.br",
+      banco: "Bradesco",
+      agencia: "0022",
+      conta: "22222-2",
+      tipoConta: "corrente",
+    },
+    {
+      nome: "Clínica BemEstar",
+      email: "fale@clinicabemestar.com",
+      telefone: "(31) 3301-4455",
+      cidade: "Belo Horizonte",
+      estado: "MG",
+      pixKey: "fale@clinicabemestar.com",
+      banco: "Nubank",
+      agencia: "0001",
+      conta: "33333-3",
+      tipoConta: "corrente",
+    },
+    {
+      nome: "Diagnóstico Curitiba",
+      email: "info@diagcuritiba.com.br",
+      telefone: "(41) 3100-7700",
+      cidade: "Curitiba",
+      estado: "PR",
+      pixKey: "info@diagcuritiba.com.br",
+      banco: "Santander",
+      agencia: "0044",
+      conta: "44444-4",
+      tipoConta: "corrente",
+    },
+    {
+      nome: "Clínica Família Saudável",
+      email: "familia@clinicasaudavel.com.br",
+      telefone: "(51) 3222-9090",
+      cidade: "Porto Alegre",
+      estado: "RS",
+      pixKey: "familia@clinicasaudavel.com.br",
+      banco: "BB",
+      agencia: "0055",
+      conta: "55555-5",
+      tipoConta: "poupanca",
+    },
+    {
+      nome: "Instituto Saúde Nordeste",
+      email: "contato@isne.com.br",
+      telefone: "(85) 3300-6600",
+      cidade: "Fortaleza",
+      estado: "CE",
+      pixKey: "contato@isne.com.br",
+      banco: "Caixa",
+      agencia: "0066",
+      conta: "66666-6",
+      tipoConta: "corrente",
+    },
+    {
+      nome: "Clínica Integrada Salvador",
+      email: "cis@clinicasalvador.med.br",
+      telefone: "(71) 3400-5500",
+      cidade: "Salvador",
+      estado: "BA",
+      pixKey: "cis@clinicasalvador.med.br",
+      banco: "Itaú",
+      agencia: "0077",
+      conta: "77777-7",
+      tipoConta: "corrente",
+    },
+    {
+      nome: "Centro de Especialidades SC",
+      email: "cesc@especialidadessc.com.br",
+      telefone: "(48) 3200-4400",
+      cidade: "Florianópolis",
+      estado: "SC",
+      pixKey: "cesc@especialidadessc.com.br",
+      banco: "Bradesco",
+      agencia: "0088",
+      conta: "88888-8",
+      tipoConta: "corrente",
+    },
+    {
+      nome: "Clínica São Lucas",
+      email: "saolucas@clinicasl.com.br",
+      telefone: "(11) 4000-2200",
+      cidade: "São Paulo",
+      estado: "SP",
+      pixKey: "saolucas@clinicasl.com.br",
+      banco: "Nubank",
+      agencia: "0099",
+      conta: "99999-9",
+      tipoConta: "corrente",
+    },
+  ];
+
+  await Promise.all(
+    clinicasFixasData.map((c) =>
+      prisma.usuario.create({
+        data: {
+          nome:      c.nome,
+          email:     c.email,
+          cpf:       fakeCpf(cpfIdx++),
+          telefone:  c.telefone,
+          senha,
+          tipo:      "clinica",
+          cidade:    c.cidade,
+          estado:    c.estado,
+          pixKey:    c.pixKey,
+          banco:     c.banco,
+          agencia:   c.agencia,
+          conta:     c.conta,
+          tipoConta: c.tipoConta,
+          ativo:     true,
+        },
+      })
+    )
+  );
+  logger.info(`✓ ${clinicasFixasData.length} clínicas criadas.`);
 
   // ── Pacientes fixos (credenciais conhecidas para demo/testes) ──────────────
   logger.info("Criando pacientes fixos...");
@@ -157,21 +303,21 @@ async function main() {
   // ── Médicos fixos (credenciais conhecidas) ─────────────────────────────────
   logger.info("Criando médicos fixos...");
   const medicosFixosData = [
-    { nome: "Dr. Carlos Mendes",       email: "carlos.mendes@uaimed.com",   especialidade: "Cardiologia",  crm: "123456/SP", cidade: "São Paulo",       estado: "SP", cep: "01310-200", endereco: "Av. Paulista, 1500",       dataFormacao: new Date("2010-12-01") },
-    { nome: "Dra. Ana Paula Ferreira", email: "ana.ferreira@uaimed.com",    especialidade: "Dermatologia", crm: "234567/SP", cidade: "São Paulo",       estado: "SP", cep: "01426-001", endereco: "Rua Oscar Freire, 450",    dataFormacao: new Date("2013-06-15") },
-    { nome: "Dr. Ricardo Almeida",     email: "ricardo.almeida@uaimed.com", especialidade: "Pediatria",    crm: "345678/RJ", cidade: "Rio de Janeiro",  estado: "RJ", cep: "22240-003", endereco: "Rua das Laranjeiras, 90",  dataFormacao: new Date("2012-03-20") },
-    { nome: "Dra. Beatriz Nunes",      email: "beatriz.nunes@uaimed.com",   especialidade: "Ortopedia",    crm: "456789/RJ", cidade: "Rio de Janeiro",  estado: "RJ", cep: "22021-001", endereco: "Av. Atlântica, 1200",      dataFormacao: new Date("2015-11-10") },
-    { nome: "Dr. Marcos Pereira",      email: "marcos.pereira@uaimed.com",  especialidade: "Neurologia",   crm: "567890/MG", cidade: "Belo Horizonte",  estado: "MG", cep: "30130-009", endereco: "Av. Afonso Pena, 3000",   dataFormacao: new Date("2011-07-05") },
-    { nome: "Dra. Juliana Castro",     email: "juliana.castro@uaimed.com",  especialidade: "Ginecologia",  crm: "678901/MG", cidade: "Belo Horizonte",  estado: "MG", cep: "30160-012", endereco: "Rua da Bahia, 1800",       dataFormacao: new Date("2014-09-30") },
+    { nome: "Dr. Carlos Mendes",       email: "carlos.mendes@uaimed.com",   especialidade: "Cardiologia",  crm: "123456/SP", cidade: "São Paulo",       estado: "SP", cep: "01310-200", endereco: "Av. Paulista, 1500",       dataFormacao: new Date("2010-12-01"), pixKey: "carlos.mendes@uaimed.com",   banco: "Itaú",      agencia: "0001", conta: "12345-6", tipoConta: "corrente" },
+    { nome: "Dra. Ana Paula Ferreira", email: "ana.ferreira@uaimed.com",    especialidade: "Dermatologia", crm: "234567/SP", cidade: "São Paulo",       estado: "SP", cep: "01426-001", endereco: "Rua Oscar Freire, 450",    dataFormacao: new Date("2013-06-15"), pixKey: "ana.ferreira@uaimed.com",    banco: "Nubank",    agencia: "0001", conta: "23456-7", tipoConta: "corrente" },
+    { nome: "Dr. Ricardo Almeida",     email: "ricardo.almeida@uaimed.com", especialidade: "Pediatria",    crm: "345678/RJ", cidade: "Rio de Janeiro",  estado: "RJ", cep: "22240-003", endereco: "Rua das Laranjeiras, 90",  dataFormacao: new Date("2012-03-20"), pixKey: "ricardo.almeida@uaimed.com", banco: "Bradesco",  agencia: "5678", conta: "34567-8", tipoConta: "corrente" },
+    { nome: "Dra. Beatriz Nunes",      email: "beatriz.nunes@uaimed.com",   especialidade: "Ortopedia",    crm: "456789/RJ", cidade: "Rio de Janeiro",  estado: "RJ", cep: "22021-001", endereco: "Av. Atlântica, 1200",      dataFormacao: new Date("2015-11-10"), pixKey: "beatriz.nunes@uaimed.com",   banco: "Santander", agencia: "1234", conta: "45678-9", tipoConta: "poupanca" },
+    { nome: "Dr. Marcos Pereira",      email: "marcos.pereira@uaimed.com",  especialidade: "Neurologia",   crm: "567890/MG", cidade: "Belo Horizonte",  estado: "MG", cep: "30130-009", endereco: "Av. Afonso Pena, 3000",   dataFormacao: new Date("2011-07-05"), pixKey: "marcos.pereira@uaimed.com",  banco: "BB",        agencia: "9012", conta: "56789-0", tipoConta: "corrente" },
+    { nome: "Dra. Juliana Castro",     email: "juliana.castro@uaimed.com",  especialidade: "Ginecologia",  crm: "678901/MG", cidade: "Belo Horizonte",  estado: "MG", cep: "30160-012", endereco: "Rua da Bahia, 1800",       dataFormacao: new Date("2014-09-30"), pixKey: "juliana.castro@uaimed.com",  banco: "Caixa",     agencia: "3456", conta: "67890-1", tipoConta: "corrente" },
   ];
 
   const profissionaisFixos = await Promise.all(
-    medicosFixosData.map(async ({ especialidade, crm, cidade, estado, cep, endereco, dataFormacao, ...user }) => {
+    medicosFixosData.map(async ({ especialidade, crm, cidade, estado, cep, endereco, dataFormacao, pixKey, banco, agencia, conta, tipoConta, ...user }) => {
       const u = await prisma.usuario.create({
         data: { ...user, cpf: fakeCpf(cpfIdx++), telefone: fakeTelefone(), senha, tipo: "medico" },
       });
       const p = await prisma.profissional.create({
-        data: { usuarioId: u.id, especialidade, crm, dataFormacao, endereco, cidade, estado, cep },
+        data: { usuarioId: u.id, especialidade, crm, dataFormacao, endereco, cidade, estado, cep, pixKey, banco, agencia, conta, tipoConta },
       });
       return { usuario: u, profissional: p };
     })
@@ -208,6 +354,11 @@ async function main() {
             cidade:       ESTADOS_CIDADES[estado],
             estado,
             cep:          `${faker.string.numeric(5)}-${faker.string.numeric(3)}`,
+            pixKey:       `medico.extra${localCpfIdx}@uaimed.com`,
+            banco:        faker.helpers.arrayElement(["Itaú", "Bradesco", "Nubank", "BB", "Santander", "Caixa"]),
+            agencia:      faker.string.numeric(4),
+            conta:        `${faker.string.numeric(5)}-${faker.string.numeric(1)}`,
+            tipoConta:    faker.helpers.arrayElement(["corrente", "poupanca"]),
           },
         });
         return { usuario: u, profissional: p };
