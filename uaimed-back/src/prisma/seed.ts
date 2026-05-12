@@ -80,6 +80,8 @@ async function main() {
   logger.info("🌱 Iniciando seed com Faker (pt_BR)...");
 
   // Limpa tudo respeitando ordem de FK
+  await prisma.mensagem.deleteMany();
+  await prisma.conversa.deleteMany();
   await prisma.pagamento.deleteMany();
   await prisma.avaliacao.deleteMany();
   await prisma.contato.deleteMany();
@@ -113,6 +115,8 @@ async function main() {
       telefone: "(31) 3000-0000",
       senha,
       tipo: "clinica",
+      cidade: "Belo Horizonte",
+      estado: "MG",
       pixKey: "00.000.000/0001-00",
       banco: "Bradesco",
       agencia: "1234",
@@ -120,6 +124,143 @@ async function main() {
       tipoConta: "corrente",
     },
   });
+
+  // ── Clínicas fixas para o carrossel ────────────────────────────────────────
+  logger.info("Criando clínicas fixas...");
+  const clinicasFixasData = [
+    {
+      nome: "Clínica Saúde Plena",
+      email: "contato@saudeplena.com.br",
+      telefone: "(11) 3200-1100",
+      cidade: "São Paulo",
+      estado: "SP",
+      pixKey: "contato@saudeplena.com.br",
+      banco: "Itaú",
+      agencia: "0001",
+      conta: "11111-1",
+      tipoConta: "corrente",
+    },
+    {
+      nome: "Centro Médico Vida Nova",
+      email: "atendimento@vidanova.med.br",
+      telefone: "(21) 2500-8800",
+      cidade: "Rio de Janeiro",
+      estado: "RJ",
+      pixKey: "atendimento@vidanova.med.br",
+      banco: "Bradesco",
+      agencia: "0022",
+      conta: "22222-2",
+      tipoConta: "corrente",
+    },
+    {
+      nome: "Clínica BemEstar",
+      email: "fale@clinicabemestar.com",
+      telefone: "(31) 3301-4455",
+      cidade: "Belo Horizonte",
+      estado: "MG",
+      pixKey: "fale@clinicabemestar.com",
+      banco: "Nubank",
+      agencia: "0001",
+      conta: "33333-3",
+      tipoConta: "corrente",
+    },
+    {
+      nome: "Diagnóstico Curitiba",
+      email: "info@diagcuritiba.com.br",
+      telefone: "(41) 3100-7700",
+      cidade: "Curitiba",
+      estado: "PR",
+      pixKey: "info@diagcuritiba.com.br",
+      banco: "Santander",
+      agencia: "0044",
+      conta: "44444-4",
+      tipoConta: "corrente",
+    },
+    {
+      nome: "Clínica Família Saudável",
+      email: "familia@clinicasaudavel.com.br",
+      telefone: "(51) 3222-9090",
+      cidade: "Porto Alegre",
+      estado: "RS",
+      pixKey: "familia@clinicasaudavel.com.br",
+      banco: "BB",
+      agencia: "0055",
+      conta: "55555-5",
+      tipoConta: "poupanca",
+    },
+    {
+      nome: "Instituto Saúde Nordeste",
+      email: "contato@isne.com.br",
+      telefone: "(85) 3300-6600",
+      cidade: "Fortaleza",
+      estado: "CE",
+      pixKey: "contato@isne.com.br",
+      banco: "Caixa",
+      agencia: "0066",
+      conta: "66666-6",
+      tipoConta: "corrente",
+    },
+    {
+      nome: "Clínica Integrada Salvador",
+      email: "cis@clinicasalvador.med.br",
+      telefone: "(71) 3400-5500",
+      cidade: "Salvador",
+      estado: "BA",
+      pixKey: "cis@clinicasalvador.med.br",
+      banco: "Itaú",
+      agencia: "0077",
+      conta: "77777-7",
+      tipoConta: "corrente",
+    },
+    {
+      nome: "Centro de Especialidades SC",
+      email: "cesc@especialidadessc.com.br",
+      telefone: "(48) 3200-4400",
+      cidade: "Florianópolis",
+      estado: "SC",
+      pixKey: "cesc@especialidadessc.com.br",
+      banco: "Bradesco",
+      agencia: "0088",
+      conta: "88888-8",
+      tipoConta: "corrente",
+    },
+    {
+      nome: "Clínica São Lucas",
+      email: "saolucas@clinicasl.com.br",
+      telefone: "(11) 4000-2200",
+      cidade: "São Paulo",
+      estado: "SP",
+      pixKey: "saolucas@clinicasl.com.br",
+      banco: "Nubank",
+      agencia: "0099",
+      conta: "99999-9",
+      tipoConta: "corrente",
+    },
+  ];
+
+  await Promise.all(
+    clinicasFixasData.map((c) =>
+      prisma.usuario.create({
+        data: {
+          nome:      c.nome,
+          email:     c.email,
+          cpf:       fakeCpf(cpfIdx++),
+          telefone:  c.telefone,
+          senha,
+          tipo:      "clinica",
+          cidade:    c.cidade,
+          estado:    c.estado,
+          pixKey:    c.pixKey,
+          banco:     c.banco,
+          agencia:   c.agencia,
+          conta:     c.conta,
+          tipoConta: c.tipoConta,
+          ativo:     true,
+        },
+      })
+    )
+  );
+  logger.info(`✓ ${clinicasFixasData.length} clínicas criadas.`);
 
   // ── Pacientes fixos (credenciais conhecidas para demo/testes) ──────────────
   logger.info("Criando pacientes fixos...");

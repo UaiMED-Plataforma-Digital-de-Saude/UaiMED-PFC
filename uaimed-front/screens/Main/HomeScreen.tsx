@@ -301,6 +301,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
         <FeaturedProfessionalsCarousel
           estado={location.uf || undefined}
           cidade={location.cidade || undefined}
+          onPress={(id) =>
+            navigation.navigate('Agendamentos', {
+              screen: 'DetalhesMedico',
+              params: { medicoId: id },
+            } as any)
+          }
         />
 
         {/* Clínicas em destaque */}
@@ -308,6 +314,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
         <FeaturedClinicsCarousel
           estado={location.uf || undefined}
           cidade={location.cidade || undefined}
+          onPress={(id) =>
+            navigation.navigate('Agendamentos', {
+              screen: 'ClinicaPerfil',
+              params: { clinicaId: id },
+            } as any)
+          }
         />
 
         {/* Artigos de Saúde */}

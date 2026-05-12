@@ -79,6 +79,34 @@ class ClinicasController {
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   }
+  async detalhe(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const clinica = await prisma.usuario.findFirst({
+        where: { id, tipo: 'clinica', ativo: true },
+      });
+      if (!clinica) return res.status(404).json({ error: 'Clínica não encontrada' });
+
+      // Busca avaliacoes de profissionais vinculados à clínica (simplificado: sem vínculo direto por ora, retorna array vazio)
+      return res.json({
+        id: clinica.id,
+        nome: clinica.nome,
+        email: clinica.email,
+        telefone: clinica.telefone,
+        avatar: clinica.avatar ?? null,
+        cidade: clinica.cidade ?? null,
+        estado: clinica.estado ?? null,
+        localizacao: clinica.cidade && clinica.estado
+          ? `${clinica.cidade}, ${clinica.estado}`
+          : clinica.cidade || clinica.estado || null,
+        pixKey: clinica.pixKey ?? null,
+        nota: 5.0,
+      });
+    } catch (error) {
+      console.error('Erro ao buscar detalhe da clínica:', error);
+      return res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  }
 }
 
 export default new ClinicasController();
