@@ -20,6 +20,7 @@ export type MainTabParamList = {
   Artigos: undefined;
   ArtigoDetalhes: { artigoId: string };
   ArtigoCadastro: undefined;
+  Conversas: NavigatorScreenParams<ConversasStackParamList> | undefined;
 };
 
 // 3. Tipagem para a Pilha de Agendamento (Search)
@@ -43,7 +44,21 @@ export type AgendamentoStackParamList = {
   ContatoProfissional?: { medicoId: string };
 };
 
-// 4. Tipagem para a Pilha Principal que une tudo
+// 4. Tipagem para a Pilha de Conversas
+export type ConversasStackParamList = {
+  ConversasLista: undefined;
+  ConversaDetalhe: {
+    conversaId: string;
+    titulo: string;
+    nomeOutro: string;
+  };
+  NovaConversa: {
+    profissionalId: string;
+    nomeProfissional: string;
+  };
+};
+
+// 5. Tipagem para a Pilha Principal que une tudo
 export type RootStackParamList = {
   Auth: AuthStackParamList;
   Main: MainTabParamList;

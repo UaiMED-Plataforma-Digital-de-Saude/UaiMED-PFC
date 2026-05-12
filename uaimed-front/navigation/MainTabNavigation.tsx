@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from './types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
-import { CommonActions } from '@react-navigation/native';
+import { CommonActions, getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { TouchableOpacity, View, Image, Text } from 'react-native';
 
 // Importe as telas
@@ -16,6 +16,7 @@ import HelpScreen from '../screens/Main/HelpScreen';
 import ArtigosListaScreen from '../screens/Main/ArtigosListaScreen';
 import ArtigoDetalhesScreen from '../screens/Main/ArtigoDetalhesScreen';
 import ArtigoCadastroScreen from '../screens/Main/ArtigoCadastroScreen';
+import ConversasStack from './ConversasStack';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -88,6 +89,7 @@ const MainTabNavigator: React.FC = () => {
             case 'Agendamentos': iconName = focused ? 'calendar' : 'calendar-outline';   break;
             case 'MedicoAgenda': iconName = focused ? 'calendar' : 'calendar-outline';   break;
             case 'ClinicDashboard': iconName = focused ? 'bar-chart' : 'bar-chart-outline'; break;
+            case 'Conversas':    iconName = focused ? 'chatbubbles' : 'chatbubbles-outline'; break;
             case 'Perfil':       iconName = focused ? 'person' : 'person-outline';     break;
           }
 
@@ -152,20 +154,52 @@ const MainTabNavigator: React.FC = () => {
         }}
       />
 
-      {/* Lado Direito: Perfil */}
+      {/* Conversas — header principal com voltar; oculta quando estiver no chat */}
+      <Tab.Screen
+        name="Conversas"
+        component={ConversasStack}
+        options={({ route, navigation }) => {
+          const rotaAtiva = getFocusedRouteNameFromRoute(route) ?? 'ConversasLista';
+          const noChat = rotaAtiva === 'ConversaDetalhe';
+          return {
+            tabBarItemStyle: hiddenTab,
+            headerShown: !noChat,
+            title: 'Conversas',
+            headerLeft: () => (
+              <TouchableOpacity
+                style={{ marginLeft: 16 }}
+                onPress={() => navigation.navigate('Home')}
+              >
+                <Ionicons name="arrow-back" size={24} color="#333" />
+              </TouchableOpacity>
+            ),
+          };
+        }}
+      />
+
+      {/* Perfil */}
       <Tab.Screen
         name="Perfil"
         component={PerfilScreen}
         options={{ title: 'Meu Perfil' }}
       />
 
+      {/* Ajuda — header principal com voltar */}
       <Tab.Screen
         name="Ajuda"
         component={HelpScreen}
-        options={{
+        options={({ navigation }) => ({
           title: 'Ajuda e Suporte',
           tabBarItemStyle: hiddenTab,
-        }}
+          headerLeft: () => (
+            <TouchableOpacity
+              style={{ marginLeft: 16 }}
+              onPress={() => navigation.navigate('Home')}
+            >
+              <Ionicons name="arrow-back" size={24} color="#333" />
+            </TouchableOpacity>
+          ),
+        })}
       />
 
       <Tab.Screen

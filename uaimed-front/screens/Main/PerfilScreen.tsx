@@ -369,7 +369,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
             </TouchableOpacity>
         </View>
         
-        <View style={{ height: 50 }} /> {/* Espaço no final */}
+        <View style={{ height: 50 }} />
       </ScrollView>
 
       <AppModal {...modal} onClose={hideModal} />
@@ -427,3 +427,5 @@ const styles = StyleSheet.create({
   tipoContaText: { fontSize: 13, fontWeight: '600', color: '#4CAF50' },
   tipoContaTextActive: { color: '#FFF' },
 });
+
+export default PerfilScreen;

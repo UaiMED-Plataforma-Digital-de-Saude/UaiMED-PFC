@@ -11,6 +11,7 @@ import professionalsRoutes from "./professionals.routes";
 import clinicasRoutes from "./clinicas.routes";
 import especialidadesRoutes from "./especialidades.routes";
 import contaBancariaRoutes from "./conta-bancaria.routes";
+import conversasRoutes from "./conversas.routes";
 
 const router = Router();
 
@@ -26,5 +27,6 @@ router.use(professionalsRoutes);
 router.use(clinicasRoutes);
 router.use(especialidadesRoutes);
 router.use(contaBancariaRoutes);
+router.use(conversasRoutes);
 
 export default router;

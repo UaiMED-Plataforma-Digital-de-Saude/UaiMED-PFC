@@ -17,6 +17,26 @@ const ResultadosScreen: React.FC<Props> = ({ route, navigation }) => {
     ? `${cidade}, ${estado}`
     : cidade || estado || null;
 
+  // Inicia conversa e navega para ela
+  const iniciarConversa = async (item: any) => {
+    try {
+      const res = await uaiMedApi.post('/conversas', {
+        profissionalId: item.profissionalId ?? item.id,
+        titulo: item.nome,
+      });
+      navigation.getParent<any>()?.navigate('Conversas', {
+        screen: 'ConversaDetalhe',
+        params: {
+          conversaId: res.data.id,
+          titulo: item.nome,
+          nomeOutro: item.nome,
+        },
+      });
+    } catch (e) {
+      console.warn('Erro ao iniciar conversa:', e);
+    }
+  };
+
   useEffect(() => {
     const fetchResults = async () => {
       setLoading(true);
@@ -63,6 +83,18 @@ const ResultadosScreen: React.FC<Props> = ({ route, navigation }) => {
             </Text>
           </View>
         )}
+        {/* Ação rápida: Conversar */}
+        <TouchableOpacity
+          style={styles.chatBtn}
+          onPress={(e) => {
+            e.stopPropagation();
+            iniciarConversa(item);
+          }}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="chatbubble-outline" size={14} color="#4CAF50" />
+          <Text style={styles.chatBtnText}>Enviar mensagem</Text>
+        </TouchableOpacity>
       </View>
       <Ionicons name="chevron-forward" size={18} color="#CCC" />
     </TouchableOpacity>
@@ -126,6 +158,18 @@ const styles = StyleSheet.create({
   specialty: { fontSize: 14, color: '#666', marginTop: 2 },
   locationRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   locationText: { fontSize: 12, color: '#888', marginLeft: 4 },
+  chatBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  chatBtnText: { fontSize: 12, color: '#4CAF50', fontWeight: '600' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 60 },
   emptyText: { fontSize: 16, fontWeight: '600', color: '#999', marginTop: 12 },
   emptySubText: { fontSize: 13, color: '#BBB', marginTop: 6, textAlign: 'center' },
