@@ -91,8 +91,6 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.headerTitle}>Meu Perfil</Text>
-      
       <ScrollView>
         {/* 1. SEÇÃO DE INFORMAÇÕES PESSOAIS */}
         <View style={styles.section}>
@@ -240,13 +238,12 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAFA' },
-  headerTitle: { 
+  container: { flex: 1, backgroundColor: '#FAFAFA', paddingTop: 8 },
+  headerTitle: {
     fontSize: 26, 
     fontWeight: '700', 
     padding: 20, 
-    paddingTop: 56,
-    marginTop: 8,
+    paddingTop: 16,
     backgroundColor: '#FFF',
     marginBottom: 2,
   },
