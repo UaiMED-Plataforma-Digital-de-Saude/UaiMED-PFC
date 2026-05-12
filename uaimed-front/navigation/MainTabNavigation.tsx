@@ -173,19 +173,35 @@ const MainTabNavigator: React.FC = () => {
       <Tab.Screen
         name="Artigos"
         component={ArtigosListaScreen}
-        options={{
+        options={({ navigation }) => ({
           title: 'Artigos de Saúde',
           tabBarItemStyle: hiddenTab,
-        }}
+          headerLeft: () => (
+            <TouchableOpacity
+              style={{ marginLeft: 16 }}
+              onPress={() => navigation.navigate('Home')}
+            >
+              <Ionicons name="arrow-back" size={24} color="#333" />
+            </TouchableOpacity>
+          ),
+        })}
       />
 
       <Tab.Screen
         name="ArtigoDetalhes"
         component={ArtigoDetalhesScreen}
-        options={{
+        options={({ navigation }) => ({
           title: 'Artigo',
           tabBarItemStyle: hiddenTab,
-        }}
+          headerLeft: () => (
+            <TouchableOpacity
+              style={{ marginLeft: 16 }}
+              onPress={() => navigation.navigate('Home')}
+            >
+              <Ionicons name="arrow-back" size={24} color="#333" />
+            </TouchableOpacity>
+          ),
+        })}
       />
 
       <Tab.Screen

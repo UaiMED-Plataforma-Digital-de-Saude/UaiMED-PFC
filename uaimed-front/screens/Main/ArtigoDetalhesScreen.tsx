@@ -1,13 +1,25 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
+import React, { useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, BackHandler } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from '../../navigation/types';
+import { useFocusEffect } from '@react-navigation/native';
 
 type Props = BottomTabScreenProps<MainTabParamList, 'ArtigoDetalhes'>;
 
 const ArtigoDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
   const { artigoId } = route.params;
+
+  // Intercepta o botão físico de voltar do Android → vai para lista de Artigos
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+        navigation.navigate('Home');
+        return true;
+      });
+      return () => subscription.remove();
+    }, [navigation])
+  );
 
   // Mock de dados baseado no ID
   const artigo = {
@@ -27,7 +39,7 @@ const ArtigoDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={[styles.banner, { backgroundColor: artigo.cor }]}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.navigate('Home')}
           >
             <Ionicons name="arrow-back" size={24} color="#333" />
           </TouchableOpacity>
