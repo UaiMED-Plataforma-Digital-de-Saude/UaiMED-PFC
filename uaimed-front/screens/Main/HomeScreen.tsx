@@ -107,7 +107,6 @@ const CustomDrawer: React.FC<DrawerProps> = ({ visible, onClose, navigation }) =
       transparent
       animationType="none"
       onRequestClose={onClose}
-      statusBarTranslucent
     >
       {/* Overlay */}
       <TouchableWithoutFeedback onPress={onClose}>

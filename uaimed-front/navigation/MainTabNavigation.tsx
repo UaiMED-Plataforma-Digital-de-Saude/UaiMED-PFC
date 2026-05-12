@@ -78,22 +78,20 @@ const MainTabNavigator: React.FC = () => {
             </TouchableOpacity>
           </View>
         ),
-        tabBarIcon: ({ color, size }) => {
+        tabBarIcon: ({ color, size, focused }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home-outline';
-          let iconColor = color;
 
           switch (route.name) {
             case 'Home':
-              iconName = 'home';
-              iconColor = '#4CAF50'; // Sempre verde
+              iconName = focused ? 'home' : 'home-outline';
               break;
-            case 'Agendamentos': iconName = 'calendar-outline';   break;
-            case 'MedicoAgenda': iconName = 'calendar-outline';   break;
-            case 'ClinicDashboard': iconName = 'bar-chart-outline'; break;
-            case 'Perfil':       iconName = 'person-outline';     break;
+            case 'Agendamentos': iconName = focused ? 'calendar' : 'calendar-outline';   break;
+            case 'MedicoAgenda': iconName = focused ? 'calendar' : 'calendar-outline';   break;
+            case 'ClinicDashboard': iconName = focused ? 'bar-chart' : 'bar-chart-outline'; break;
+            case 'Perfil':       iconName = focused ? 'person' : 'person-outline';     break;
           }
 
-          return <Ionicons name={iconName} size={route.name === 'Home' ? size + 10 : size} color={iconColor} />;
+          return <Ionicons name={iconName} size={route.name === 'Home' ? size + 10 : size} color={color} />;
         },
         tabBarLabel: route.name === 'Home' ? '' : route.name,
       })}
