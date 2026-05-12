@@ -18,6 +18,11 @@ model Usuario {
   avatar        String?
   cidade        String?
   estado        String?
+  pixKey        String?
+  banco         String?
+  agencia       String?
+  conta         String?
+  tipoConta     String?
   ativo         Boolean       @default(true)
   criado_em     DateTime      @default(now())
   atualizado_em DateTime      @updatedAt
@@ -40,6 +45,11 @@ model Profissional {
   cidade        String
   estado        String
   cep           String
+  pixKey        String?
+  banco         String?
+  agencia       String?
+  conta         String?
+  tipoConta     String?
   criado_em     DateTime      @default(now())
   atualizado_em DateTime      @updatedAt
   agendamentos  Agendamento[]

@@ -31,6 +31,11 @@ class MedicosController {
           cidade: p.cidade,
           estado: p.estado,
           avatar: p.usuario?.avatar || null,
+          pixKey: p.pixKey || null,
+          banco: p.banco || null,
+          agencia: p.agencia || null,
+          conta: p.conta || null,
+          tipoConta: p.tipoConta || null,
           totalAgendamentos: p._count?.agendamentos ?? 0,
         }))
         .sort((a, b) => b.totalAgendamentos - a.totalAgendamentos)
@@ -80,6 +85,11 @@ class MedicosController {
         cidade: p.cidade,
         estado: p.estado,
         avatar: p.usuario?.avatar || null,
+        pixKey: p.pixKey || null,
+        banco: p.banco || null,
+        agencia: p.agencia || null,
+        conta: p.conta || null,
+        tipoConta: p.tipoConta || null,
       }));
 
       return res.json(mapped);

@@ -46,7 +46,11 @@ const ResultadosScreen: React.FC<Props> = ({ route, navigation }) => {
   const renderItem = ({ item }: any) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => navigation.navigate('DetalhesMedico', { medicoId: item.id })}
+      onPress={() => navigation.navigate('DetalhesMedico', {
+        medicoId: item.id,
+        pixKey: item.pixKey ?? undefined,
+        nomeProfissional: item.nome ?? undefined,
+      })}
     >
       <View style={styles.cardBody}>
         <Text style={styles.name}>{item.nome}</Text>

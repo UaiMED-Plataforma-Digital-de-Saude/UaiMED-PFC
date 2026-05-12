@@ -7,6 +7,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useAvaliacoes } from '../../hooks/useAvaliacoes';
 import AppModal from '../../components/AppModal';
 import { useModal } from '../../hooks/useModal';
+import uaiMedApi from '../../api/uaiMedApi';
 
 type PerfilScreenProps = BottomTabScreenProps<MainTabParamList, 'Perfil'>;
 
@@ -63,7 +64,55 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   const [notifPush, setNotifPush] = React.useState(true);
   const [notifLoading, setNotifLoading] = React.useState(false);
 
+  // ── Conta bancária ──────────────────────────────────────────────────────────
+  const [showBankSection, setShowBankSection] = React.useState(false);
+  const [bankLoading, setBankLoading] = React.useState(false);
+  const [bankSaving, setBankSaving] = React.useState(false);
+  const [pixKey, setPixKey] = React.useState('');
+  const [banco, setBanco] = React.useState('');
+  const [agencia, setAgencia] = React.useState('');
+  const [conta, setConta] = React.useState('');
+  const [tipoConta, setTipoConta] = React.useState<'corrente' | 'poupanca'>('corrente');
+
   const { modal, showModal, hideModal } = useModal();
+
+  const isProfissionalOuClinica = user?.tipo === 'medico' || user?.tipo === 'clinica';
+
+  // Carrega dados bancários ao abrir a seção
+  const handleOpenBankSection = async () => {
+    if (showBankSection) { setShowBankSection(false); return; }
+    setShowBankSection(true);
+    setBankLoading(true);
+    try {
+      const res = await uaiMedApi.get('/conta-bancaria');
+      setPixKey(res.data.pixKey ?? '');
+      setBanco(res.data.banco ?? '');
+      setAgencia(res.data.agencia ?? '');
+      setConta(res.data.conta ?? '');
+      setTipoConta(res.data.tipoConta ?? 'corrente');
+    } catch {
+      // sem dados ainda — campos ficam vazios para preenchimento
+    } finally {
+      setBankLoading(false);
+    }
+  };
+
+  const handleSaveBankData = async () => {
+    if (!pixKey.trim()) {
+      showModal('Campo obrigatório', 'Informe a Chave PIX.', { type: 'warning' });
+      return;
+    }
+    setBankSaving(true);
+    try {
+      await uaiMedApi.put('/conta-bancaria', { pixKey: pixKey.trim(), banco: banco.trim(), agencia: agencia.trim(), conta: conta.trim(), tipoConta });
+      showModal('Dados salvos!', 'Suas informações bancárias foram atualizadas com sucesso.', { type: 'success' });
+      setShowBankSection(false);
+    } catch {
+      showModal('Erro', 'Não foi possível salvar os dados bancários. Tente novamente.', { type: 'error' });
+    } finally {
+      setBankSaving(false);
+    }
+  };
 
   const handleLogout = () => {
     showModal(
@@ -219,7 +268,98 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
             )}
         </View>
 
-        {/* 4. AÇÃO DE LOGOUT */}
+        {/* 4. SEÇÃO CONTA BANCÁRIA — apenas para médicos e clínicas */}
+        {isProfissionalOuClinica && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Dados Bancários & PIX</Text>
+            <ActionItem
+              icon="wallet-outline"
+              iconColor="#4CAF50"
+              label={showBankSection ? 'Fechar' : 'Gerenciar Conta Bancária'}
+              onPress={handleOpenBankSection}
+            />
+            {showBankSection && (
+              <View style={{ marginTop: 12 }}>
+                {bankLoading ? (
+                  <ActivityIndicator size="small" color="#4CAF50" style={{ marginVertical: 16 }} />
+                ) : (
+                  <>
+                    <Text style={styles.bankLabel}>Chave PIX *</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Ex: email, CPF, telefone ou chave aleatória"
+                      value={pixKey}
+                      onChangeText={setPixKey}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                    />
+
+                    <Text style={styles.bankLabel}>Banco</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Ex: Itaú, Bradesco, Nubank, BB, Caixa"
+                      value={banco}
+                      onChangeText={setBanco}
+                    />
+
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.bankLabel}>Agência</Text>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Ex: 0001"
+                          value={agencia}
+                          onChangeText={setAgencia}
+                          keyboardType="numeric"
+                        />
+                      </View>
+                      <View style={{ flex: 2 }}>
+                        <Text style={styles.bankLabel}>Conta</Text>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Ex: 12345-6"
+                          value={conta}
+                          onChangeText={setConta}
+                        />
+                      </View>
+                    </View>
+
+                    <Text style={styles.bankLabel}>Tipo de Conta</Text>
+                    <View style={styles.tipoContaRow}>
+                      <TouchableOpacity
+                        style={[styles.tipoContaBtn, tipoConta === 'corrente' && styles.tipoContaBtnActive]}
+                        onPress={() => setTipoConta('corrente')}
+                      >
+                        <Ionicons name="card-outline" size={16} color={tipoConta === 'corrente' ? '#FFF' : '#4CAF50'} />
+                        <Text style={[styles.tipoContaText, tipoConta === 'corrente' && styles.tipoContaTextActive]}>Corrente</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.tipoContaBtn, tipoConta === 'poupanca' && styles.tipoContaBtnActive]}
+                        onPress={() => setTipoConta('poupanca')}
+                      >
+                        <Ionicons name="save-outline" size={16} color={tipoConta === 'poupanca' ? '#FFF' : '#4CAF50'} />
+                        <Text style={[styles.tipoContaText, tipoConta === 'poupanca' && styles.tipoContaTextActive]}>Poupança</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <TouchableOpacity
+                      style={[styles.changeBtn, bankSaving && { opacity: 0.7 }]}
+                      onPress={handleSaveBankData}
+                      disabled={bankSaving}
+                    >
+                      {bankSaving
+                        ? <ActivityIndicator size="small" color="#FFF" />
+                        : <Text style={styles.changeBtnText}>Salvar Dados Bancários</Text>
+                      }
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* 5. AÇÃO DE LOGOUT */}
         <View style={styles.section}>
             <TouchableOpacity 
                 style={styles.logoutButton} 
@@ -277,7 +417,13 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 15,
     fontWeight: '700',
-  }
-});
+  },
 
-export default PerfilScreen;
+  // Conta Bancária
+  bankLabel: { fontSize: 12, fontWeight: '700', color: '#555', marginBottom: 4, marginTop: 4 },
+  tipoContaRow: { flexDirection: 'row', gap: 10, marginBottom: 10, marginTop: 4 },
+  tipoContaBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 8, borderWidth: 1.5, borderColor: '#4CAF50' },
+  tipoContaBtnActive: { backgroundColor: '#4CAF50' },
+  tipoContaText: { fontSize: 13, fontWeight: '600', color: '#4CAF50' },
+  tipoContaTextActive: { color: '#FFF' },
+});

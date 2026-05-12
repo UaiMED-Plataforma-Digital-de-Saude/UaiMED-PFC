@@ -31,13 +31,13 @@ export type AgendamentoStackParamList = {
     cidade?: string;
     estado?: string;
   };
-  DetalhesMedico?: { medicoId: string; amount?: number };
-  SelecaoHorario?: { medicoId: string; amount?: number };
-  SelecaoHorariosDia?: { medicoId: string; dateKey: string; displayDate: string; amount?: number };
-  Confirmacao?: { horario?: string; medicoId?: string; agendamentoId?: string; amount?: number };
+  DetalhesMedico?: { medicoId: string; amount?: number; pixKey?: string; nomeProfissional?: string };
+  SelecaoHorario?: { medicoId: string; amount?: number; pixKey?: string; nomeProfissional?: string };
+  SelecaoHorariosDia?: { medicoId: string; dateKey: string; displayDate: string; amount?: number; pixKey?: string; nomeProfissional?: string };
+  Confirmacao?: { horario?: string; medicoId?: string; agendamentoId?: string; amount?: number; pixKey?: string; nomeProfissional?: string };
   Avaliacao?: { agendamentoId: string; medicoId: string };
   HistoricoAvaliacoes?: undefined;
-  Pagamento?: { amount?: number; agendamentoId?: string; medicoId?: string };
+  Pagamento?: { amount?: number; agendamentoId?: string; medicoId?: string; pixKey?: string; nomeProfissional?: string; };
   MeusPagamentos?: undefined;
   MinhasConsultas?: undefined;
   ContatoProfissional?: { medicoId: string };

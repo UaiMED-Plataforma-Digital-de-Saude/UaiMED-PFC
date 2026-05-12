@@ -4,7 +4,20 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e61d2434-ba4d-419d-881c-3d5c109eac10" name="Changes" comment="" />
+    <list default="true" id="e61d2434-ba4d-419d-881c-3d5c109eac10" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-back/prisma/schema.prisma" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/prisma/schema.prisma" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-back/src/controllers/clinicas.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/controllers/clinicas.controller.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-back/src/controllers/medicos.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/controllers/medicos.controller.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-back/src/prisma/seed.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/prisma/seed.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/navigation/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/navigation/types.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/ConfirmacaoScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/ConfirmacaoScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/MedicoDetalhesScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/MedicoDetalhesScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/PagamentoScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/PagamentoScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/ResultadosScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/ResultadosScreen.tsx" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />

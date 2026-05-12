@@ -6,7 +6,7 @@ import { AgendamentoStackParamList } from '../../navigation/types';
 type Props = StackScreenProps<AgendamentoStackParamList, 'DetalhesMedico'>;
 
 const MedicoDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { medicoId, amount } = route.params ?? {};
+  const { medicoId, amount, pixKey, nomeProfissional } = route.params ?? {};
 
   return (
     <View style={styles.container}>
@@ -22,6 +22,8 @@ const MedicoDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
           navigation.navigate('SelecaoHorario', {
             medicoId: medicoId ?? '',
             amount,
+            pixKey,
+            nomeProfissional,
           })
         }
       >
