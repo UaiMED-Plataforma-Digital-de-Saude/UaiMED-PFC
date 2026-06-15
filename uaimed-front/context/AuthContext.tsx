@@ -16,6 +16,7 @@ export interface User {
   cpf?: string;
   cnpj?: string;
   telefone?: string;
+  avatar?: string | null;
   tipo: 'paciente' | 'medico' | 'clinica';
   profissional?: {
     id: string;
@@ -41,6 +42,7 @@ export interface AuthContextData {
   signed: boolean;
   signIn(email: string, password: string): Promise<void>;
   signOut(): Promise<void>;
+  updateUser(updates: Partial<User>): Promise<void>;
 }
 
 // ===== CONTEXTO =====
@@ -157,6 +159,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  const updateUser = useCallback(async (updates: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...updates };
+      AsyncStorage.setItem(CONFIG.STORAGE_KEYS.user, JSON.stringify(updated)).catch(() => {});
+      return updated;
+    });
+  }, []);
+
   /**
    * Função de Logout — estabilizada com useCallback
    */
@@ -181,7 +192,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading,
     signIn,
     signOut,
-  }), [user, loading, signIn, signOut]);
+    updateUser,
+  }), [user, loading, signIn, signOut, updateUser]);
 
   return (
     <AuthContext.Provider value={value}>
