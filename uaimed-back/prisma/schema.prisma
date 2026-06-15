@@ -52,6 +52,7 @@ model Profissional {
   agencia       String?
   conta         String?
   tipoConta     String?
+  precoConsulta Float         @default(150.00)
   criado_em     DateTime      @default(now())
   atualizado_em DateTime      @updatedAt
   agendamentos  Agendamento[]

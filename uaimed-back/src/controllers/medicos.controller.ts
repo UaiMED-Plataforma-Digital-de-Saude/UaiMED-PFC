@@ -28,6 +28,7 @@ class MedicosController {
           agencia: p.agencia || null,
           conta: p.conta || null,
           tipoConta: p.tipoConta || null,
+          precoConsulta: p.precoConsulta,
           totalAgendamentos: p._count?.agendamentos ?? 0,
         }))
         .sort((a, b) => b.totalAgendamentos - a.totalAgendamentos)
@@ -65,6 +66,7 @@ class MedicosController {
         estado: p.estado,
         avatar: p.usuario?.avatar || null,
         pixKey: p.pixKey || null,
+        precoConsulta: p.precoConsulta,
       })));
     } catch (err) {
       logger.error('Erro ao listar profissionais', err);
@@ -106,6 +108,7 @@ class MedicosController {
         endereco: prof.endereco,
         dataFormacao: prof.dataFormacao,
         pixKey: prof.pixKey ?? null,
+        precoConsulta: prof.precoConsulta,
         totalAgendamentos: prof._count.agendamentos,
         totalAvaliacoes: prof._count.avaliacoes,
         notaMedia: notaMedia ? parseFloat(notaMedia.toFixed(1)) : null,

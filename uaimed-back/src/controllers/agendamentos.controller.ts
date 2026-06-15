@@ -50,6 +50,7 @@ class AgendamentosController {
         status: agendamento.status,
         dataHora: agendamento.dataHora,
         profissionalId: agendamento.profissionalId,
+        valor: profissional.precoConsulta,
       });
     } catch (err: any) {
       logger.error('Erro ao criar agendamento', err);
