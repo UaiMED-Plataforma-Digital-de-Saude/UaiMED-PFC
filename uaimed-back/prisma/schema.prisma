@@ -33,6 +33,7 @@ model Usuario {
   profissional  Profissional?
   conversas     Conversa[]
   mensagens     Mensagem[]
+  artigos       Artigo[]
 
   @@map("usuarios")
 }
@@ -158,6 +159,22 @@ model Conversa {
 
   @@unique([usuarioId, profissionalId])
   @@map("conversas")
+}
+
+model Artigo {
+  id            String   @id @default(uuid())
+  titulo        String
+  resumo        String?
+  categoria     String
+  corpo         String
+  banner        String?
+  autorId       String
+  publicado     Boolean  @default(true)
+  criado_em     DateTime @default(now())
+  atualizado_em DateTime @updatedAt
+  autor         Usuario  @relation(fields: [autorId], references: [id], onDelete: Cascade)
+
+  @@map("artigos")
 }
 
 model Mensagem {

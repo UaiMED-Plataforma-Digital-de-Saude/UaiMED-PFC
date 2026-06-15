@@ -20,6 +20,27 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import FeaturedProfessionalsCarousel from '../../components/FeaturedProfessionalsCarousel';
 import FeaturedClinicsCarousel from '../../components/FeaturedClinicsCarousel';
 import LocationModal, { LocationValue } from '../../components/LocationModal';
+import uaiMedApi from '../../api/uaiMedApi';
+
+interface HomeArtigo {
+  id: string;
+  titulo: string;
+  resumo: string | null;
+  categoria: string;
+}
+
+const CAT_CFG: Record<string, { bg: string; icon: string; color: string; badgeBg: string }> = {
+  'BEM-ESTAR':     { bg: '#E1F5FE', icon: 'fitness-outline',     color: '#03A9F4', badgeBg: '#E1F5FE' },
+  'SAÚDE DO SONO': { bg: '#F3E5F5', icon: 'moon-outline',        color: '#9C27B0', badgeBg: '#F3E5F5' },
+  'PSICOLOGIA':    { bg: '#E8F5E9', icon: 'body-outline',        color: '#4CAF50', badgeBg: '#E8F5E9' },
+  'NUTRIÇÃO':      { bg: '#FFF8E1', icon: 'restaurant-outline',  color: '#FF9800', badgeBg: '#FFF8E1' },
+  'CARDIOLOGIA':   { bg: '#FFEBEE', icon: 'heart-outline',       color: '#E53935', badgeBg: '#FFEBEE' },
+  'PEDIATRIA':     { bg: '#E8EAF6', icon: 'people-outline',      color: '#3F51B5', badgeBg: '#E8EAF6' },
+  'ORTOPEDIA':     { bg: '#F3E5F5', icon: 'body-outline',        color: '#8E24AA', badgeBg: '#F3E5F5' },
+  'DERMATOLOGIA':  { bg: '#FCE4EC', icon: 'color-palette-outline', color: '#E91E63', badgeBg: '#FCE4EC' },
+};
+const DEFAULT_CAT = { bg: '#F0F7F0', icon: 'medical-outline', color: '#4CAF50', badgeBg: '#F0F7F0' };
+function getCat(cat: string) { return CAT_CFG[cat?.toUpperCase()] ?? DEFAULT_CAT; }
 
 const LOCATION_STORAGE_KEY = '@uaimed:location';
 const DRAWER_WIDTH = Dimensions.get('window').width * 0.78;
@@ -231,6 +252,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
   const [drawerOpen, setDrawerOpen]   = useState(false);
   const [locationModalVisible, setLocationModalVisible] = useState(false);
   const [location, setLocation]       = useState<LocationValue>({ uf: '', estado: '', cidade: '' });
+  const [homeArtigos, setHomeArtigos] = useState<HomeArtigo[]>([]);
 
   // Escuta o parâmetro openMenu vindo do headerLeft do MainTabNavigator
   useEffect(() => {
@@ -247,6 +269,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
         try { setLocation(JSON.parse(val)); } catch { /* ignore */ }
       }
     });
+  }, []);
+
+  // Busca os 2 primeiros artigos para exibir na home
+  useEffect(() => {
+    uaiMedApi.get('/artigos').then((res) => {
+      const lista = Array.isArray(res.data) ? res.data : [];
+      setHomeArtigos(lista.slice(0, 2));
+    }).catch(() => {});
   }, []);
 
   const handleLocationConfirm = async (loc: LocationValue) => {
@@ -326,49 +356,36 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
         <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Artigos de Saúde</Text>
 
         <View style={styles.articlesContainer}>
-          <TouchableOpacity
-            style={styles.largeArticleCard}
-            activeOpacity={0.9}
-            onPress={() => navigation.navigate('ArtigoDetalhes', { artigoId: '1' })}
-          >
-            <View style={[styles.articleBanner, { backgroundColor: '#E1F5FE' }]}>
-              <Ionicons name="fitness-outline" size={48} color="#03A9F4" />
-            </View>
-            <View style={styles.articleContent}>
-              <View style={styles.articleBadge}>
-                <Text style={styles.articleBadgeText}>BEM-ESTAR</Text>
-              </View>
-              <Text style={styles.largeArticleTitle} numberOfLines={2}>
-                Dicas para uma vida saudável
-              </Text>
-              <Text style={styles.largeArticleSub} numberOfLines={2}>
-                Descubra os principais pilares da alimentação e dos exercícios diários para maximizar sua energia.
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.largeArticleCard}
-            activeOpacity={0.9}
-            onPress={() => navigation.navigate('ArtigoDetalhes', { artigoId: '2' })}
-          >
-            <View style={[styles.articleBanner, { backgroundColor: '#F3E5F5' }]}>
-              <Ionicons name="moon-outline" size={48} color="#9C27B0" />
-            </View>
-            <View style={styles.articleContent}>
-              <View style={[styles.articleBadge, { backgroundColor: '#F3E5F5' }]}>
-                <Text style={[styles.articleBadgeText, { color: '#9C27B0' }]}>
-                  SAÚDE DO SONO
-                </Text>
-              </View>
-              <Text style={styles.largeArticleTitle} numberOfLines={2}>
-                A importância do sono de qualidade
-              </Text>
-              <Text style={styles.largeArticleSub} numberOfLines={2}>
-                Como dormir melhor, render mais durante o dia e evitar problemas crônicos de saúde a longo prazo.
-              </Text>
-            </View>
-          </TouchableOpacity>
+          {homeArtigos.map((artigo) => {
+            const cfg = getCat(artigo.categoria);
+            return (
+              <TouchableOpacity
+                key={artigo.id}
+                style={styles.largeArticleCard}
+                activeOpacity={0.9}
+                onPress={() => navigation.navigate('ArtigoDetalhes', { artigoId: artigo.id })}
+              >
+                <View style={[styles.articleBanner, { backgroundColor: cfg.bg }]}>
+                  <Ionicons name={cfg.icon as any} size={48} color={cfg.color} />
+                </View>
+                <View style={styles.articleContent}>
+                  <View style={[styles.articleBadge, { backgroundColor: cfg.badgeBg }]}>
+                    <Text style={[styles.articleBadgeText, { color: cfg.color }]}>
+                      {artigo.categoria}
+                    </Text>
+                  </View>
+                  <Text style={styles.largeArticleTitle} numberOfLines={2}>
+                    {artigo.titulo}
+                  </Text>
+                  {artigo.resumo ? (
+                    <Text style={styles.largeArticleSub} numberOfLines={2}>
+                      {artigo.resumo}
+                    </Text>
+                  ) : null}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </ScrollView>
 
