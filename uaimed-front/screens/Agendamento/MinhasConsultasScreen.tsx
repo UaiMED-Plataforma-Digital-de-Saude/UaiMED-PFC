@@ -116,14 +116,7 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.getParent<any>()?.navigate('Home')} style={styles.backBtn}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name="chevron-back" size={26} color="#4CAF50" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Minhas Consultas</Text>
-        </View>
+      <SafeAreaView style={styles.safe} edges={['bottom']}>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#4CAF50" />
           <Text style={styles.loadingText}>Carregando consultas...</Text>
@@ -133,15 +126,7 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      {/* Cabeçalho */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.getParent<any>()?.navigate('Home')} style={styles.backBtn}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="chevron-back" size={26} color="#4CAF50" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Minhas Consultas</Text>
-      </View>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
 
       {/* Tabs */}
       <View style={styles.tabs}>
@@ -193,24 +178,6 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F5F7FA' },
-
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 14,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-  },
-  backBtn: { marginRight: 10 },
-  headerTitle: { fontSize: 19, fontWeight: '700', color: '#222' },
 
   tabs: {
     flexDirection: 'row',

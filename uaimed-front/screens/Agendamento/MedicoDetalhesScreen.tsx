@@ -3,7 +3,6 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Image, Platform, StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackScreenProps } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { AgendamentoStackParamList } from '../../navigation/types';
@@ -58,8 +57,7 @@ const MedicoDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
     : '?';
 
   const handleBack = () => {
-    if (navigation.canGoBack()) navigation.goBack();
-    else navigation.getParent<any>()?.navigate('Home');
+    navigation.getParent<any>()?.navigate('Home');
   };
 
   const handleAgendar = () =>
@@ -96,7 +94,7 @@ const MedicoDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
 
       {/* ── Hero fixo ── */}
       <View style={s.hero}>
-        <SafeAreaView edges={['top']} style={s.heroRow}>
+        <View style={s.heroRow}>
           <TouchableOpacity style={s.backBtn} onPress={handleBack} activeOpacity={0.8}>
             <Ionicons name="arrow-back" size={20} color="#FFF" />
           </TouchableOpacity>
@@ -124,7 +122,7 @@ const MedicoDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
               </View>
             )}
           </View>
-        </SafeAreaView>
+        </View>
       </View>
 
       {/* ── Conteúdo rolável ── */}

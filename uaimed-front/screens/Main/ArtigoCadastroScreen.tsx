@@ -51,14 +51,6 @@ const ArtigoCadastroScreen: React.FC<Props> = ({ navigation }) => {
       style={{ flex: 1 }}
     >
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#333" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Novo Artigo</Text>
-          <View style={{ width: 40 }} />
-        </View>
-
         {/* Upload de Imagem */}
         <TouchableOpacity style={styles.imageUpload} onPress={pickImage} activeOpacity={0.7}>
           {imagem ? (
@@ -117,17 +109,6 @@ const ArtigoCadastroScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF' },
   scrollContent: { paddingBottom: 40 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 20,
-    backgroundColor: '#FFF'
-  },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#333' },
-  backButton: { padding: 8 },
   imageUpload: {
     height: 200,
     backgroundColor: '#F5F5F5',

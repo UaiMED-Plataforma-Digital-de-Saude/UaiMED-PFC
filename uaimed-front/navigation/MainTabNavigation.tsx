@@ -113,9 +113,38 @@ const MainTabNavigator: React.FC = () => {
             );
           },
         })}
-        options={{
-          title: 'Consultas',
-          tabBarItemStyle: isPaciente ? undefined : hiddenTab,
+        options={({ route, navigation }) => {
+          const rotaAtiva = getFocusedRouteNameFromRoute(route) ?? 'Busca';
+
+          // Estas telas têm header próprio (Stack verde ou interno) — oculta o Tab header
+          const comHeaderProprio = [
+            'Resultados', 'SelecaoHorario', 'SelecaoHorariosDia',
+            'Confirmacao', 'Pagamento', 'Avaliacao', 'HistoricoAvaliacoes', 'ContatoProfissional',
+          ];
+          if (comHeaderProprio.includes(rotaAtiva)) {
+            return { headerShown: false, tabBarItemStyle: isPaciente ? undefined : hiddenTab };
+          }
+
+          // Demais telas usam o Tab header com título e seta de voltar customizados
+          const routeTitles: Record<string, string> = {
+            MeusPagamentos: 'Meus Pagamentos',
+            MinhasConsultas: 'Minhas Consultas',
+            DetalhesMedico: 'Profissional',
+            ClinicaPerfil: 'Clínica',
+          };
+          const showBack = rotaAtiva in routeTitles;
+          return {
+            title: routeTitles[rotaAtiva] ?? 'Consultas',
+            tabBarItemStyle: isPaciente ? undefined : hiddenTab,
+            headerLeft: showBack ? () => (
+              <TouchableOpacity
+                style={{ marginLeft: 16 }}
+                onPress={() => navigation.navigate('Home' as any)}
+              >
+                <Ionicons name="arrow-back" size={24} color="#333" />
+              </TouchableOpacity>
+            ) : undefined,
+          };
         }}
       />
 
@@ -239,10 +268,18 @@ const MainTabNavigator: React.FC = () => {
       <Tab.Screen
         name="ArtigoCadastro"
         component={ArtigoCadastroScreen}
-        options={{
+        options={({ navigation }) => ({
           title: 'Novo Artigo',
           tabBarItemStyle: hiddenTab,
-        }}
+          headerLeft: () => (
+            <TouchableOpacity
+              style={{ marginLeft: 16 }}
+              onPress={() => navigation.navigate('Home' as any)}
+            >
+              <Ionicons name="arrow-back" size={24} color="#333" />
+            </TouchableOpacity>
+          ),
+        })}
       />
     </Tab.Navigator>
   );
