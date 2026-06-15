@@ -5,20 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e61d2434-ba4d-419d-881c-3d5c109eac10" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/navigation/AgendamentoStack.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/navigation/AgendamentoStack.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/navigation/MainTabNavigation.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/navigation/MainTabNavigation.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/AvaliacaoScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/AvaliacaoScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/ClinicaPerfilScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/ClinicaPerfilScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/ContatoProfissionalScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/ContatoProfissionalScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/HistoricoAvaliacoesScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/HistoricoAvaliacoesScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/MedicoDetalhesScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/MedicoDetalhesScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/MeusPagamentosScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/MeusPagamentosScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/MinhasConsultasScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/MinhasConsultasScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/PagamentoScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/PagamentoScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/SelecaoHorariosDiaScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/SelecaoHorariosDiaScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Main/ArtigoCadastroScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Main/ArtigoCadastroScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Conversas/ConversaDetalhesScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Conversas/ConversaDetalhesScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Conversas/ConversasListaScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Conversas/ConversasListaScreen.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

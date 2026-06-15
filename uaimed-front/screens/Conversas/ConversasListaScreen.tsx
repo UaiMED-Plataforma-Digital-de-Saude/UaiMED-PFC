@@ -127,7 +127,7 @@ const ConversasListaScreen: React.FC<Props> = ({ navigation }) => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#4CAF50" />
           <Text style={styles.loadingText}>Carregando conversas...</Text>
@@ -137,7 +137,7 @@ const ConversasListaScreen: React.FC<Props> = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
 
       {conversas.length === 0 ? (
         <View style={styles.centered}>
