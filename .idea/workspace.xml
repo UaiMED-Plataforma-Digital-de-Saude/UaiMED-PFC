@@ -6,7 +6,13 @@
   <component name="ChangeListManager">
     <list default="true" id="e61d2434-ba4d-419d-881c-3d5c109eac10" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/PagamentoScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/PagamentoScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-back/prisma/schema.prisma" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/prisma/schema.prisma" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-back/src/prisma/seed.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/prisma/seed.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-back/src/routes/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/routes/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Main/ArtigoCadastroScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Main/ArtigoCadastroScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Main/ArtigoDetalhesScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Main/ArtigoDetalhesScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Main/ArtigosListaScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Main/ArtigosListaScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Main/HomeScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Main/HomeScreen.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -90,6 +96,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "GustavoMarques22"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "git@github.com:UaiMED-Plataforma-Digital-de-Saude/UaiMED-PFC.git",
+    "accountId": "239719e4-33c0-4d91-9a18-95dc7a9f11ae"
+  }
+}]]></component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 0
 }</component>
@@ -117,12 +135,14 @@
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.cidr.known.project.marker": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "feat/agendamento-pagamento",
+    "git-widget-placeholder": "fix/tela-de-cadastro",
+    "kotlin-language-version-configured": "true",
     "settings.editor.selected.configurable": "preferences.pluginManager"
   }
 }]]></component>

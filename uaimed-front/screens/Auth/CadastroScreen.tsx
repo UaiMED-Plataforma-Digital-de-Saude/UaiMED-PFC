@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -56,11 +56,6 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
   const [cep, setCep] = useState('');
 
   const { modal, showModal, hideModal } = useModal();
-
-  // Limpa campos específicos ao trocar de aba
-  useEffect(() => {
-    setDocumento('');
-  }, [tipo]);
 
   // ── Formatadores ───────────────────────────────────────────────────────────
   const formatCPF = (v: string) => {
@@ -150,29 +145,20 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
             <View style={{ width: 24 }} />
           </View>
 
-          {/* TAB SELECTOR */}
-          <View style={styles.tabContainer}>
-            <TouchableOpacity
-              style={[styles.tab, tipo === TipoUsuario.CLIENTE && styles.activeTab]}
-              onPress={() => setTipo(TipoUsuario.CLIENTE)}
-            >
-              <Text style={[styles.tabText, tipo === TipoUsuario.CLIENTE && styles.activeTabText]}>Cliente</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.tab, tipo === TipoUsuario.PROFISSIONAL && styles.activeTab]}
-              onPress={() => setTipo(TipoUsuario.PROFISSIONAL)}
-            >
-              <Text style={[styles.tabText, tipo === TipoUsuario.PROFISSIONAL && styles.activeTabText]}>Profissional</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.tab, tipo === TipoUsuario.CLINICA && styles.activeTab]}
-              onPress={() => setTipo(TipoUsuario.CLINICA)}
-            >
-              <Text style={[styles.tabText, tipo === TipoUsuario.CLINICA && styles.activeTabText]}>Clínica</Text>
-            </TouchableOpacity>
-          </View>
+          {/* INDICADOR DE TIPO */}
+          {(() => {
+            const config = {
+              [TipoUsuario.CLIENTE]:      { icon: 'person-circle-outline' as const, label: 'Cadastro de Paciente',      cor: '#4CAF50', bg: '#F0F7F0' },
+              [TipoUsuario.PROFISSIONAL]: { icon: 'medical-outline' as const,        label: 'Cadastro de Profissional', cor: '#4B73B2', bg: '#EEF2FB' },
+              [TipoUsuario.CLINICA]:      { icon: 'business-outline' as const,       label: 'Cadastro de Clínica',      cor: '#FF9800', bg: '#FFF8F0' },
+            }[tipo];
+            return (
+              <View style={[styles.tipoBadge, { backgroundColor: config.bg, borderColor: config.cor }]}>
+                <Ionicons name={config.icon} size={20} color={config.cor} />
+                <Text style={[styles.tipoBadgeText, { color: config.cor }]}>{config.label}</Text>
+              </View>
+            );
+          })()}
 
           <View style={styles.form}>
             <Text style={styles.label}>{tipo === TipoUsuario.CLINICA ? 'Razão Social *' : 'Nome Completo *'}</Text>
@@ -288,11 +274,17 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 20 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
   title: { fontSize: 20, fontWeight: 'bold', color: '#333' },
-  tabContainer: { flexDirection: 'row', backgroundColor: '#F5F5F5', borderRadius: 10, padding: 4, marginBottom: 25 },
-  tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
-  activeTab: { backgroundColor: '#FFF', elevation: 2, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4 },
-  tabText: { fontSize: 14, color: '#666', fontWeight: '600' },
-  activeTabText: { color: '#4CAF50' },
+  tipoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1.5,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 24,
+  },
+  tipoBadgeText: { fontSize: 14, fontWeight: '700' },
   form: { flex: 1 },
   label: { fontSize: 14, fontWeight: '600', color: '#444', marginBottom: 8, marginTop: 12 },
   input: { borderBottomWidth: 1.5, borderColor: '#EEE', paddingVertical: 8, fontSize: 16, color: '#333' },

@@ -3,7 +3,6 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Image, Platform, StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackScreenProps } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { AgendamentoStackParamList } from '../../navigation/types';
@@ -54,8 +53,7 @@ const ClinicaPerfilScreen: React.FC<Props> = ({ route, navigation }) => {
   const iniciais = nome.split(' ').slice(0, 2).map((n: string) => n[0]).join('').toUpperCase();
 
   const handleBack = () => {
-    if (navigation.canGoBack()) navigation.goBack();
-    else navigation.getParent<any>()?.navigate('Home');
+    navigation.getParent<any>()?.navigate('Home');
   };
 
   const handleConversar = async () => {
@@ -84,7 +82,7 @@ const ClinicaPerfilScreen: React.FC<Props> = ({ route, navigation }) => {
 
       {/* ── Hero fixo ── */}
       <View style={s.hero}>
-        <SafeAreaView edges={['top']} style={s.heroRow}>
+        <View style={s.heroRow}>
           <TouchableOpacity style={s.backBtn} onPress={handleBack} activeOpacity={0.8}>
             <Ionicons name="arrow-back" size={20} color="#FFF" />
           </TouchableOpacity>
@@ -110,7 +108,7 @@ const ClinicaPerfilScreen: React.FC<Props> = ({ route, navigation }) => {
               </View>
             )}
           </View>
-        </SafeAreaView>
+        </View>
       </View>
 
       {/* ── Conteúdo rolável ── */}

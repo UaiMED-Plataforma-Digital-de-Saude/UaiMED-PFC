@@ -87,6 +87,7 @@ async function main() {
   await prisma.contato.deleteMany();
   await prisma.agendamento.deleteMany();
   await prisma.profissional.deleteMany();
+  await prisma.artigo.deleteMany();
   await prisma.usuario.deleteMany();
   await prisma.cupom.deleteMany();
 
@@ -107,9 +108,9 @@ async function main() {
 
   // ── Admin ──────────────────────────────────────────────────────────────────
   logger.info("Criando usuário admin...");
-  await prisma.usuario.create({
+  const adminUser = await prisma.usuario.create({
     data: {
-      nome: "Admin Clínica UaiMED",
+      nome: "Equipe UaiMED",
       email: "admin@uaimed.com",
       cpf: fakeCpf(cpfIdx++),
       telefone: "(31) 3000-0000",
@@ -123,6 +124,48 @@ async function main() {
       conta: "98765-4",
       tipoConta: "corrente",
     },
+  });
+
+  // ── Artigos mockados para apresentação ─────────────────────────────────────
+  logger.info("Criando artigos de demonstração...");
+  await prisma.artigo.createMany({
+    data: [
+      {
+        titulo:    "Dicas para uma vida saudável",
+        resumo:    "Descubra os principais pilares da alimentação e dos exercícios diários para maximizar sua energia.",
+        categoria: "BEM-ESTAR",
+        corpo: `Uma vida saudável começa com escolhas simples e consistentes no dia a dia. Veja os principais pilares:\n\n` +
+          `1. Alimentação equilibrada\nPriorize frutas, legumes, grãos integrais e proteínas magras. Reduza o consumo de ultraprocessados, açúcar refinado e sódio em excesso. Hidrate-se bebendo pelo menos 2 litros de água por dia.\n\n` +
+          `2. Exercício físico regular\nA OMS recomenda ao menos 150 minutos de atividade aeróbica moderada por semana — equivalente a 30 minutos em 5 dias. Combine cardio (caminhada, corrida, natação) com exercícios de força para manter a massa muscular.\n\n` +
+          `3. Sono reparador\nDurma entre 7 e 9 horas por noite. O sono regula hormônios do apetite, consolida a memória e fortalece o sistema imunológico.\n\n` +
+          `4. Saúde mental\nGerencie o estresse com técnicas como meditação, respiração diafragmática e atividades de lazer. Não hesite em buscar apoio psicológico quando necessário.\n\n` +
+          `5. Check-ups preventivos\nVisitas periódicas ao médico permitem detectar alterações precocemente. Mantenha exames de rotina em dia e siga as orientações do seu profissional de saúde.\n\nPequenas mudanças, mantidas ao longo do tempo, geram grandes transformações. Comece hoje!`,
+        autorId:   adminUser.id,
+        publicado: true,
+      },
+      {
+        titulo:    "A importância do sono de qualidade",
+        resumo:    "Como dormir melhor, render mais durante o dia e evitar problemas crônicos de saúde a longo prazo.",
+        categoria: "SAÚDE DO SONO",
+        corpo: `O sono é um dos pilares mais subestimados da saúde. Enquanto dormimos, o organismo realiza processos vitais de reparo celular, consolidação da memória e regulação hormonal.\n\n` +
+          `Por que o sono importa?\nA privação crônica de sono está associada a maior risco de obesidade, diabetes tipo 2, doenças cardiovasculares, depressão e queda na imunidade. Adultos precisam de 7 a 9 horas de sono de qualidade por noite.\n\n` +
+          `Higiene do sono: boas práticas\n• Mantenha horários regulares para dormir e acordar, inclusive nos fins de semana.\n• Evite telas (celular, TV, computador) pelo menos 1 hora antes de dormir — a luz azul inibe a produção de melatonina.\n• Crie um ambiente escuro, fresco (entre 18 e 22 °C) e silencioso.\n• Evite cafeína após as 14h e refeições pesadas à noite.\n• Pratique atividade física, mas não nas 2 horas antes de dormir.\n\n` +
+          `Quando procurar ajuda?\nRonco intenso, pausas respiratórias, insônia persistente ou sonolência excessiva durante o dia podem indicar distúrbios como apneia do sono. Consulte um especialista para avaliação e tratamento adequado.\n\nInvestir em sono de qualidade é investir em saúde, produtividade e bem-estar emocional.`,
+        autorId:   adminUser.id,
+        publicado: true,
+      },
+      {
+        titulo:    "Saúde Mental no Trabalho",
+        resumo:    "Estratégias para manter o equilíbrio emocional e a produtividade em ambientes corporativos sob pressão.",
+        categoria: "PSICOLOGIA",
+        corpo: `O ambiente de trabalho pode ser fonte de realização, mas também de estresse, ansiedade e esgotamento. Cuidar da saúde mental profissional é tão importante quanto cuidar da saúde física.\n\n` +
+          `Sinais de alerta\nFique atento a: dificuldade de concentração, irritabilidade, insônia, sensação constante de sobrecarga, perda de motivação e sintomas físicos como dores de cabeça e tensão muscular. Esses podem ser indícios de burnout ou outros transtornos relacionados ao trabalho.\n\n` +
+          `Estratégias práticas\n• Estabeleça limites claros: defina horários de início e fim do expediente, especialmente no home office.\n• Micro pausas: a cada 90 minutos de trabalho, faça uma pausa de 5 a 10 minutos para se alongar e respirar.\n• Priorização inteligente: use a Matriz de Eisenhower para separar o urgente do importante e evitar a sensação de estar sempre "apagando incêndios".\n• Comunicação assertiva: expresse necessidades e dificuldades com clareza, sem agressividade ou passividade.\n• Desconexão digital: respeite o tempo fora do trabalho e evite checar e-mails e mensagens profissionais fora do horário.\n\n` +
+          `O papel da empresa\nOrganizações saudáveis promovem cultura psicológica segura, oferecem canais de escuta, flexibilidade e acesso a benefícios de saúde mental. Converse com sua liderança ou RH sobre programas disponíveis.\n\nLembrar que pedir ajuda é sinal de autoconhecimento e coragem, não de fraqueza.`,
+        autorId:   adminUser.id,
+        publicado: true,
+      },
+    ],
   });
 
   // ── Clínicas fixas para o carrossel ────────────────────────────────────────
@@ -479,7 +522,7 @@ async function main() {
   );
 
   // ── Resumo ─────────────────────────────────────────────────────────────────
-  const [tu, tp, ta, tpag, tav, tc, tcup] = await Promise.all([
+  const [tu, tp, ta, tpag, tav, tc, tcup, tart] = await Promise.all([
     prisma.usuario.count(),
     prisma.profissional.count(),
     prisma.agendamento.count(),
@@ -487,6 +530,7 @@ async function main() {
     prisma.avaliacao.count(),
     prisma.contato.count(),
     prisma.cupom.count(),
+    prisma.artigo.count(),
   ]);
 
   logger.success("✅ Seed concluído com sucesso!");
@@ -498,6 +542,7 @@ async function main() {
   logger.info(`   → ${tav} avaliações`);
   logger.info(`   → ${tc} contatos`);
   logger.info(`   → ${tcup} cupons`);
+  logger.info(`   → ${tart} artigos`);
   logger.info(`\n🔑 Credenciais (senha: senha123):`);
   logger.info(`   Admin    → admin@uaimed.com`);
   logger.info(`   Paciente → joao@example.com`);

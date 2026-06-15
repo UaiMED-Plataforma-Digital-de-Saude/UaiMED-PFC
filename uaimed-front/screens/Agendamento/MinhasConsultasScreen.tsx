@@ -13,14 +13,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { StackScreenProps } from '@react-navigation/stack';
 import { AgendamentoStackParamList } from '../../navigation/types';
 import uaiMedApi from '../../api/uaiMedApi';
+import AppModal from '../../components/AppModal';
+import { useModal } from '../../hooks/useModal';
 
 type Props = StackScreenProps<AgendamentoStackParamList, 'MinhasConsultas'>;
 
-// Interface alinhada com o retorno real do backend (GET /api/agendamentos)
+// Antecedência mínima em horas para cancelar ou remarcar
+const HORAS_MINIMAS_CANCELAMENTO = 24;
+
 interface Consulta {
   id: string;
   data: string;
   medico: string | null;
+  medicoId?: string;
   especialidade: string | null;
   status: string;
 }
@@ -32,11 +37,20 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string
   cancelado:  { label: 'Cancelado',  color: '#E53935', icon: 'close-circle-outline' },
 };
 
+// Retorna true se a consulta pode ser cancelada/remarcada (>= 24h de antecedência)
+function podeCancelarOuRemarcar(dataConsulta: Date): boolean {
+  const diffMs = dataConsulta.getTime() - Date.now();
+  const diffHoras = diffMs / (1000 * 60 * 60);
+  return diffHoras >= HORAS_MINIMAS_CANCELAMENTO;
+}
+
 const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
   const [consultas, setConsultas]     = useState<Consulta[]>([]);
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
   const [activeTab, setActiveTab]     = useState<'proximas' | 'anteriores'>('proximas');
+  const [cancelando, setCancelando]   = useState<string | null>(null);
+  const { modal, showModal, hideModal } = useModal();
 
   const fetchConsultas = useCallback(async () => {
     try {
@@ -60,6 +74,74 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
     fetchConsultas();
   };
 
+  // ── Cancelar consulta ──────────────────────────────────────────────────────
+  const handleCancelar = (item: Consulta) => {
+    const dataConsulta = new Date(item.data);
+
+    if (!podeCancelarOuRemarcar(dataConsulta)) {
+      showModal(
+        'Cancelamento não permitido',
+        `Não é possível cancelar consultas com menos de ${HORAS_MINIMAS_CANCELAMENTO} horas de antecedência.\n\nEntre em contato direto com o profissional se necessário.`,
+        { type: 'warning' },
+      );
+      return;
+    }
+
+    showModal(
+      'Cancelar consulta',
+      `Tem certeza que deseja cancelar a consulta com ${item.medico ?? 'o profissional'}?\n\nEsta ação não poderá ser desfeita.`,
+      {
+        type: 'warning',
+        buttons: [
+          { text: 'Não, manter', onPress: hideModal },
+          {
+            text: 'Sim, cancelar',
+            onPress: async () => {
+              hideModal();
+              setCancelando(item.id);
+              try {
+                await uaiMedApi.patch(`/agendamentos/${item.id}/cancelar`);
+                setConsultas((prev) =>
+                  prev.map((c) => (c.id === item.id ? { ...c, status: 'cancelado' } : c)),
+                );
+                showModal('Consulta cancelada', 'Sua consulta foi cancelada com sucesso.', { type: 'success' });
+              } catch (e: any) {
+                const msg = e?.response?.data?.error || 'Não foi possível cancelar a consulta.';
+                showModal('Erro', msg, { type: 'error' });
+              } finally {
+                setCancelando(null);
+              }
+            },
+          },
+        ],
+      },
+    );
+  };
+
+  // ── Remarcar consulta ──────────────────────────────────────────────────────
+  const handleRemarcar = (item: Consulta) => {
+    const dataConsulta = new Date(item.data);
+
+    if (!podeCancelarOuRemarcar(dataConsulta)) {
+      showModal(
+        'Remarcação não permitida',
+        `Não é possível remarcar consultas com menos de ${HORAS_MINIMAS_CANCELAMENTO} horas de antecedência.\n\nEntre em contato direto com o profissional se necessário.`,
+        { type: 'warning' },
+      );
+      return;
+    }
+
+    if (!item.medicoId) {
+      showModal('Erro', 'Não foi possível identificar o profissional para remarcação.', { type: 'error' });
+      return;
+    }
+
+    navigation.navigate('SelecaoHorario', {
+      medicoId: item.medicoId,
+      nomeProfissional: item.medico ?? undefined,
+    });
+  };
+
   const agora = new Date();
 
   const filtradas = consultas.filter((c) => {
@@ -70,20 +152,18 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
   });
 
   const renderItem = ({ item }: { item: Consulta }) => {
-    const dataObj = new Date(item.data);
-    const dateStr = dataObj.toLocaleDateString('pt-BR', {
-      weekday: 'short',
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
+    const dataObj  = new Date(item.data);
+    const dateStr  = dataObj.toLocaleDateString('pt-BR', {
+      weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
     });
-    const timeStr = dataObj.toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const timeStr = dataObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     const medicoNome    = item.medico ?? 'Profissional';
     const especialidade = item.especialidade ?? '';
     const cfg           = STATUS_CONFIG[item.status] ?? { label: item.status, color: '#888', icon: 'ellipse-outline' };
+
+    const isFutura  = activeTab === 'proximas';
+    const podeAgir  = isFutura && (item.status === 'agendado' || item.status === 'confirmado');
+    const isCancelando = cancelando === item.id;
 
     return (
       <View style={styles.card}>
@@ -96,7 +176,6 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.medicoNome} numberOfLines={1}>{medicoNome}</Text>
             {especialidade ? <Text style={styles.especialidade}>{especialidade}</Text> : null}
           </View>
-          {/* Badge de status */}
           <View style={[styles.statusBadge, { backgroundColor: cfg.color + '1A' }]}>
             <Ionicons name={cfg.icon as any} size={12} color={cfg.color} style={{ marginRight: 4 }} />
             <Text style={[styles.statusText, { color: cfg.color }]}>{cfg.label}</Text>
@@ -110,20 +189,44 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
           <Ionicons name="time-outline" size={14} color="#888" style={{ marginLeft: 10 }} />
           <Text style={styles.dateText}>{timeStr}</Text>
         </View>
+
+        {/* Ações (apenas para consultas futuras agendadas/confirmadas) */}
+        {podeAgir && (
+          <View style={styles.actionsRow}>
+            <TouchableOpacity
+              style={[styles.btnAcao, styles.btnRemarcar]}
+              onPress={() => handleRemarcar(item)}
+              disabled={isCancelando}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="calendar-outline" size={15} color="#4B73B2" />
+              <Text style={[styles.btnAcaoText, { color: '#4B73B2' }]}>Remarcar</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.btnAcao, styles.btnCancelar]}
+              onPress={() => handleCancelar(item)}
+              disabled={isCancelando}
+              activeOpacity={0.8}
+            >
+              {isCancelando ? (
+                <ActivityIndicator size="small" color="#E53935" />
+              ) : (
+                <>
+                  <Ionicons name="close-circle-outline" size={15} color="#E53935" />
+                  <Text style={[styles.btnAcaoText, { color: '#E53935' }]}>Cancelar</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     );
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.getParent<any>()?.navigate('Home')} style={styles.backBtn}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name="chevron-back" size={26} color="#4CAF50" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Minhas Consultas</Text>
-        </View>
+      <SafeAreaView style={styles.safe} edges={['bottom']}>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#4CAF50" />
           <Text style={styles.loadingText}>Carregando consultas...</Text>
@@ -133,16 +236,7 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      {/* Cabeçalho */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.getParent<any>()?.navigate('Home')} style={styles.backBtn}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="chevron-back" size={26} color="#4CAF50" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Minhas Consultas</Text>
-      </View>
-
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
       {/* Tabs */}
       <View style={styles.tabs}>
         <TouchableOpacity
@@ -162,6 +256,16 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Aviso de regra de cancelamento */}
+      {activeTab === 'proximas' && filtradas.length > 0 && (
+        <View style={styles.regraAviso}>
+          <Ionicons name="information-circle-outline" size={14} color="#4B73B2" />
+          <Text style={styles.regraAvisoText}>
+            Cancelamentos e remarcações devem ser feitos com {HORAS_MINIMAS_CANCELAMENTO}h de antecedência.
+          </Text>
+        </View>
+      )}
 
       {filtradas.length === 0 ? (
         <View style={styles.centered}>
@@ -187,30 +291,14 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
           }
         />
       )}
+
+      <AppModal {...modal} onClose={hideModal} />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F5F7FA' },
-
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 14,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-  },
-  backBtn: { marginRight: 10 },
-  headerTitle: { fontSize: 19, fontWeight: '700', color: '#222' },
 
   tabs: {
     flexDirection: 'row',
@@ -227,14 +315,24 @@ const styles = StyleSheet.create({
     borderBottomWidth: 3,
     borderBottomColor: '#4CAF50',
   },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#999',
+  tabText: { fontSize: 14, fontWeight: '600', color: '#999' },
+  tabTextActive: { color: '#4CAF50' },
+
+  regraAviso: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#EEF2FF',
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#4B73B2',
   },
-  tabTextActive: {
-    color: '#4CAF50',
-  },
+  regraAvisoText: { flex: 1, fontSize: 12, color: '#4B73B2', lineHeight: 17 },
 
   centered: {
     flex: 1,
@@ -303,13 +401,30 @@ const styles = StyleSheet.create({
   },
   dateText: { fontSize: 12, color: '#666', textTransform: 'capitalize' },
 
-  obs: {
-    fontSize: 12,
-    color: '#888',
-    marginTop: 8,
-    fontStyle: 'italic',
-    lineHeight: 18,
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
   },
+  btnAcao: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 9,
+    borderRadius: 8,
+    borderWidth: 1.5,
+  },
+  btnRemarcar: {
+    borderColor: '#4B73B2',
+    backgroundColor: '#F0F4FF',
+  },
+  btnCancelar: {
+    borderColor: '#E53935',
+    backgroundColor: '#FFF5F5',
+  },
+  btnAcaoText: { fontSize: 13, fontWeight: '700' },
 });
 
 export default MinhasConsultasScreen;

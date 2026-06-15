@@ -1,8 +1,9 @@
 import React from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, TextInput, Switch, Platform,
+  ActivityIndicator, TextInput, Switch, Platform, Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from '../../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -61,37 +62,109 @@ const ActionRow: React.FC<{
 // ── Tela Principal ───────────────────────────────────────────────
 
 const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, updateUser } = useAuth();
   const profissionalId = user?.tipo === 'medico' ? user?.profissional?.id : undefined;
   const { notaMedia, loading: loadingAvaliacoes } = useAvaliacoes(profissionalId);
 
+  // ── Modo edição ────────────────────────────────────────────────
+  const [editMode, setEditMode]       = React.useState(false);
+  const [editNome, setEditNome]       = React.useState('');
+  const [editTelefone, setEditTelefone] = React.useState('');
+  const [saveLoading, setSaveLoading] = React.useState(false);
+  const [avatarLoading, setAvatarLoading] = React.useState(false);
+
+  // ── Alterar senha ──────────────────────────────────────────────
   const [showChangePwd, setShowChangePwd] = React.useState(false);
-  const [pwdLoading, setPwdLoading] = React.useState(false);
-  const [oldPassword, setOldPassword] = React.useState('');
-  const [newPassword, setNewPassword] = React.useState('');
+  const [pwdLoading, setPwdLoading]       = React.useState(false);
+  const [oldPassword, setOldPassword]     = React.useState('');
+  const [newPassword, setNewPassword]     = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
 
+  // ── Notificações ───────────────────────────────────────────────
   const [showNotifications, setShowNotifications] = React.useState(false);
-  const [notifEmail, setNotifEmail] = React.useState(true);
-  const [notifPush, setNotifPush] = React.useState(true);
+  const [notifEmail, setNotifEmail]   = React.useState(true);
+  const [notifPush, setNotifPush]     = React.useState(true);
   const [notifLoading, setNotifLoading] = React.useState(false);
 
+  // ── Dados bancários ────────────────────────────────────────────
   const [showBankSection, setShowBankSection] = React.useState(false);
-  const [bankLoading, setBankLoading] = React.useState(false);
-  const [bankSaving, setBankSaving] = React.useState(false);
-  const [pixKey, setPixKey] = React.useState('');
-  const [banco, setBanco] = React.useState('');
-  const [agencia, setAgencia] = React.useState('');
-  const [conta, setConta] = React.useState('');
-  const [tipoConta, setTipoConta] = React.useState<'corrente' | 'poupanca'>('corrente');
+  const [bankLoading, setBankLoading]   = React.useState(false);
+  const [bankSaving, setBankSaving]     = React.useState(false);
+  const [pixKey, setPixKey]             = React.useState('');
+  const [banco, setBanco]               = React.useState('');
+  const [agencia, setAgencia]           = React.useState('');
+  const [conta, setConta]               = React.useState('');
+  const [tipoConta, setTipoConta]       = React.useState<'corrente' | 'poupanca'>('corrente');
 
   const { modal, showModal, hideModal } = useModal();
 
   const isPaciente = user?.tipo === 'paciente';
   const isMedico   = user?.tipo === 'medico';
   const isClinica  = user?.tipo === 'clinica';
+  const tipoLabel  = isPaciente ? 'Paciente' : isMedico ? 'Médico' : 'Clínica';
 
-  const tipoLabel = isPaciente ? 'Paciente' : isMedico ? 'Médico' : 'Clínica';
+  // ── Entrar em modo de edição ───────────────────────────────────
+  const handleStartEdit = () => {
+    setEditNome(user?.nome ?? '');
+    setEditTelefone(user?.telefone ?? '');
+    setEditMode(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEditMode(false);
+  };
+
+  // ── Salvar perfil ──────────────────────────────────────────────
+  const handleSaveProfile = async () => {
+    if (!editNome.trim()) {
+      showModal('Campo obrigatório', 'O nome não pode ficar vazio.', { type: 'warning' });
+      return;
+    }
+    setSaveLoading(true);
+    try {
+      const res = await uaiMedApi.put('/users/me', {
+        nome: editNome.trim(),
+        telefone: editTelefone.trim(),
+      });
+      await updateUser({ nome: res.data.user.nome, telefone: res.data.user.telefone });
+      setEditMode(false);
+      showModal('Perfil atualizado!', 'Suas informações foram salvas com sucesso.', { type: 'success' });
+    } catch {
+      showModal('Erro', 'Não foi possível salvar as alterações.', { type: 'error' });
+    } finally {
+      setSaveLoading(false);
+    }
+  };
+
+  // ── Trocar foto de perfil ──────────────────────────────────────
+  const handlePickAvatar = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      showModal('Permissão negada', 'Autorize o acesso à galeria nas configurações do dispositivo.', { type: 'warning' });
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.6,
+      base64: true,
+    });
+
+    if (result.canceled || !result.assets[0]?.base64) return;
+
+    const base64 = `data:image/jpeg;base64,${result.assets[0].base64}`;
+    setAvatarLoading(true);
+    try {
+      await uaiMedApi.put('/users/me/avatar', { avatar: base64 });
+      await updateUser({ avatar: base64 });
+    } catch {
+      showModal('Erro', 'Não foi possível atualizar a foto de perfil.', { type: 'error' });
+    } finally {
+      setAvatarLoading(false);
+    }
+  };
 
   const handleOpenBankSection = async () => {
     if (showBankSection) { setShowBankSection(false); return; }
@@ -148,9 +221,30 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
     <View style={s.root}>
       {/* ── Cabeçalho do perfil ── */}
       <View style={s.profileHeader}>
-        <View style={s.avatarCircle}>
-          <Text style={s.avatarTxt}>{user.nome.charAt(0).toUpperCase()}</Text>
-        </View>
+        {/* Avatar com sobreposição de câmera em modo edição */}
+        <TouchableOpacity
+          onPress={editMode ? handlePickAvatar : undefined}
+          disabled={!editMode || avatarLoading}
+          activeOpacity={editMode ? 0.75 : 1}
+          style={s.avatarWrapper}
+        >
+          {user.avatar ? (
+            <Image source={{ uri: user.avatar }} style={s.avatarImage} />
+          ) : (
+            <View style={s.avatarCircle}>
+              <Text style={s.avatarTxt}>{user.nome.charAt(0).toUpperCase()}</Text>
+            </View>
+          )}
+          {editMode && (
+            <View style={s.avatarOverlay}>
+              {avatarLoading
+                ? <ActivityIndicator size="small" color="#FFF" />
+                : <Ionicons name="camera" size={20} color="#FFF" />
+              }
+            </View>
+          )}
+        </TouchableOpacity>
+
         <View style={{ flex: 1, marginLeft: 14 }}>
           <Text style={s.profileName} numberOfLines={1}>{user.nome}</Text>
           <View style={s.typeBadge}>
@@ -175,33 +269,94 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
             </View>
           )}
         </View>
+
+        {/* Botão editar / cancelar no canto do header */}
+        {!editMode ? (
+          <TouchableOpacity style={s.editBtn} onPress={handleStartEdit} activeOpacity={0.8}>
+            <Ionicons name="pencil-outline" size={16} color="#FFF" />
+            <Text style={s.editBtnTxt}>Editar</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={s.cancelBtn} onPress={handleCancelEdit} activeOpacity={0.8}>
+            <Ionicons name="close-outline" size={18} color="#FFF" />
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
 
-        {/* ── 1. Informações da Conta (campos universais) ── */}
+        {/* ── 1. Informações da Conta ── */}
         <View style={s.card}>
           <Text style={s.cardTitle}>Informações da Conta</Text>
-          <InfoRow icon="person-outline"  label="Nome Completo" value={user.nome} />
-          <InfoRow icon="mail-outline"    label="E-mail"        value={user.email} iconColor="#1E88E5" />
-          <InfoRow icon="call-outline"    label="Telefone"      value={user.telefone || 'Não informado'} iconColor="#43A047" />
 
-          {/* Paciente: CPF */}
-          {isPaciente && (
-            <InfoRow icon="card-outline" label="CPF" value={user.cpf || 'Não informado'} iconColor="#7B1FA2" last />
-          )}
+          {editMode ? (
+            /* Modo edição — campos editáveis */
+            <View>
+              <Text style={s.fieldLabel}>Nome Completo</Text>
+              <TextInput
+                style={s.fieldInput}
+                value={editNome}
+                onChangeText={setEditNome}
+                placeholder="Seu nome completo"
+                editable={!saveLoading}
+              />
+              <Text style={s.fieldLabel}>Telefone</Text>
+              <TextInput
+                style={s.fieldInput}
+                value={editTelefone}
+                onChangeText={setEditTelefone}
+                placeholder="(31) 99999-9999"
+                keyboardType="phone-pad"
+                editable={!saveLoading}
+              />
+              <Text style={s.fieldLabelReadonly}>E-mail</Text>
+              <Text style={s.fieldReadonlyValue}>{user.email}</Text>
 
-          {/* Médico: CRM + Especialidade */}
-          {isMedico && (
+              {isPaciente && (
+                <>
+                  <Text style={s.fieldLabelReadonly}>CPF</Text>
+                  <Text style={s.fieldReadonlyValue}>{user.cpf || 'Não informado'}</Text>
+                </>
+              )}
+              {isMedico && (
+                <>
+                  <Text style={s.fieldLabelReadonly}>CRM</Text>
+                  <Text style={s.fieldReadonlyValue}>{user.profissional?.crm || 'Não informado'}</Text>
+                  <Text style={s.fieldLabelReadonly}>Especialidade</Text>
+                  <Text style={s.fieldReadonlyValue}>{user.profissional?.especialidade || 'Não informado'}</Text>
+                </>
+              )}
+
+              <TouchableOpacity
+                style={[s.saveBtn, saveLoading && { opacity: 0.7 }]}
+                onPress={handleSaveProfile}
+                disabled={saveLoading}
+              >
+                {saveLoading
+                  ? <ActivityIndicator size="small" color="#FFF" />
+                  : <Text style={s.saveBtnTxt}>Salvar Alterações</Text>
+                }
+              </TouchableOpacity>
+            </View>
+          ) : (
+            /* Modo visualização */
             <>
-              <InfoRow icon="ribbon-outline"  label="CRM"          value={user.profissional?.crm || 'Não informado'} iconColor="#F57C00" />
-              <InfoRow icon="medical-outline" label="Especialidade" value={user.profissional?.especialidade || 'Não informado'} iconColor="#E53935" last />
+              <InfoRow icon="person-outline"  label="Nome Completo" value={user.nome} />
+              <InfoRow icon="mail-outline"    label="E-mail"        value={user.email} iconColor="#1E88E5" />
+              <InfoRow icon="call-outline"    label="Telefone"      value={user.telefone || 'Não informado'} iconColor="#43A047" />
+              {isPaciente && (
+                <InfoRow icon="card-outline" label="CPF" value={user.cpf || 'Não informado'} iconColor="#7B1FA2" last />
+              )}
+              {isMedico && (
+                <>
+                  <InfoRow icon="ribbon-outline"  label="CRM"          value={user.profissional?.crm || 'Não informado'} iconColor="#F57C00" />
+                  <InfoRow icon="medical-outline" label="Especialidade" value={user.profissional?.especialidade || 'Não informado'} iconColor="#E53935" last />
+                </>
+              )}
+              {isClinica && (
+                <InfoRow icon="business-outline" label="CNPJ" value={user.cnpj || user.cpf || 'Não informado'} iconColor="#00838F" last />
+              )}
             </>
-          )}
-
-          {/* Clínica: CNPJ */}
-          {isClinica && (
-            <InfoRow icon="business-outline" label="CNPJ" value={user.cnpj || user.cpf || 'Não informado'} iconColor="#00838F" last />
           )}
         </View>
 
@@ -403,6 +558,8 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
 
 // ── Estilos ──────────────────────────────────────────────────────
 
+const AVATAR_SIZE = 62;
+
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F0F2F5' },
   loadingBg: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 },
@@ -422,13 +579,39 @@ const s = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 6,
   },
+
+  // Avatar
+  avatarWrapper: { position: 'relative' },
   avatarCircle: {
-    width: 58, height: 58, borderRadius: 29,
+    width: AVATAR_SIZE, height: AVATAR_SIZE, borderRadius: AVATAR_SIZE / 2,
     backgroundColor: 'rgba(255,255,255,0.25)',
     borderWidth: 2, borderColor: 'rgba(255,255,255,0.6)',
     alignItems: 'center', justifyContent: 'center',
   },
+  avatarImage: {
+    width: AVATAR_SIZE, height: AVATAR_SIZE, borderRadius: AVATAR_SIZE / 2,
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.6)',
+  },
+  avatarOverlay: {
+    position: 'absolute', inset: 0,
+    borderRadius: AVATAR_SIZE / 2,
+    backgroundColor: 'rgba(0,0,0,0.42)',
+    alignItems: 'center', justifyContent: 'center',
+  },
   avatarTxt: { fontSize: 24, fontWeight: '800', color: '#FFF' },
+
+  // Botões do header
+  editBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6,
+  },
+  editBtnTxt: { color: '#FFF', fontSize: 13, fontWeight: '700' },
+  cancelBtn: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 20, padding: 6,
+  },
+
   profileName: { fontSize: 17, fontWeight: '800', color: '#FFF' },
   typeBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
@@ -457,10 +640,20 @@ const s = StyleSheet.create({
   },
   cardTitle: { fontSize: 13, fontWeight: '700', color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
 
+  // Campos de edição
+  fieldLabel: { fontSize: 11, fontWeight: '700', color: '#4CAF50', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4, marginTop: 8 },
+  fieldInput: {
+    borderWidth: 1.5, borderColor: '#C8E6C9', borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 10,
+    backgroundColor: '#F9FFF9', fontSize: 15, color: '#1A1A1A', marginBottom: 4,
+  },
+  fieldLabelReadonly: { fontSize: 11, fontWeight: '700', color: '#BBB', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2, marginTop: 10 },
+  fieldReadonlyValue: { fontSize: 14, color: '#999', fontWeight: '500', paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#F3F3F3' },
+
   // InfoRow
   infoRow: {
     flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F3F3F3', marginBottom: 0,
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F3F3F3',
   },
   iconBox: {
     width: 32, height: 32, borderRadius: 8,

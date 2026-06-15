@@ -240,16 +240,7 @@ export const HistoricoAvaliacoesScreen: React.FC<Props> = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Ionicons name="list-outline" size={32} color="#4CAF50" />
-        <Text style={styles.headerTitle}>Meus Feedbacks</Text>
-        <Text style={styles.headerSubtitle}>
-          {avaliacoes.length} avaliação{avaliacoes.length !== 1 ? 's' : ''} realizada{avaliacoes.length !== 1 ? 's' : ''}
-        </Text>
-      </View>
-
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* Lista de Avaliações */}
       {avaliacoes.length > 0 ? (
         <FlatList
@@ -297,25 +288,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     color: '#999',
-  },
-  header: {
-    backgroundColor: '#FFF',
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 8,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 4,
   },
   listContent: {
     paddingHorizontal: 12,

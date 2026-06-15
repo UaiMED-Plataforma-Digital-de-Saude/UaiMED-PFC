@@ -12,6 +12,7 @@ import clinicasRoutes from "./clinicas.routes";
 import especialidadesRoutes from "./especialidades.routes";
 import contaBancariaRoutes from "./conta-bancaria.routes";
 import conversasRoutes from "./conversas.routes";
+import artigosRoutes from "./artigos.routes";
 
 const router = Router();
 
@@ -28,5 +29,6 @@ router.use(clinicasRoutes);
 router.use(especialidadesRoutes);
 router.use(contaBancariaRoutes);
 router.use(conversasRoutes);
+router.use(artigosRoutes);
 
 export default router;

@@ -26,6 +26,8 @@ interface Pagamento {
   cupom?: string | null;
   criado_em: string;
   agendamento?: {
+    id?: string;
+    medicoId?: string;
     dataHora: string;
     profissional?: {
       especialidade?: string;
@@ -45,13 +47,13 @@ const METODO_LABEL: Record<string, string> = {
 
 const STATUS_COLOR: Record<string, string> = {
   concluido: '#4CAF50',
-  pendente: '#FF9800',
+  pendente:  '#FF9800',
   cancelado: '#E53935',
 };
 
 const MeusPagamentosScreen: React.FC<Props> = ({ navigation }) => {
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
-  const [loading, setLoading]     = useState(true);
+  const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchPagamentos = useCallback(async () => {
@@ -76,32 +78,59 @@ const MeusPagamentosScreen: React.FC<Props> = ({ navigation }) => {
     fetchPagamentos();
   };
 
+  const handlePagar = (item: Pagamento) => {
+    navigation.navigate('Pagamento', {
+      agendamentoId: item.agendamento?.id,
+      amount: item.valorFinal,
+      medicoId: item.agendamento?.medicoId,
+      nomeProfissional: item.agendamento?.profissional?.usuario?.nome,
+    });
+  };
+
   const renderItem = ({ item }: { item: Pagamento }) => {
+    const isPendente   = item.status === 'pendente';
     const dataConsulta = item.agendamento?.dataHora
       ? new Date(item.agendamento.dataHora).toLocaleDateString('pt-BR', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
+          day: '2-digit', month: 'short', year: 'numeric',
         })
       : '—';
     const horario = item.agendamento?.dataHora
       ? new Date(item.agendamento.dataHora).toLocaleTimeString('pt-BR', {
-          hour: '2-digit',
-          minute: '2-digit',
+          hour: '2-digit', minute: '2-digit',
         })
       : '';
-    const medicoNome = item.agendamento?.profissional?.usuario?.nome ?? 'Profissional';
+    const medicoNome   = item.agendamento?.profissional?.usuario?.nome ?? 'Profissional';
     const especialidade = item.agendamento?.profissional?.especialidade ?? '';
-    const statusColor = STATUS_COLOR[item.status] ?? '#888';
-    const metodoLabel = METODO_LABEL[item.metodo] ?? item.metodo;
-    const temDesconto = item.desconto > 0;
+    const statusColor  = STATUS_COLOR[item.status] ?? '#888';
+    const metodoLabel  = METODO_LABEL[item.metodo] ?? item.metodo;
+    const temDesconto  = item.desconto > 0;
+
+    const CardWrapper = isPendente ? TouchableOpacity : View;
+    const cardWrapperProps = isPendente
+      ? { activeOpacity: 0.85, onPress: () => handlePagar(item) }
+      : {};
 
     return (
-      <View style={styles.card}>
+      <CardWrapper
+        style={[styles.card, isPendente && styles.cardPendente]}
+        {...cardWrapperProps}
+      >
+        {/* Faixa de alerta para pendente */}
+        {isPendente && (
+          <View style={styles.pendenteFaixa}>
+            <Ionicons name="alert-circle-outline" size={13} color="#FF9800" />
+            <Text style={styles.pendenteFaixaText}>Pagamento pendente</Text>
+          </View>
+        )}
+
         {/* Cabeçalho do card */}
         <View style={styles.cardHeader}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="receipt-outline" size={22} color="#4CAF50" />
+          <View style={[styles.iconCircle, isPendente && styles.iconCirclePendente]}>
+            <Ionicons
+              name={isPendente ? 'time-outline' : 'receipt-outline'}
+              size={22}
+              color={isPendente ? '#FF9800' : '#4CAF50'}
+            />
           </View>
           <View style={styles.cardHeaderText}>
             <Text style={styles.medicoNome} numberOfLines={1}>{medicoNome}</Text>
@@ -122,10 +151,12 @@ const MeusPagamentosScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="calendar-outline" size={14} color="#888" />
             <Text style={styles.detailText}>{dataConsulta}{horario ? ` · ${horario}` : ''}</Text>
           </View>
-          <View style={styles.detailItem}>
-            <Ionicons name="card-outline" size={14} color="#888" />
-            <Text style={styles.detailText}>{metodoLabel}</Text>
-          </View>
+          {item.metodo ? (
+            <View style={styles.detailItem}>
+              <Ionicons name="card-outline" size={14} color="#888" />
+              <Text style={styles.detailText}>{metodoLabel}</Text>
+            </View>
+          ) : null}
         </View>
 
         {/* Valores */}
@@ -139,21 +170,25 @@ const MeusPagamentosScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.cupomText}>{item.cupom}</Text>
             </View>
           ) : null}
-          <Text style={styles.valorFinal}>R$ {item.valorFinal.toFixed(2)}</Text>
+          <Text style={[styles.valorFinal, isPendente && { color: '#FF9800' }]}>
+            R$ {item.valorFinal.toFixed(2)}
+          </Text>
         </View>
-      </View>
+
+        {/* Botão pagar */}
+        {isPendente && (
+          <TouchableOpacity style={styles.btnPagar} onPress={() => handlePagar(item)} activeOpacity={0.8}>
+            <Ionicons name="wallet-outline" size={16} color="#FFF" />
+            <Text style={styles.btnPagarText}>Pagar agora</Text>
+          </TouchableOpacity>
+        )}
+      </CardWrapper>
     );
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.getParent<any>()?.navigate('Home')} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name="chevron-back" size={26} color="#4CAF50" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Meus Pagamentos</Text>
-        </View>
+      <SafeAreaView style={styles.safe} edges={['bottom']}>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#4CAF50" />
           <Text style={styles.loadingText}>Carregando pagamentos...</Text>
@@ -162,16 +197,13 @@ const MeusPagamentosScreen: React.FC<Props> = ({ navigation }) => {
     );
   }
 
-  return (
-    <SafeAreaView style={styles.safe}>
-      {/* Cabeçalho */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.getParent<any>()?.navigate('Home')} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="chevron-back" size={26} color="#4CAF50" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Meus Pagamentos</Text>
-      </View>
+  const totalConcluido = pagamentos
+    .filter((p) => p.status === 'concluido')
+    .reduce((acc, p) => acc + p.valorFinal, 0);
+  const pendentes = pagamentos.filter((p) => p.status === 'pendente');
 
+  return (
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
       {pagamentos.length === 0 ? (
         <View style={styles.centered}>
           <Ionicons name="receipt-outline" size={56} color="#DDD" />
@@ -180,16 +212,22 @@ const MeusPagamentosScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       ) : (
         <>
-          {/* Resumo total */}
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Total investido em saúde</Text>
-            <Text style={styles.summaryValue}>
-              R$ {pagamentos
-                .filter(p => p.status === 'concluido')
-                .reduce((acc, p) => acc + p.valorFinal, 0)
-                .toFixed(2)}
-            </Text>
-            <Text style={styles.summaryCount}>{pagamentos.length} pagamento{pagamentos.length !== 1 ? 's' : ''}</Text>
+          {/* Resumo */}
+          <View style={styles.summaryRow}>
+            <View style={[styles.summaryCard, { backgroundColor: '#4CAF50' }]}>
+              <Text style={styles.summaryLabel}>Total investido</Text>
+              <Text style={styles.summaryValue}>R$ {totalConcluido.toFixed(2)}</Text>
+              <Text style={styles.summaryCount}>
+                {pagamentos.filter((p) => p.status === 'concluido').length} concluído(s)
+              </Text>
+            </View>
+            {pendentes.length > 0 && (
+              <View style={[styles.summaryCard, { backgroundColor: '#FF9800', flex: 0.6 }]}>
+                <Text style={styles.summaryLabel}>Pendentes</Text>
+                <Text style={styles.summaryValue}>{pendentes.length}</Text>
+                <Text style={styles.summaryCount}>a pagar</Text>
+              </View>
+            )}
           </View>
 
           <FlatList
@@ -211,24 +249,6 @@ const MeusPagamentosScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F5F7FA' },
 
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 14,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-  },
-  backBtn: { marginRight: 10 },
-  headerTitle: { fontSize: 19, fontWeight: '700', color: '#222' },
-
   centered: {
     flex: 1,
     alignItems: 'center',
@@ -246,24 +266,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
 
-  summaryCard: {
-    backgroundColor: '#4CAF50',
+  summaryRow: {
+    flexDirection: 'row',
+    gap: 10,
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 8,
+  },
+  summaryCard: {
+    flex: 1,
     borderRadius: 14,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
     elevation: 3,
-    shadowColor: '#4CAF50',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.15,
     shadowRadius: 6,
   },
-  summaryLabel: { fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '500' },
-  summaryValue: { fontSize: 28, fontWeight: '800', color: '#FFF', marginTop: 4 },
-  summaryCount: { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 4 },
+  summaryLabel: { fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: '500' },
+  summaryValue: { fontSize: 22, fontWeight: '800', color: '#FFF', marginTop: 4 },
+  summaryCount: { fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
 
   list: { padding: 16, paddingTop: 8, paddingBottom: 40 },
 
@@ -278,6 +301,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.07,
     shadowRadius: 4,
   },
+  cardPendente: {
+    borderWidth: 1.5,
+    borderColor: '#FFB74D',
+  },
+
+  pendenteFaixa: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#FFF8F0',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    marginBottom: 10,
+  },
+  pendenteFaixaText: { fontSize: 11, color: '#FF9800', fontWeight: '700' },
+
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -292,6 +332,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 10,
   },
+  iconCirclePendente: { backgroundColor: '#FFF3E0' },
   cardHeaderText: { flex: 1 },
   medicoNome: { fontSize: 15, fontWeight: '700', color: '#222' },
   especialidade: { fontSize: 12, color: '#888', marginTop: 1 },
@@ -314,6 +355,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F5F5F5',
     paddingTop: 10,
+    marginBottom: 2,
   },
   valorOriginal: {
     fontSize: 12,
@@ -331,6 +373,23 @@ const styles = StyleSheet.create({
   },
   cupomText: { fontSize: 10, color: '#4B73B2', fontWeight: '700' },
   valorFinal: { fontSize: 17, fontWeight: '800', color: '#4CAF50' },
+
+  btnPagar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#FF9800',
+    borderRadius: 10,
+    paddingVertical: 11,
+    marginTop: 10,
+    elevation: 2,
+    shadowColor: '#FF9800',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  btnPagarText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
 });
 
 export default MeusPagamentosScreen;

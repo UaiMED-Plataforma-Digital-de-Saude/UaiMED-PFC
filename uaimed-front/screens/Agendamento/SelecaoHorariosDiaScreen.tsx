@@ -113,24 +113,7 @@ const SelecaoHorariosDiaScreen: React.FC<Props> = ({ route, navigation }) => {
 
 
   return (
-    <SafeAreaView style={styles.safe}>
-      {/* Cabeçalho */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={26} color="#4CAF50" />
-        </TouchableOpacity>
-        <View style={styles.headerText}>
-          <Text style={styles.headerTitle}>Horários Disponíveis</Text>
-          <Text style={styles.headerSubtitle} numberOfLines={1}>
-            {displayDate ?? dateKey}
-          </Text>
-        </View>
-      </View>
-
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -275,26 +258,6 @@ const SelecaoHorariosDiaScreen: React.FC<Props> = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F5F7FA' },
-
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-  },
-  backBtn: { marginRight: 8 },
-  headerText: { flex: 1 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#222' },
-  headerSubtitle: { fontSize: 13, color: '#888', marginTop: 1, textTransform: 'capitalize' },
 
   scroll: { padding: 16, paddingBottom: 40, flexGrow: 1 },
 

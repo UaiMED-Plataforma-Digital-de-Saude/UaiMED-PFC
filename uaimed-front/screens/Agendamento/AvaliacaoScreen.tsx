@@ -158,18 +158,9 @@ export const AvaliacaoScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAvoidingView behavior="padding" style={styles.keyboardAvoid}>
         <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView}>
-          {/* Header */}
-          <View style={styles.header}>
-            <Ionicons name="star-half-outline" size={40} color="#4CAF50" />
-            <Text style={styles.headerTitle}>Avalie sua Consulta</Text>
-            <Text style={styles.headerSubtitle}>
-              Sua opinião é importante para melhorar nossos serviços
-            </Text>
-          </View>
-
           {/* Seção 1: Qualidade do Atendimento */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
@@ -354,25 +345,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     paddingTop: 16,
-  },
-  header: {
-    alignItems: 'center',
-    paddingVertical: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
-    marginBottom: 24,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 12,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 8,
-    textAlign: 'center',
   },
   section: {
     marginBottom: 28,
