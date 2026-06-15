@@ -6,8 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="e61d2434-ba4d-419d-881c-3d5c109eac10" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Conversas/ConversaDetalhesScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Conversas/ConversaDetalhesScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Conversas/ConversasListaScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Conversas/ConversasListaScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/MeusPagamentosScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/MeusPagamentosScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/MinhasConsultasScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/MinhasConsultasScreen.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
