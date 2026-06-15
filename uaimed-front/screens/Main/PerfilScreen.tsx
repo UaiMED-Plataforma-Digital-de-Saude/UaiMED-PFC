@@ -273,7 +273,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
         {/* Botão editar / cancelar no canto do header */}
         {!editMode ? (
           <TouchableOpacity style={s.editBtn} onPress={handleStartEdit} activeOpacity={0.8}>
-            <Ionicons name="pencil-outline" size={16} color="#FFF" />
+            <Ionicons name="pencil-outline" size={15} color="#FFF" />
             <Text style={s.editBtnTxt}>Editar</Text>
           </TouchableOpacity>
         ) : (
@@ -567,7 +567,7 @@ const s = StyleSheet.create({
 
   // Header do perfil
   profileHeader: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#fff',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
@@ -584,7 +584,7 @@ const s = StyleSheet.create({
   avatarWrapper: { position: 'relative' },
   avatarCircle: {
     width: AVATAR_SIZE, height: AVATAR_SIZE, borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: '#4CAF50',
     borderWidth: 2, borderColor: 'rgba(255,255,255,0.6)',
     alignItems: 'center', justifyContent: 'center',
   },
@@ -603,8 +603,8 @@ const s = StyleSheet.create({
   // Botões do header
   editBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6,
+    backgroundColor: '#4CAF50',
+    borderRadius: 10, paddingHorizontal: 8, paddingVertical: 6
   },
   editBtnTxt: { color: '#FFF', fontSize: 13, fontWeight: '700' },
   cancelBtn: {
@@ -612,14 +612,14 @@ const s = StyleSheet.create({
     borderRadius: 20, padding: 6,
   },
 
-  profileName: { fontSize: 17, fontWeight: '800', color: '#FFF' },
+  profileName: { fontSize: 17, fontWeight: '800', color: '#1A1A1A' },
   typeBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3,
     marginTop: 5, alignSelf: 'flex-start',
   },
-  typeBadgeTxt: { fontSize: 11, color: '#E8F5E9', fontWeight: '600' },
+  typeBadgeTxt: { fontSize: 11, color: '#888', fontWeight: '600' },
   ratingInline: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 5 },
   ratingTxt: { fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
 
