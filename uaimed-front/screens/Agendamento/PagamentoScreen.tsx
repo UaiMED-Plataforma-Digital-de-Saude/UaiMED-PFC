@@ -374,7 +374,7 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
   const pixKey = route.params?.pixKey ?? `${medicoId ?? 'uaimed'}@uaimed.com.br`;
   const nomeProfissional = route.params?.nomeProfissional ?? 'Profissional UaiMED';
   const { processarPagamento, loading, validarCupom, calcularValorFinal } = usePayments();
-  
+
   const [method, setMethod] = useState<'pix' | 'card' | 'boleto'>('pix');
   const [cardNumber, setCardNumber] = useState('');
   const [cardName, setCardName] = useState('');
@@ -384,10 +384,15 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
   const [promo, setPromo] = useState('');
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showPixModal, setShowPixModal] = useState(false);
+  const [showBoletoModal, setShowBoletoModal] = useState(false);
+  const [valorTravado, setValorTravado] = useState(0);
   const { modal, showModal, hideModal } = useModal();
 
   const baseAmount = amount || 100;
   const finalAmount = calcularValorFinal(baseAmount, usingPlan, promoDiscount);
+
+  const handleMethodChange = (m: 'pix' | 'card' | 'boleto') => setMethod(m);
 
   const handleValidarCupom = async () => {
     if (!promo.trim()) {
@@ -404,32 +409,30 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
-  const handlePay = () => {
-    if (method === 'card') {
-      if (!cardNumber || !cardName || !expiry || !cvv) {
-        showModal('Dados incompletos', 'Preencha todos os dados do cartão antes de continuar.', { type: 'warning' });
-        return;
-      }
+  // Trava o valor e abre o modal do instrumento correspondente
+  const handleGerarPix = () => {
+    setValorTravado(finalAmount);
+    setShowPixModal(true);
+  };
+
+  const handleGerarBoleto = () => {
+    setValorTravado(finalAmount);
+    setShowBoletoModal(true);
+  };
+
+  // Cartão: abre modal de confirmação padrão
+  const handlePayCard = () => {
+    if (!cardNumber || !cardName || !expiry || !cvv) {
+      showModal('Dados incompletos', 'Preencha todos os dados do cartão antes de continuar.', { type: 'warning' });
+      return;
     }
     setShowConfirmModal(true);
-  };
-
-  const methodLabel: Record<string, string> = {
-    pix: 'Pix',
-    card: 'Cartão de crédito/débito',
-    boleto: 'Boleto Bancário',
-  };
-
-  const methodIcon: Record<string, string> = {
-    pix: 'scan',
-    card: 'card',
-    boleto: 'document-text-outline',
   };
 
   const processarPagamentoConfirmado = async () => {
     const resultado = await processarPagamento({
       method,
-      amount: finalAmount,
+      amount: baseAmount,   // valor bruto; o backend aplica os descontos uma única vez
       cardNumber,
       cardName,
       expiry,
@@ -440,12 +443,15 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
     });
 
     if (resultado) {
+      setShowPixModal(false);
+      setShowBoletoModal(false);
+      setShowConfirmModal(false);
       showModal(
         'Pagamento realizado!',
-        `Valor cobrado: R$ ${resultado.amount.toFixed(2)}\nID: ${resultado.id}`,
+        `Valor: R$ ${resultado.amount.toFixed(2)}\nID: ${resultado.id}`,
         {
           type: 'success',
-            buttons: [
+          buttons: [
             {
               text: 'Avaliar Consulta',
               onPress: () => {
@@ -465,130 +471,275 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
+  // ── Seção de descontos ────────────────────────────────────────────────────────
+  const renderDescontos = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Descontos</Text>
+      <View style={styles.rowBetween}>
+        <View>
+          <Text style={styles.small}>Plano de saúde</Text>
+          <Text style={styles.muted}>Desconto automático do convênio (15%)</Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.toggle, usingPlan && styles.toggleOn]}
+          onPress={() => setUsingPlan(p => !p)}
+        >
+          <Text style={{ color: usingPlan ? '#FFF' : '#4CAF50' }}>{usingPlan ? 'Ativado' : 'Ativar'}</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={[styles.small, { marginTop: 12 }]}>Cupom / Código Promocional</Text>
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+        <TextInput
+          style={[styles.input, { flex: 1 }]}
+          placeholder="Ex: UAIMED10"
+          value={promo}
+          onChangeText={setPromo}
+        />
+        <TouchableOpacity style={styles.applyButton} onPress={handleValidarCupom}>
+          <Text style={{ color: '#FFF' }}>Aplicar</Text>
+        </TouchableOpacity>
+      </View>
+
+      {promoDiscount > 0 && (
+        <View style={styles.discountBadge}>
+          <Ionicons name="pricetag-outline" size={14} color="#2E7D32" />
+          <Text style={styles.discountBadgeText}>Cupom aplicado: {promoDiscount}% de desconto</Text>
+        </View>
+      )}
+    </View>
+  );
+
+  // ── Total com linha de economia ───────────────────────────────────────────────
+  const renderTotal = (valor: number, label = 'Total a Pagar') => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{label}</Text>
+      <Text style={styles.amount}>R$ {valor.toFixed(2)}</Text>
+      {valor < baseAmount && (
+        <Text style={styles.savingText}>Você economiza R$ {(baseAmount - valor).toFixed(2)}</Text>
+      )}
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Pagamento</Text>
         <Text style={styles.subtitle}>Escolha a forma de pagamento e confirme.</Text>
 
+        {/* Valor base */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Valor</Text>
+          <Text style={styles.sectionTitle}>Valor da Consulta</Text>
           <Text style={styles.amount}>R$ {baseAmount.toFixed(2)}</Text>
         </View>
 
+        {/* Seleção de método */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Forma de Pagamento</Text>
           <View style={styles.methodsRow}>
-            <TouchableOpacity style={[styles.method, method === 'pix' && styles.methodActive]} onPress={() => setMethod('pix')}>
-              <Ionicons name="scan" size={22} color={method === 'pix' ? '#FFF' : '#4CAF50'} />
-              <Text style={[styles.methodText, method === 'pix' && styles.methodTextActive]}>Pix</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.method, method === 'card' && styles.methodActive]} onPress={() => setMethod('card')}>
-              <Ionicons name="card" size={22} color={method === 'card' ? '#FFF' : '#4CAF50'} />
-              <Text style={[styles.methodText, method === 'card' && styles.methodTextActive]}>Cartão</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.method, method === 'boleto' && styles.methodActive]} onPress={() => setMethod('boleto')}>
-              <Ionicons name="document-text-outline" size={22} color={method === 'boleto' ? '#FFF' : '#4CAF50'} />
-              <Text style={[styles.methodText, method === 'boleto' && styles.methodTextActive]}>Boleto</Text>
-            </TouchableOpacity>
+            {(['pix', 'card', 'boleto'] as const).map(m => {
+              const icons = { pix: 'scan', card: 'card', boleto: 'document-text-outline' } as const;
+              const labels = { pix: 'Pix', card: 'Cartão', boleto: 'Boleto' };
+              const active = method === m;
+              return (
+                <TouchableOpacity
+                  key={m}
+                  style={[styles.method, active && styles.methodActive]}
+                  onPress={() => handleMethodChange(m)}
+                >
+                  <Ionicons name={icons[m]} size={22} color={active ? '#FFF' : '#4CAF50'} />
+                  <Text style={[styles.methodText, active && styles.methodTextActive]}>{labels[m]}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
-        {method === 'pix' && (
-          <PixView
-            valor={finalAmount}
-            pixKey={pixKey}
-            nomeProfissional={nomeProfissional}
-            onCopiado={() =>
-              showModal('Chave copiada!', 'Cole no seu app bancário para pagar via PIX.', { type: 'success' })
-            }
-          />
-        )}
-
+        {/* ══ CARTÃO ═══════════════════════════════════════════════════════════ */}
         {method === 'card' && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Dados do Cartão</Text>
-            <TextInput style={styles.input} placeholder="Número do cartão" keyboardType="numeric" value={cardNumber} onChangeText={setCardNumber} />
-            <TextInput style={styles.input} placeholder="Nome no cartão" value={cardName} onChangeText={setCardName} />
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TextInput style={[styles.input, { flex: 1 }]} placeholder="MM/AA" value={expiry} onChangeText={setExpiry} />
-              <TextInput style={[styles.input, { width: 100 }]} placeholder="CVV" keyboardType="numeric" value={cvv} onChangeText={setCvv} />
+          <>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Dados do Cartão</Text>
+              <TextInput style={styles.input} placeholder="Número do cartão" keyboardType="numeric" value={cardNumber} onChangeText={setCardNumber} />
+              <TextInput style={styles.input} placeholder="Nome no cartão" value={cardName} onChangeText={setCardName} />
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TextInput style={[styles.input, { flex: 1 }]} placeholder="MM/AA" value={expiry} onChangeText={setExpiry} />
+                <TextInput style={[styles.input, { width: 100 }]} placeholder="CVV" keyboardType="numeric" value={cvv} onChangeText={setCvv} />
+              </View>
             </View>
-          </View>
+            {renderDescontos()}
+            {renderTotal(finalAmount)}
+            <TouchableOpacity style={[styles.payButton, loading && { opacity: 0.6 }]} onPress={handlePayCard} disabled={loading}>
+              {loading
+                ? <ActivityIndicator color="#FFF" />
+                : <><Ionicons name="lock-closed-outline" size={18} color="#FFF" /><Text style={styles.payText}>Pagar R$ {finalAmount.toFixed(2)}</Text></>
+              }
+            </TouchableOpacity>
+          </>
         )}
 
+        {/* ══ PIX ══════════════════════════════════════════════════════════════ */}
+        {method === 'pix' && (
+          <>
+            {renderDescontos()}
+            {renderTotal(finalAmount)}
+            <TouchableOpacity style={styles.payButton} onPress={handleGerarPix}>
+              <Ionicons name="scan-outline" size={18} color="#FFF" />
+              <Text style={styles.payText}>Gerar QR Code PIX</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {/* ══ BOLETO ═══════════════════════════════════════════════════════════ */}
         {method === 'boleto' && (
-          <BoletoView
-            valor={finalAmount}
-            onCopiado={() =>
-              showModal('Copiado!', 'Linha digitável copiada. Cole no seu banco ou internet banking.', { type: 'success' })
-            }
-          />
+          <>
+            {renderDescontos()}
+            {renderTotal(finalAmount)}
+            <TouchableOpacity style={styles.payButton} onPress={handleGerarBoleto}>
+              <Ionicons name="document-text-outline" size={18} color="#FFF" />
+              <Text style={styles.payText}>Gerar Boleto Bancário</Text>
+            </TouchableOpacity>
+          </>
         )}
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Descontos</Text>
-          <View style={styles.rowBetween}>
-            <View>
-              <Text style={styles.small}>Plano de saúde</Text>
-              <Text style={styles.muted}>Aplicar desconto automático do convênio (15%)</Text>
-            </View>
-            <TouchableOpacity style={[styles.toggle, usingPlan && styles.toggleOn]} onPress={() => setUsingPlan(!usingPlan)}>
-              <Text style={{ color: usingPlan ? '#FFF' : '#4CAF50' }}>{usingPlan ? 'Ativado' : 'Ativar'}</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={[styles.small, { marginTop: 12 }]}>Cupom / Código Promocional</Text>
-          <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-            <TextInput style={[styles.input, { flex: 1 }]} placeholder="Ex: UAIMED10" value={promo} onChangeText={setPromo} />
-            <TouchableOpacity style={styles.applyButton} onPress={handleValidarCupom}>
-              <Text style={{ color: '#FFF' }}>Aplicar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Total</Text>
-          <Text style={styles.amount}>R$ {finalAmount.toFixed(2)}</Text>
-        </View>
-
-        <TouchableOpacity style={[styles.payButton, loading && { opacity: 0.6 }]} onPress={handlePay} disabled={loading}>
-          {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.payText}>Pagar R$ {finalAmount.toFixed(2)}</Text>}
-        </TouchableOpacity>
-
       </ScrollView>
 
-      {/* ── Modal de Confirmação de Pagamento ── */}
-      <Modal
-        visible={showConfirmModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowConfirmModal(false)}
-      >
+      {/* ══ MODAL PIX ════════════════════════════════════════════════════════════ */}
+      <Modal visible={showPixModal} animationType="slide" onRequestClose={() => setShowPixModal(false)}>
+        <SafeAreaView style={instrStyles.screen}>
+          {/* Cabeçalho */}
+          <View style={instrStyles.header}>
+            <TouchableOpacity style={instrStyles.closeBtn} onPress={() => setShowPixModal(false)}>
+              <Ionicons name="close" size={22} color="#333" />
+            </TouchableOpacity>
+            <Text style={instrStyles.headerTitle}>Pagar com PIX</Text>
+            <View style={instrStyles.headerRight}>
+              <View style={instrStyles.pixBadge}>
+                <Text style={instrStyles.pixBadgeText}>PIX</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Resumo do valor */}
+          <View style={instrStyles.valueSummary}>
+            <Text style={instrStyles.valueSummaryLabel}>Valor a pagar</Text>
+            <Text style={instrStyles.valueSummaryAmount}>R$ {valorTravado.toFixed(2)}</Text>
+            {valorTravado < baseAmount && (
+              <Text style={instrStyles.valueSummaryDiscount}>
+                Desconto de R$ {(baseAmount - valorTravado).toFixed(2)} aplicado
+              </Text>
+            )}
+          </View>
+
+          <ScrollView contentContainerStyle={instrStyles.scroll} showsVerticalScrollIndicator={false}>
+            <PixView
+              valor={valorTravado}
+              pixKey={pixKey}
+              nomeProfissional={nomeProfissional}
+              onCopiado={() =>
+                showModal('Chave copiada!', 'Cole no seu app bancário para pagar via PIX.', { type: 'success' })
+              }
+            />
+          </ScrollView>
+
+          {/* Rodapé de ação */}
+          <View style={instrStyles.footer}>
+            <TouchableOpacity
+              style={[instrStyles.confirmBtn, loading && { opacity: 0.6 }]}
+              onPress={() => processarPagamentoConfirmado()}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              {loading
+                ? <ActivityIndicator color="#FFF" />
+                : <><Ionicons name="checkmark-circle-outline" size={20} color="#FFF" /><Text style={instrStyles.confirmBtnText}>Já realizei o pagamento</Text></>
+              }
+            </TouchableOpacity>
+            <TouchableOpacity style={instrStyles.cancelLink} onPress={() => setShowPixModal(false)}>
+              <Text style={instrStyles.cancelLinkText}>Fechar e alterar descontos</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* ══ MODAL BOLETO ═════════════════════════════════════════════════════════ */}
+      <Modal visible={showBoletoModal} animationType="slide" onRequestClose={() => setShowBoletoModal(false)}>
+        <SafeAreaView style={instrStyles.screen}>
+          {/* Cabeçalho */}
+          <View style={instrStyles.header}>
+            <TouchableOpacity style={instrStyles.closeBtn} onPress={() => setShowBoletoModal(false)}>
+              <Ionicons name="close" size={22} color="#333" />
+            </TouchableOpacity>
+            <Text style={instrStyles.headerTitle}>Boleto Bancário</Text>
+            <View style={instrStyles.headerRight} />
+          </View>
+
+          {/* Resumo do valor */}
+          <View style={instrStyles.valueSummary}>
+            <Text style={instrStyles.valueSummaryLabel}>Valor a pagar</Text>
+            <Text style={instrStyles.valueSummaryAmount}>R$ {valorTravado.toFixed(2)}</Text>
+            {valorTravado < baseAmount && (
+              <Text style={instrStyles.valueSummaryDiscount}>
+                Desconto de R$ {(baseAmount - valorTravado).toFixed(2)} aplicado
+              </Text>
+            )}
+          </View>
+
+          {/* Aviso boleto */}
+          <View style={instrStyles.boletoBanner}>
+            <Ionicons name="information-circle-outline" size={18} color="#F57F17" />
+            <Text style={instrStyles.boletoBannerText}>
+              O pagamento é confirmado em até 3 dias úteis após o pagamento do boleto.
+            </Text>
+          </View>
+
+          <ScrollView contentContainerStyle={instrStyles.scroll} showsVerticalScrollIndicator={false}>
+            <BoletoView
+              valor={valorTravado}
+              onCopiado={() =>
+                showModal('Copiado!', 'Linha digitável copiada. Cole no seu banco ou internet banking.', { type: 'success' })
+              }
+            />
+          </ScrollView>
+
+          {/* Rodapé de ação */}
+          <View style={instrStyles.footer}>
+            <TouchableOpacity
+              style={[instrStyles.confirmBtn, loading && { opacity: 0.6 }]}
+              onPress={() => processarPagamentoConfirmado()}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              {loading
+                ? <ActivityIndicator color="#FFF" />
+                : <><Ionicons name="document-text-outline" size={20} color="#FFF" /><Text style={instrStyles.confirmBtnText}>Confirmar emissão do boleto</Text></>
+              }
+            </TouchableOpacity>
+            <TouchableOpacity style={instrStyles.cancelLink} onPress={() => setShowBoletoModal(false)}>
+              <Text style={instrStyles.cancelLinkText}>Fechar e alterar descontos</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* ══ MODAL CONFIRMAÇÃO CARTÃO ══════════════════════════════════════════════ */}
+      <Modal visible={showConfirmModal} transparent animationType="fade" onRequestClose={() => setShowConfirmModal(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setShowConfirmModal(false)}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
-            {/* Ícone do método */}
             <View style={styles.modalIconWrapper}>
-              <Ionicons name={methodIcon[method] as any} size={36} color="#4CAF50" />
+              <Ionicons name="card" size={36} color="#4CAF50" />
             </View>
-
             <Text style={styles.modalTitle}>Confirmar Pagamento</Text>
 
-            {/* Método */}
             <View style={styles.modalInfoRow}>
               <Ionicons name="card-outline" size={18} color="#4CAF50" />
               <Text style={styles.modalInfoLabel}>Método</Text>
-              <Text style={styles.modalInfoValue}>{methodLabel[method]}</Text>
+              <Text style={styles.modalInfoValue}>Cartão de crédito/débito</Text>
             </View>
-
-            {/* Valor base */}
             <View style={styles.modalInfoRow}>
               <Ionicons name="cash-outline" size={18} color="#4CAF50" />
               <Text style={styles.modalInfoLabel}>Valor</Text>
               <Text style={styles.modalInfoValue}>R$ {baseAmount.toFixed(2)}</Text>
             </View>
-
-            {/* Desconto se houver */}
             {finalAmount < baseAmount && (
               <View style={styles.modalInfoRow}>
                 <Ionicons name="pricetag-outline" size={18} color="#4CAF50" />
@@ -598,8 +749,6 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
                 </Text>
               </View>
             )}
-
-            {/* Total */}
             <View style={[styles.modalInfoRow, styles.modalInfoRowTotal]}>
               <Ionicons name="checkmark-circle-outline" size={18} color="#FFF" />
               <Text style={[styles.modalInfoLabel, { color: '#FFF' }]}>Total</Text>
@@ -608,41 +757,28 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
               </Text>
             </View>
 
-            <Text style={styles.modalHint}>
-              Deseja confirmar este pagamento?
-            </Text>
+            <Text style={styles.modalHint}>Deseja confirmar este pagamento?</Text>
 
-            {/* Botões */}
             <View style={styles.modalBtns}>
-              <TouchableOpacity
-                style={styles.modalBtnCancel}
-                onPress={() => setShowConfirmModal(false)}
-                activeOpacity={0.75}
-              >
+              <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setShowConfirmModal(false)} activeOpacity={0.75}>
                 <Text style={styles.modalBtnCancelText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalBtnConfirm, loading && { opacity: 0.7 }]}
-                onPress={() => {
-                  setShowConfirmModal(false);
-                  processarPagamentoConfirmado();
-                }}
+                onPress={() => processarPagamentoConfirmado()}
                 disabled={loading}
                 activeOpacity={0.8}
               >
-                {loading ? (
-                  <ActivityIndicator size="small" color="#FFF" />
-                ) : (
-                  <>
-                    <Ionicons name="lock-closed-outline" size={16} color="#FFF" />
-                    <Text style={styles.modalBtnConfirmText}>Pagar agora</Text>
-                  </>
-                )}
+                {loading
+                  ? <ActivityIndicator size="small" color="#FFF" />
+                  : <><Ionicons name="lock-closed-outline" size={16} color="#FFF" /><Text style={styles.modalBtnConfirmText}>Pagar agora</Text></>
+                }
               </TouchableOpacity>
             </View>
           </Pressable>
         </Pressable>
       </Modal>
+
       <AppModal {...modal} onClose={hideModal} />
     </SafeAreaView>
   );
@@ -668,8 +804,13 @@ const styles = StyleSheet.create({
   toggle: { borderWidth: 1, borderColor: '#4CAF50', padding: 8, borderRadius: 6 },
   toggleOn: { backgroundColor: '#4CAF50' },
   applyButton: { backgroundColor: '#4CAF50', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  payButton: { backgroundColor: '#4CAF50', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 18 },
+  payButton: { backgroundColor: '#4CAF50', padding: 14, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 18 },
   payText: { color: '#FFF', fontWeight: '700' },
+  savingText: { fontSize: 12, color: '#2E7D32', marginTop: 4, fontWeight: '600' },
+  discountBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, backgroundColor: '#E8F5E9', padding: 8, borderRadius: 6 },
+  discountBadgeText: { fontSize: 12, color: '#2E7D32', fontWeight: '600' },
+  resetBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 8 },
+  resetBtnText: { fontSize: 13, color: '#4CAF50', fontWeight: '600' },
 
   // ── Modal de confirmação ────────────────────────────────────────────────────
   modalOverlay: {
@@ -784,6 +925,149 @@ const styles = StyleSheet.create({
 });
 
 export default PagamentoScreen;
+
+// ── Estilos dos modais de instrumento (PIX / Boleto) ─────────────────────────
+const instrStyles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: '#F5F7FA',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+  },
+  closeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#222',
+  },
+  headerRight: {
+    width: 36,
+    alignItems: 'flex-end',
+  },
+  pixBadge: {
+    backgroundColor: '#00BCD4',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  pixBadgeText: {
+    color: '#FFF',
+    fontWeight: '900',
+    fontSize: 11,
+    letterSpacing: 1,
+  },
+  valueSummary: {
+    backgroundColor: '#FFF',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  valueSummaryLabel: {
+    fontSize: 12,
+    color: '#999',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  valueSummaryAmount: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#1B5E20',
+  },
+  valueSummaryDiscount: {
+    fontSize: 12,
+    color: '#4CAF50',
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  boletoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFF8E1',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FFE082',
+  },
+  boletoBannerText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#F57F17',
+    fontWeight: '500',
+    lineHeight: 17,
+  },
+  scroll: {
+    padding: 16,
+    paddingBottom: 8,
+  },
+  footer: {
+    backgroundColor: '#FFF',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 28,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
+    gap: 10,
+  },
+  confirmBtn: {
+    backgroundColor: '#4CAF50',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 15,
+    borderRadius: 14,
+    elevation: 2,
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+  },
+  confirmBtnText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  cancelLink: {
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  cancelLinkText: {
+    fontSize: 13,
+    color: '#999',
+    fontWeight: '500',
+  },
+});
 
 // ── Estilos do PIX ────────────────────────────────────────────────────────────
 const pixStyles = StyleSheet.create({
