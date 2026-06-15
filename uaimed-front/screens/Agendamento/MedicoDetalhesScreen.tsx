@@ -23,6 +23,7 @@ interface MedicoPerfil {
   endereco: string;
   dataFormacao: string;
   pixKey: string | null;
+  precoConsulta: number;
   totalAgendamentos: number;
   totalAvaliacoes: number;
   notaMedia: number | null;
@@ -64,6 +65,7 @@ const MedicoDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleAgendar = () =>
     navigation.navigate('SelecaoHorario', {
       medicoId: medicoId ?? '',
+      amount: perfil?.precoConsulta,
       pixKey: perfil?.pixKey ?? pixKeyParam,
       nomeProfissional: perfil?.nome ?? nomeProfissional,
     });
@@ -159,6 +161,7 @@ const MedicoDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
               <Text style={s.cardTitle}>Sobre o Profissional</Text>
               <InfoRow icon="school-outline"   label="Formação"    value={anoFormacao ? `Formado em ${anoFormacao}` : 'Não informado'} />
               <InfoRow icon="ribbon-outline"   label="CRM"         value={perfil.crm || 'Não informado'} />
+              <InfoRow icon="cash-outline"     label="Consulta"    value={`R$ ${perfil.precoConsulta.toFixed(2)}`} />
               <InfoRow icon="location-outline" label="Localização" value={[perfil.cidade, perfil.estado].filter(Boolean).join(', ') || 'Não informado'} />
               <InfoRow icon="home-outline"     label="Endereço"    value={perfil.endereco || 'Não informado'} />
               <InfoRow icon="call-outline" label="Telefone" value={perfil.telefone || 'Não informado'} last />
