@@ -274,7 +274,7 @@ const MainTabNavigator: React.FC = () => {
           headerLeft: () => (
             <TouchableOpacity
               style={{ marginLeft: 16 }}
-              onPress={() => navigation.navigate('Home' as any)}
+              onPress={() => navigation.goBack()}
             >
               <Ionicons name="arrow-back" size={24} color="#333" />
             </TouchableOpacity>
