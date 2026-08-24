@@ -1,6 +1,7 @@
 import { prisma } from "../config/database";
 import { hashPassword, comparePassword } from "../utils/hash";
 import { generateToken } from "../utils/jwt";
+import { geocodeEndereco } from "./geocoding.service";
 import logger from "../utils/logger";
 
 export interface SignUpData {
@@ -25,6 +26,21 @@ export interface SignInData {
   senha: string;
 }
 
+// Campos do profissional seguros para expor no payload de autenticação
+// (exclui dados bancários: pixKey, banco, agencia, conta, tipoConta)
+const PROFISSIONAL_PUBLIC_SELECT = {
+  id: true,
+  especialidade: true,
+  crm: true,
+  endereco: true,
+  cidade: true,
+  estado: true,
+  cep: true,
+  latitude: true,
+  longitude: true,
+  precoConsulta: true,
+} as const;
+
 class AuthService {
   async signup(data: SignUpData) {
     const existing = await prisma.usuario.findUnique({ where: { email: data.email } });
@@ -40,8 +56,18 @@ class AuthService {
       }
     }
 
+    // Geocodifica o endereço fora da transação (chamada externa não deve
+    // segurar uma transação de banco aberta)
+    const coordenadas = tipo === 'medico'
+      ? await geocodeEndereco({
+          endereco: data.endereco || '',
+          cidade: data.cidade || '',
+          estado: data.estado || '',
+        })
+      : null;
+
     // Usa transação para garantir atomicidade: usuário + profissional criados juntos
-    const { usuario, token } = await prisma.$transaction(async (tx) => {
+    const { usuario, profissional, token } = await prisma.$transaction(async (tx) => {
       const usuario = await tx.usuario.create({
         data: {
           nome: data.nome,
@@ -57,8 +83,9 @@ class AuthService {
         select: { id: true, nome: true, email: true, tipo: true },
       });
 
+      let profissional = null;
       if (tipo === 'medico') {
-        await tx.profissional.create({
+        profissional = await tx.profissional.create({
           data: {
             usuarioId: usuario.id,
             especialidade: data.especialidade!,
@@ -68,17 +95,20 @@ class AuthService {
             cidade: data.cidade || '',
             estado: data.estado || '',
             cep: data.cep || '',
+            latitude: coordenadas?.latitude,
+            longitude: coordenadas?.longitude,
           },
+          select: PROFISSIONAL_PUBLIC_SELECT,
         });
       }
 
       const token = generateToken({ id: usuario.id, email: usuario.email, tipo: usuario.tipo });
-      return { usuario, token };
+      return { usuario, profissional, token };
     });
 
     logger.success(`Novo usuário: ${usuario.email}`);
 
-    return { usuario, token };
+    return { usuario, profissional, token };
   }
 
   async signin(data: SignInData) {
@@ -90,6 +120,13 @@ class AuthService {
 
     const token = generateToken({ id: usuario.id, email: usuario.email, tipo: usuario.tipo });
 
+    const profissional = usuario.tipo === 'medico'
+      ? await prisma.profissional.findUnique({
+          where: { usuarioId: usuario.id },
+          select: PROFISSIONAL_PUBLIC_SELECT,
+        })
+      : null;
+
     return {
       usuario: {
         id: usuario.id,
@@ -99,6 +136,7 @@ class AuthService {
         telefone: usuario.telefone,
         tipo: usuario.tipo,
         avatar: usuario.avatar,
+        profissional,
       },
       token,
     };

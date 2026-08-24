@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Image, Platform, StatusBar,
+  ActivityIndicator, Image, Platform, StatusBar, Linking,
 } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { AgendamentoStackParamList } from '../../navigation/types';
 import uaiMedApi from '../../api/uaiMedApi';
+import { distanciaKm, googleMapsUrl } from '../../utils/geo';
+import LocalizacaoMedicoCard from '../../components/LocalizacaoMedicoCard';
 
 type Props = StackScreenProps<AgendamentoStackParamList, 'DetalhesMedico'>;
 
@@ -20,6 +23,8 @@ interface MedicoPerfil {
   cidade: string;
   estado: string;
   endereco: string;
+  latitude: number | null;
+  longitude: number | null;
   dataFormacao: string;
   pixKey: string | null;
   precoConsulta: number;
@@ -41,6 +46,7 @@ const MedicoDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
   const { medicoId, pixKey: pixKeyParam, nomeProfissional } = route.params ?? {};
   const [perfil, setPerfil] = useState<MedicoPerfil | null>(null);
   const [loading, setLoading] = useState(true);
+  const [distancia, setDistancia] = useState<number | null>(null);
 
   useEffect(() => {
     if (!medicoId) { setLoading(false); return; }
@@ -49,6 +55,24 @@ const MedicoDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
       .catch(() => setPerfil(null))
       .finally(() => setLoading(false));
   }, [medicoId]);
+
+  useEffect(() => {
+    if (perfil?.latitude == null || perfil?.longitude == null) return;
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+      setDistancia(distanciaKm(
+        pos.coords.latitude, pos.coords.longitude,
+        perfil.latitude!, perfil.longitude!,
+      ));
+    })().catch(() => { /* localização é opcional, ignora falha */ });
+  }, [perfil?.latitude, perfil?.longitude]);
+
+  const handleAbrirMapa = () => {
+    if (perfil?.latitude == null || perfil?.longitude == null) return;
+    Linking.openURL(googleMapsUrl(perfil.latitude, perfil.longitude));
+  };
 
   const anoFormacao = perfil?.dataFormacao ? new Date(perfil.dataFormacao).getFullYear() : null;
   const anosExp = anoFormacao ? new Date().getFullYear() - anoFormacao : null;
@@ -66,6 +90,8 @@ const MedicoDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
       amount: perfil?.precoConsulta,
       pixKey: perfil?.pixKey ?? pixKeyParam,
       nomeProfissional: perfil?.nome ?? nomeProfissional,
+      latitude: perfil?.latitude,
+      longitude: perfil?.longitude,
     });
 
   const handleConversar = async () => {
@@ -164,6 +190,16 @@ const MedicoDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
               <InfoRow icon="home-outline"     label="Endereço"    value={perfil.endereco || 'Não informado'} />
               <InfoRow icon="call-outline" label="Telefone" value={perfil.telefone || 'Não informado'} last />
             </View>
+
+            {/* Localização */}
+            {perfil.latitude != null && perfil.longitude != null && (
+              <LocalizacaoMedicoCard
+                latitude={perfil.latitude}
+                longitude={perfil.longitude}
+                distanciaKm={distancia}
+                onAbrirMapa={handleAbrirMapa}
+              />
+            )}
 
             {/* Avaliações */}
             {perfil.avaliacoes.length > 0 && (

@@ -51,7 +51,7 @@ function buildCalendarGrid(year: number, month: number): (Date | null)[] {
 // ─── Componente ───────────────────────────────────────────────────────────────
 
 const SelecaoHorarioScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { medicoId, amount } = route.params ?? {};
+  const { medicoId, amount, pixKey, nomeProfissional, latitude, longitude } = route.params ?? {};
 
   const todayMidnight = (() => {
     const d = new Date();
@@ -105,6 +105,10 @@ const SelecaoHorarioScreen: React.FC<Props> = ({ route, navigation }) => {
       dateKey: toDateKey(date),
       displayDate,
       amount,
+      pixKey,
+      nomeProfissional,
+      latitude,
+      longitude,
     });
   };
 

@@ -1,13 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { AgendamentoStackParamList } from '../../navigation/types';
+import LocalizacaoMedicoCard from '../../components/LocalizacaoMedicoCard';
+import { googleMapsUrl } from '../../utils/geo';
 
 type Props = StackScreenProps<AgendamentoStackParamList, 'Confirmacao'>;
 
 const ConfirmacaoScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { horario, medicoId, agendamentoId, amount, pixKey, nomeProfissional } = route.params ?? {};
+  const { horario, medicoId, agendamentoId, amount, pixKey, nomeProfissional, latitude, longitude } = route.params ?? {};
 
   const dataFormatada = horario
     ? new Date(horario).toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' })
@@ -63,6 +65,18 @@ const ConfirmacaoScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         </View>
       </View>
+
+      {/* Localização da consulta */}
+      {latitude != null && longitude != null && (
+        <View style={{ width: '100%', marginBottom: 24 }}>
+          <LocalizacaoMedicoCard
+            latitude={latitude}
+            longitude={longitude}
+            distanciaKm={null}
+            onAbrirMapa={() => Linking.openURL(googleMapsUrl(latitude, longitude))}
+          />
+        </View>
+      )}
 
       {/* Botão principal: Ir para Pagamento */}
       {agendamentoId && medicoId ? (

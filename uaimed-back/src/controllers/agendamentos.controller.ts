@@ -82,10 +82,16 @@ class AgendamentosController {
 
       const mapped = agendamentos.map(a => ({
         id: a.id,
+        medicoId: a.profissionalId,
         medico: a.profissional?.usuario?.nome || null,
         especialidade: a.profissional?.especialidade || null,
         data: a.dataHora,
         status: a.status,
+        endereco: a.profissional?.endereco || null,
+        cidade: a.profissional?.cidade || null,
+        estado: a.profissional?.estado || null,
+        latitude: a.profissional?.latitude ?? null,
+        longitude: a.profissional?.longitude ?? null,
       }));
 
       return res.json(mapped);

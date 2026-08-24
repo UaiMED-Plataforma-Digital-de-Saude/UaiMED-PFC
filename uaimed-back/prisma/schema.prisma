@@ -48,6 +48,8 @@ model Profissional {
   cidade        String
   estado        String
   cep           String
+  latitude      Float?
+  longitude     Float?
   pixKey        String?
   banco         String?
   agencia       String?

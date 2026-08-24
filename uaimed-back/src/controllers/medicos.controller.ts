@@ -106,6 +106,8 @@ class MedicosController {
         cidade: prof.cidade,
         estado: prof.estado,
         endereco: prof.endereco,
+        latitude: prof.latitude,
+        longitude: prof.longitude,
         dataFormacao: prof.dataFormacao,
         pixKey: prof.pixKey ?? null,
         precoConsulta: prof.precoConsulta,

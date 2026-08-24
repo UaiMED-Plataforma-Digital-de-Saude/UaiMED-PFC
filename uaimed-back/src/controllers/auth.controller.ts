@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import AuthService from "../services/auth.service";
-import { prisma } from "../config/database";
 import logger from "../utils/logger";
 
 class AuthController {
@@ -8,14 +7,8 @@ class AuthController {
     try {
       const result = await AuthService.signup(req.body);
       // Retorna no formato esperado pelo frontend: { user, token }
-      // Se for médico, tente carregar o registro de profissional
-      let profissional = null;
-      if (result.usuario?.tipo === 'medico') {
-        profissional = await prisma.profissional.findUnique({ where: { usuarioId: result.usuario.id } });
-      }
-
       return res.status(201).json({
-        user: { ...result.usuario, profissional },
+        user: { ...result.usuario, profissional: result.profissional },
         token: result.token,
       });
     } catch (err: any) {
