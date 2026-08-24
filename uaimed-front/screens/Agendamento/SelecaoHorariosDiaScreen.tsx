@@ -20,7 +20,7 @@ import { useModal } from '../../hooks/useModal';
 type Props = StackScreenProps<AgendamentoStackParamList, 'SelecaoHorariosDia'>;
 
 const SelecaoHorariosDiaScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { medicoId, dateKey, displayDate, amount } = route.params ?? {};
+  const { medicoId, dateKey, displayDate, amount, pixKey, nomeProfissional, latitude, longitude } = route.params ?? {};
 
   const [horarios, setHorarios] = useState<string[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -85,6 +85,10 @@ const SelecaoHorariosDiaScreen: React.FC<Props> = ({ route, navigation }) => {
         medicoId: medicoId ?? '',
         agendamentoId,
         amount: amount ?? res.data?.valor ?? 0,
+        pixKey,
+        nomeProfissional,
+        latitude,
+        longitude,
       });
     } catch (e: any) {
       const status = e?.response?.status;

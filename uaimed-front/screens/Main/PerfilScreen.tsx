@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, TextInput, Switch, Platform, Image,
+  ActivityIndicator, TextInput, Switch, Platform, Image, Linking,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
@@ -12,6 +12,8 @@ import { useAvaliacoes } from '../../hooks/useAvaliacoes';
 import AppModal from '../../components/AppModal';
 import { useModal } from '../../hooks/useModal';
 import uaiMedApi from '../../api/uaiMedApi';
+import LocalizacaoMedicoCard from '../../components/LocalizacaoMedicoCard';
+import { googleMapsUrl } from '../../utils/geo';
 
 type PerfilScreenProps = BottomTabScreenProps<MainTabParamList, 'Perfil'>;
 
@@ -70,6 +72,10 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   const [editMode, setEditMode]       = React.useState(false);
   const [editNome, setEditNome]       = React.useState('');
   const [editTelefone, setEditTelefone] = React.useState('');
+  const [editEndereco, setEditEndereco] = React.useState('');
+  const [editCidade, setEditCidade]     = React.useState('');
+  const [editEstado, setEditEstado]     = React.useState('');
+  const [editCep, setEditCep]           = React.useState('');
   const [saveLoading, setSaveLoading] = React.useState(false);
   const [avatarLoading, setAvatarLoading] = React.useState(false);
 
@@ -107,6 +113,10 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   const handleStartEdit = () => {
     setEditNome(user?.nome ?? '');
     setEditTelefone(user?.telefone ?? '');
+    setEditEndereco(user?.profissional?.endereco ?? '');
+    setEditCidade(user?.profissional?.cidade ?? '');
+    setEditEstado(user?.profissional?.estado ?? '');
+    setEditCep(user?.profissional?.cep ?? '');
     setEditMode(true);
   };
 
@@ -120,13 +130,31 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
       showModal('Campo obrigatório', 'O nome não pode ficar vazio.', { type: 'warning' });
       return;
     }
+    if (isMedico && (!editEndereco.trim() || !editCidade.trim() || !editEstado.trim())) {
+      showModal('Campo obrigatório', 'Endereço, cidade e estado são obrigatórios.', { type: 'warning' });
+      return;
+    }
     setSaveLoading(true);
     try {
-      const res = await uaiMedApi.put('/users/me', {
-        nome: editNome.trim(),
-        telefone: editTelefone.trim(),
+      const [contaRes, enderecoRes] = await Promise.all([
+        uaiMedApi.put('/users/me', {
+          nome: editNome.trim(),
+          telefone: editTelefone.trim(),
+        }),
+        isMedico
+          ? uaiMedApi.put('/professionals/me/endereco', {
+              endereco: editEndereco.trim(),
+              cidade: editCidade.trim(),
+              estado: editEstado.trim(),
+              cep: editCep.trim(),
+            })
+          : Promise.resolve(null),
+      ]);
+      await updateUser({
+        nome: contaRes.data.user.nome,
+        telefone: contaRes.data.user.telefone,
+        ...(enderecoRes ? { profissional: { ...user?.profissional, ...enderecoRes.data } } : {}),
       });
-      await updateUser({ nome: res.data.user.nome, telefone: res.data.user.telefone });
       setEditMode(false);
       showModal('Perfil atualizado!', 'Suas informações foram salvas com sucesso.', { type: 'success' });
     } catch {
@@ -324,6 +352,51 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
                   <Text style={s.fieldReadonlyValue}>{user.profissional?.crm || 'Não informado'}</Text>
                   <Text style={s.fieldLabelReadonly}>Especialidade</Text>
                   <Text style={s.fieldReadonlyValue}>{user.profissional?.especialidade || 'Não informado'}</Text>
+
+                  <Text style={s.fieldLabel}>Endereço do Consultório</Text>
+                  <Text style={s.fieldHint}>
+                    Usado para posicionar o pino no mapa que os pacientes veem.
+                  </Text>
+                  <TextInput
+                    style={s.fieldInput}
+                    value={editEndereco}
+                    onChangeText={setEditEndereco}
+                    placeholder="Rua, número, bairro"
+                    editable={!saveLoading}
+                  />
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <View style={{ flex: 2 }}>
+                      <Text style={s.fieldLabel}>Cidade</Text>
+                      <TextInput
+                        style={s.fieldInput}
+                        value={editCidade}
+                        onChangeText={setEditCidade}
+                        placeholder="Cidade"
+                        editable={!saveLoading}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.fieldLabel}>UF</Text>
+                      <TextInput
+                        style={s.fieldInput}
+                        value={editEstado}
+                        onChangeText={setEditEstado}
+                        placeholder="MG"
+                        maxLength={2}
+                        autoCapitalize="characters"
+                        editable={!saveLoading}
+                      />
+                    </View>
+                  </View>
+                  <Text style={s.fieldLabel}>CEP</Text>
+                  <TextInput
+                    style={s.fieldInput}
+                    value={editCep}
+                    onChangeText={setEditCep}
+                    placeholder="00000-000"
+                    keyboardType="numeric"
+                    editable={!saveLoading}
+                  />
                 </>
               )}
 
@@ -359,6 +432,36 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
             </>
           )}
         </View>
+
+        {/* ── 1b. Localização do consultório — somente MÉDICO ── */}
+        {isMedico && !editMode && (
+          user.profissional?.latitude != null && user.profissional?.longitude != null ? (
+            <LocalizacaoMedicoCard
+              titulo="Localização do Consultório"
+              latitude={user.profissional.latitude}
+              longitude={user.profissional.longitude}
+              distanciaKm={null}
+              onAbrirMapa={() => Linking.openURL(googleMapsUrl(user.profissional!.latitude!, user.profissional!.longitude!))}
+            />
+          ) : (
+            <View style={s.card}>
+              <Text style={s.cardTitle}>Localização do Consultório</Text>
+              <InfoRow
+                icon="location-outline"
+                label="Endereço"
+                value={
+                  [user.profissional?.endereco, user.profissional?.cidade, user.profissional?.estado]
+                    .filter(Boolean).join(', ') || 'Não informado'
+                }
+                iconColor="#4CAF50"
+                last
+              />
+              <Text style={s.avisoSemMapa}>
+                Não conseguimos localizar seu endereço no mapa. Verifique se o endereço cadastrado está completo.
+              </Text>
+            </View>
+          )
+        )}
 
         {/* ── 2. Registros — somente PACIENTE ── */}
         {isPaciente && (
@@ -639,9 +742,11 @@ const s = StyleSheet.create({
     shadowRadius: 4,
   },
   cardTitle: { fontSize: 13, fontWeight: '700', color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
+  avisoSemMapa: { fontSize: 12, color: '#AAA', marginTop: 10, lineHeight: 17 },
 
   // Campos de edição
   fieldLabel: { fontSize: 11, fontWeight: '700', color: '#4CAF50', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4, marginTop: 8 },
+  fieldHint: { fontSize: 11, color: '#999', marginBottom: 6, lineHeight: 15 },
   fieldInput: {
     borderWidth: 1.5, borderColor: '#C8E6C9', borderRadius: 10,
     paddingHorizontal: 12, paddingVertical: 10,

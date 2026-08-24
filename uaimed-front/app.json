@@ -12,7 +12,10 @@
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTabletMode": true
+      "supportsTabletMode": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Usamos sua localização para mostrar a distância até o local da consulta."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -29,6 +32,12 @@
         "expo-notifications",
         {
           "icons": ["./assets/icon.png"]
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Usamos sua localização para mostrar a distância até o local da consulta."
         }
       ]
     ]

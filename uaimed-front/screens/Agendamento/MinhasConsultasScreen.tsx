@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +16,7 @@ import { AgendamentoStackParamList } from '../../navigation/types';
 import uaiMedApi from '../../api/uaiMedApi';
 import AppModal from '../../components/AppModal';
 import { useModal } from '../../hooks/useModal';
+import { googleMapsUrl } from '../../utils/geo';
 
 type Props = StackScreenProps<AgendamentoStackParamList, 'MinhasConsultas'>;
 
@@ -28,6 +30,11 @@ interface Consulta {
   medicoId?: string;
   especialidade: string | null;
   status: string;
+  endereco?: string | null;
+  cidade?: string | null;
+  estado?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
@@ -189,6 +196,24 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
           <Ionicons name="time-outline" size={14} color="#888" style={{ marginLeft: 10 }} />
           <Text style={styles.dateText}>{timeStr}</Text>
         </View>
+
+        {/* Localização da consulta */}
+        {(item.endereco || item.cidade) && (
+          <View style={styles.localRow}>
+            <Ionicons name="location-outline" size={14} color="#888" />
+            <Text style={styles.localText} numberOfLines={1}>
+              {[item.endereco, item.cidade, item.estado].filter(Boolean).join(', ')}
+            </Text>
+            {item.latitude != null && item.longitude != null && (
+              <TouchableOpacity
+                onPress={() => Linking.openURL(googleMapsUrl(item.latitude!, item.longitude!))}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.mapLinkTxt}>Ver no mapa</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         {/* Ações (apenas para consultas futuras agendadas/confirmadas) */}
         {podeAgir && (
@@ -400,6 +425,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   dateText: { fontSize: 12, color: '#666', textTransform: 'capitalize' },
+
+  localRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 8,
+    paddingHorizontal: 2,
+  },
+  localText: { flex: 1, fontSize: 12, color: '#888' },
+  mapLinkTxt: { fontSize: 12, color: '#4B73B2', fontWeight: '700' },
 
   actionsRow: {
     flexDirection: 'row',

@@ -22,6 +22,13 @@ export interface User {
     id: string;
     especialidade?: string;
     crm?: string;
+    endereco?: string;
+    cidade?: string;
+    estado?: string;
+    cep?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    precoConsulta?: number;
   } | null;
 }
 
