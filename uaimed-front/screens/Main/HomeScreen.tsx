@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   Image,
 } from 'react-native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import { useFocusEffect } from '@react-navigation/native';
 import { MainTabParamList } from '../../navigation/types';
 import { useAuth } from '../../hooks/useAuth';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,6 +28,7 @@ interface HomeArtigo {
   titulo: string;
   resumo: string | null;
   categoria: string;
+  banner: string | null;
 }
 
 const CAT_CFG: Record<string, { bg: string; icon: string; color: string; badgeBg: string }> = {
@@ -271,13 +273,23 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
     });
   }, []);
 
-  // Busca os 2 primeiros artigos para exibir na home
-  useEffect(() => {
-    uaiMedApi.get('/artigos').then((res) => {
-      const lista = Array.isArray(res.data) ? res.data : [];
-      setHomeArtigos(lista.slice(0, 2));
-    }).catch(() => {});
-  }, []);
+  // Atualiza os artigos recentes sempre que a Home volta a ficar em foco.
+  // A API já devolve os artigos do mais recente para o mais antigo.
+  useFocusEffect(
+    useCallback(() => {
+      let ativo = true;
+
+      uaiMedApi.get('/artigos').then((res) => {
+        if (!ativo) return;
+        const lista = Array.isArray(res.data) ? res.data : [];
+        setHomeArtigos(lista.slice(0, 2));
+      }).catch((erro) => {
+        console.warn('[Home] Erro ao buscar artigos recentes:', erro);
+      });
+
+      return () => { ativo = false; };
+    }, []),
+  );
 
   const handleLocationConfirm = async (loc: LocationValue) => {
     setLocation(loc);
@@ -352,8 +364,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
           }
         />
 
-        {/* Artigos de Saúde */}
-        <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Artigos de Saúde</Text>
+        {/* Artigos recentes */}
+        <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Artigos recentes</Text>
 
         <View style={styles.articlesContainer}>
           {homeArtigos.map((artigo) => {
@@ -366,7 +378,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
                 onPress={() => navigation.navigate('ArtigoDetalhes', { artigoId: artigo.id })}
               >
                 <View style={[styles.articleBanner, { backgroundColor: cfg.bg }]}>
-                  <Ionicons name={cfg.icon as any} size={48} color={cfg.color} />
+                  {artigo.banner ? (
+                    <Image source={{ uri: artigo.banner }} style={styles.articleBannerImage} />
+                  ) : (
+                    <Ionicons name={cfg.icon as any} size={48} color={cfg.color} />
+                  )}
                 </View>
                 <View style={styles.articleContent}>
                   <View style={[styles.articleBadge, { backgroundColor: cfg.badgeBg }]}>
@@ -549,6 +565,11 @@ const styles = StyleSheet.create({
     width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  articleBannerImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   articleContent: {
     padding: 16,

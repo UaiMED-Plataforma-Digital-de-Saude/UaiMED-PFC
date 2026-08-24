@@ -82,6 +82,55 @@ class ArtigosController {
       return res.status(500).json({ error: 'Erro ao criar artigo' });
     }
   }
+
+  // PUT /api/artigos/:id
+  async atualizar(req: Request, res: Response) {
+    try {
+      const usuario = (req as any).user as { id?: string; tipo?: string } | undefined;
+      if (!usuario?.id) return res.status(401).json({ error: 'Usuário não autenticado' });
+
+      const artigoAtual = await prisma.artigo.findUnique({ where: { id: req.params.id } });
+      if (!artigoAtual) return res.status(404).json({ error: 'Artigo não encontrado' });
+
+      if (artigoAtual.autorId !== usuario.id && usuario.tipo !== 'admin') {
+        return res.status(403).json({ error: 'Você não tem permissão para editar este artigo' });
+      }
+
+      const { titulo, resumo, categoria, corpo, banner } = req.body as {
+        titulo?: string;
+        resumo?: string | null;
+        categoria?: string;
+        corpo?: string;
+        banner?: string | null;
+      };
+
+      if (!titulo?.trim() || !categoria?.trim() || !corpo?.trim()) {
+        return res.status(400).json({ error: 'Título, categoria e corpo são obrigatórios' });
+      }
+
+      if (banner && !banner.startsWith('data:image/')) {
+        return res.status(400).json({ error: 'Banner inválido. Envie uma imagem no formato base64.' });
+      }
+
+      const artigo = await prisma.artigo.update({
+        where: { id: artigoAtual.id },
+        data: {
+          titulo: titulo.trim(),
+          resumo: resumo?.trim() || null,
+          categoria: categoria.trim().toUpperCase(),
+          corpo: corpo.trim(),
+          banner: banner || null,
+        },
+        include: { autor: { select: { nome: true, tipo: true } } },
+      });
+
+      logger.success(`Artigo atualizado: ${artigo.id} por ${usuario.id}`);
+      return res.json(artigo);
+    } catch (err) {
+      logger.error('Erro ao atualizar artigo', err);
+      return res.status(500).json({ error: 'Erro ao atualizar artigo' });
+    }
+  }
 }
 
 export default new ArtigosController();

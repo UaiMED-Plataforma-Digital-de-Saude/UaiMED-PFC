@@ -585,7 +585,7 @@ const s = StyleSheet.create({
   avatarCircle: {
     width: AVATAR_SIZE, height: AVATAR_SIZE, borderRadius: AVATAR_SIZE / 2,
     backgroundColor: '#4CAF50',
-    borderWidth: 2, borderColor: 'rgba(255,255,255,0.6)',
+    borderWidth: 2, borderColor: '#4CAF50',
     alignItems: 'center', justifyContent: 'center',
   },
   avatarImage: {

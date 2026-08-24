@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TextInput,
   TouchableOpacity, Image, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -19,15 +19,44 @@ const CATEGORIAS = [
   'CARDIOLOGIA', 'PEDIATRIA', 'ORTOPEDIA', 'DERMATOLOGIA',
 ];
 
-const ArtigoCadastroScreen: React.FC<Props> = ({ navigation }) => {
+const ArtigoCadastroScreen: React.FC<Props> = ({ navigation, route }) => {
   const [titulo, setTitulo]       = useState('');
   const [resumo, setResumo]       = useState('');
   const [categoria, setCategoria] = useState('');
   const [corpo, setCorpo]         = useState('');
   const [banner, setBanner]       = useState<string | null>(null);
   const [loading, setLoading]     = useState(false);
+  const [loadingArtigo, setLoadingArtigo] = useState(false);
 
   const { modal, showModal, hideModal } = useModal();
+
+  const artigoId = route.params?.artigoId;
+  const editando = !!artigoId;
+
+  useEffect(() => {
+    navigation.setOptions({ title: editando ? 'Editar Artigo' : 'Novo Artigo' });
+  }, [editando, navigation]);
+
+  useEffect(() => {
+    if (!artigoId) return;
+
+    let ativo = true;
+    setLoadingArtigo(true);
+    uaiMedApi.get(`/artigos/${artigoId}`).then((res) => {
+      if (!ativo) return;
+      setTitulo(res.data.titulo ?? '');
+      setResumo(res.data.resumo ?? '');
+      setCategoria(res.data.categoria ?? '');
+      setCorpo(res.data.corpo ?? '');
+      setBanner(res.data.banner ?? null);
+    }).catch(() => {
+      showModal('Erro', 'Não foi possível carregar o artigo para edição.', { type: 'error' });
+    }).finally(() => {
+      if (ativo) setLoadingArtigo(false);
+    });
+
+    return () => { ativo = false; };
+  }, [artigoId]);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -54,24 +83,49 @@ const ArtigoCadastroScreen: React.FC<Props> = ({ navigation }) => {
     }
     setLoading(true);
     try {
-      await uaiMedApi.post('/artigos', {
+      const payload = {
         titulo:    titulo.trim(),
         resumo:    resumo.trim() || undefined,
         categoria,
         corpo:     corpo.trim(),
         banner:    banner ?? undefined,
-      });
-      showModal('Artigo publicado!', 'Seu artigo foi publicado com sucesso.', {
+      };
+
+      if (artigoId) {
+        await uaiMedApi.put(`/artigos/${artigoId}`, payload);
+      } else {
+        await uaiMedApi.post('/artigos', payload);
+      }
+
+      showModal(
+        editando ? 'Artigo atualizado!' : 'Artigo publicado!',
+        editando ? 'As alterações foram salvas com sucesso.' : 'Seu artigo foi publicado com sucesso.', {
         type: 'success',
-        buttons: [{ text: 'Ver Artigos', onPress: () => navigation.navigate('Artigos') }],
+        buttons: [{
+          text: editando ? 'Ver Artigo' : 'Ver Artigos',
+          onPress: () => artigoId
+            ? navigation.navigate('ArtigoDetalhes', { artigoId })
+            : navigation.navigate('Artigos'),
+        }],
       });
     } catch (e: any) {
-      const msg = e?.response?.data?.error || 'Não foi possível publicar o artigo.';
+      const msg = e?.response?.data?.error || (editando
+        ? 'Não foi possível salvar as alterações.'
+        : 'Não foi possível publicar o artigo.');
       showModal('Erro', msg, { type: 'error' });
     } finally {
       setLoading(false);
     }
   };
+
+  if (loadingArtigo) {
+    return (
+      <SafeAreaView style={[styles.safe, { justifyContent: 'center', alignItems: 'center' }]} edges={['bottom']}>
+        <ActivityIndicator size="large" color="#4CAF50" />
+        <Text style={{ color: '#888', marginTop: 12 }}>Carregando artigo...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
@@ -159,7 +213,7 @@ const ArtigoCadastroScreen: React.FC<Props> = ({ navigation }) => {
               ) : (
                 <>
                   <Ionicons name="send-outline" size={18} color="#FFF" />
-                  <Text style={styles.btnPublicarText}>Publicar Artigo</Text>
+                  <Text style={styles.btnPublicarText}>{editando ? 'Salvar Alterações' : 'Publicar Artigo'}</Text>
                 </>
               )}
             </TouchableOpacity>
