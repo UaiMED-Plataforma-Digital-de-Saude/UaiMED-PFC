@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../config/database';
+import { TipoUsuario } from '@prisma/client';
 
 class ClinicasController {
   async recomendadas(req: Request, res: Response) {
@@ -7,7 +8,7 @@ class ClinicasController {
       const { estado, cidade } = req.query;
 
       const where: any = {
-        tipo: 'clinica',
+        tipo: TipoUsuario.clinica,
         ativo: true,
       };
 
@@ -56,7 +57,7 @@ class ClinicasController {
   async listar(req: Request, res: Response) {
     try {
       const clinicas = await prisma.usuario.findMany({
-        where: { tipo: 'clinica', ativo: true },
+        where: { tipo: TipoUsuario.clinica, ativo: true },
         select: {
           id: true,
           nome: true,
@@ -83,7 +84,7 @@ class ClinicasController {
     try {
       const { id } = req.params;
       const clinica = await prisma.usuario.findFirst({
-        where: { id, tipo: 'clinica', ativo: true },
+        where: { id, tipo: TipoUsuario.clinica, ativo: true },
       });
       if (!clinica) return res.status(404).json({ error: 'Clínica não encontrada' });
 

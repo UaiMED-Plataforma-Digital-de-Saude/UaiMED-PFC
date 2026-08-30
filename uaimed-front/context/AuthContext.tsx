@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 import uaiMedApi from '../api/uaiMedApi';
 import CONFIG from '../config';
+import { TipoUsuario } from '../types/usuario';
 
 // ===== TIPOS E INTERFACES =====
 
@@ -17,7 +18,7 @@ export interface User {
   cnpj?: string;
   telefone?: string;
   avatar?: string | null;
-  tipo: 'paciente' | 'medico' | 'clinica';
+  tipo: TipoUsuario;
   profissional?: {
     id: string;
     especialidade?: string;
@@ -106,7 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         nome: 'Desenvolvedor UaiMED',
         email: 'dev@uaimed.com',
         telefone: '(31) 99999-9999',
-        tipo: 'paciente',
+        tipo: TipoUsuario.PACIENTE,
       };
       const mockToken = 'mock-token-dev';
 

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../config/database';
 import logger from '../utils/logger';
+import { TipoUsuario } from '@prisma/client';
 
 class ArtigosController {
   // GET /api/artigos
@@ -86,13 +87,13 @@ class ArtigosController {
   // PUT /api/artigos/:id
   async atualizar(req: Request, res: Response) {
     try {
-      const usuario = (req as any).user as { id?: string; tipo?: string } | undefined;
+      const usuario = (req as any).user as { id?: string; tipo?: TipoUsuario } | undefined;
       if (!usuario?.id) return res.status(401).json({ error: 'Usuário não autenticado' });
 
       const artigoAtual = await prisma.artigo.findUnique({ where: { id: req.params.id } });
       if (!artigoAtual) return res.status(404).json({ error: 'Artigo não encontrado' });
 
-      if (artigoAtual.autorId !== usuario.id && usuario.tipo !== 'admin') {
+      if (artigoAtual.autorId !== usuario.id && usuario.tipo !== TipoUsuario.admin) {
         return res.status(403).json({ error: 'Você não tem permissão para editar este artigo' });
       }
 

@@ -10,6 +10,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { MainTabParamList } from '../../navigation/types';
 import uaiMedApi from '../../api/uaiMedApi';
 import { useAuth } from '../../hooks/useAuth';
+import { TipoUsuario } from '../../types/usuario';
 
 type Props = BottomTabScreenProps<MainTabParamList, 'ArtigoDetalhes'>;
 
@@ -96,7 +97,7 @@ const ArtigoDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
   }
 
   const cfg = getCfg(artigo.categoria);
-  const podeEditar = user?.id === artigo.autorId || (user?.tipo as string) === 'admin';
+  const podeEditar = user?.id === artigo.autorId || user?.tipo === TipoUsuario.ADMIN;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>

@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { AuthStackParamList } from '../../navigation/types';
 import AppModal from '../../components/AppModal';
 import { useModal } from '../../hooks/useModal';
+import { TipoCadastro, TipoUsuario } from '../../types/usuario';
 
 /**
  * Tela de Seleção de Tipo de Usuário
@@ -20,8 +21,8 @@ import { useModal } from '../../hooks/useModal';
  */
 type Props = StackScreenProps<AuthStackParamList, 'TipoSelecao'>;
 
-interface TipoUsuario {
-  id: 'paciente' | 'medico' | 'clinica';
+interface TipoUsuarioOption {
+  id: TipoCadastro;
   nome: string;
   descricao: string;
   icone: string;
@@ -29,9 +30,9 @@ interface TipoUsuario {
   beneficios: string[];
 }
 
-const TIPOS_USUARIO: TipoUsuario[] = [
+const TIPOS_USUARIO: TipoUsuarioOption[] = [
   {
-    id: 'paciente',
+    id: TipoUsuario.PACIENTE,
     nome: 'Sou Paciente',
     descricao: 'Agende consultas e receba atendimento médico',
     icone: 'person-circle-outline',
@@ -44,7 +45,7 @@ const TIPOS_USUARIO: TipoUsuario[] = [
     ],
   },
   {
-    id: 'medico',
+    id: TipoUsuario.MEDICO,
     nome: 'Sou Médico',
     descricao: 'Gerencie sua agenda e atenda pacientes',
     icone: 'medical-outline',
@@ -57,7 +58,7 @@ const TIPOS_USUARIO: TipoUsuario[] = [
     ],
   },
   {
-    id: 'clinica',
+    id: TipoUsuario.CLINICA,
     nome: 'Sou uma Clínica',
     descricao: 'Administre sua clínica e médicos',
     icone: 'hospital-box-outline',
@@ -72,7 +73,7 @@ const TIPOS_USUARIO: TipoUsuario[] = [
 ];
 
 const TipoSelecaoScreen: React.FC<Props> = ({ navigation }) => {
-  const [tipoSelecionado, setTipoSelecionado] = useState<string | null>(null);
+  const [tipoSelecionado, setTipoSelecionado] = useState<TipoCadastro | null>(null);
   const { modal, showModal, hideModal } = useModal();
 
   const handleProxima = () => {
@@ -81,7 +82,7 @@ const TipoSelecaoScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
     navigation.navigate('Cadastro', {
-      tipoUsuario: tipoSelecionado as 'paciente' | 'medico' | 'clinica',
+      tipoUsuario: tipoSelecionado,
     });
   };
 

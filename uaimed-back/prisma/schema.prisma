@@ -7,6 +7,13 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum TipoUsuario {
+  paciente
+  medico
+  clinica
+  admin
+}
+
 model Usuario {
   id            String        @id @default(uuid())
   nome          String
@@ -14,7 +21,7 @@ model Usuario {
   cpf           String        @unique
   telefone      String
   senha         String
-  tipo          String        @default("paciente")
+  tipo          TipoUsuario   @default(paciente)
   avatar        String?
   cidade        String?
   estado        String?

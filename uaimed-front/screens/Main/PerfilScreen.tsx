@@ -12,6 +12,7 @@ import { useAvaliacoes } from '../../hooks/useAvaliacoes';
 import AppModal from '../../components/AppModal';
 import { useModal } from '../../hooks/useModal';
 import uaiMedApi from '../../api/uaiMedApi';
+import { TipoUsuario } from '../../types/usuario';
 import LocalizacaoMedicoCard from '../../components/LocalizacaoMedicoCard';
 import { googleMapsUrl } from '../../utils/geo';
 
@@ -65,7 +66,7 @@ const ActionRow: React.FC<{
 
 const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   const { user, signOut, updateUser } = useAuth();
-  const profissionalId = user?.tipo === 'medico' ? user?.profissional?.id : undefined;
+  const profissionalId = user?.tipo === TipoUsuario.MEDICO ? user?.profissional?.id : undefined;
   const { notaMedia, loading: loadingAvaliacoes } = useAvaliacoes(profissionalId);
 
   // ── Modo edição ────────────────────────────────────────────────
@@ -104,9 +105,9 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
 
   const { modal, showModal, hideModal } = useModal();
 
-  const isPaciente = user?.tipo === 'paciente';
-  const isMedico   = user?.tipo === 'medico';
-  const isClinica  = user?.tipo === 'clinica';
+  const isPaciente = user?.tipo === TipoUsuario.PACIENTE;
+  const isMedico   = user?.tipo === TipoUsuario.MEDICO;
+  const isClinica  = user?.tipo === TipoUsuario.CLINICA;
   const tipoLabel  = isPaciente ? 'Paciente' : isMedico ? 'Médico' : 'Clínica';
 
   // ── Entrar em modo de edição ───────────────────────────────────

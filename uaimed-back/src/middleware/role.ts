@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
+import { TipoUsuario } from "@prisma/client";
 
-export function requireRole(...allowed: string[]) {
+export function requireRole(...allowed: TipoUsuario[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = (req as any).user;

@@ -3,6 +3,7 @@ import { hashPassword, comparePassword } from "../utils/hash";
 import { generateToken } from "../utils/jwt";
 import { geocodeEndereco } from "./geocoding.service";
 import logger from "../utils/logger";
+import { TipoUsuario } from "@prisma/client";
 
 export interface SignUpData {
   nome: string;
@@ -10,7 +11,7 @@ export interface SignUpData {
   cpf: string;
   telefone: string;
   senha: string;
-  tipo?: "paciente" | "medico" | "clinica";
+  tipo?: TipoUsuario;
   // campos opcionais para profissionais
   especialidade?: string;
   crm?: string;
@@ -47,10 +48,10 @@ class AuthService {
     if (existing) throw new Error("Email já cadastrado");
 
     const senhaHash = await hashPassword(data.senha);
-    const tipo = data.tipo || 'paciente';
+    const tipo = data.tipo || TipoUsuario.paciente;
 
     // Se for médico, valida campos obrigatórios antes de criar qualquer registro
-    if (tipo === 'medico') {
+    if (tipo === TipoUsuario.medico) {
       if (!data.especialidade || !data.crm) {
         throw new Error('Especialidade e CRM são obrigatórios para cadastro de profissional');
       }
@@ -58,7 +59,7 @@ class AuthService {
 
     // Geocodifica o endereço fora da transação (chamada externa não deve
     // segurar uma transação de banco aberta)
-    const coordenadas = tipo === 'medico'
+    const coordenadas = tipo === TipoUsuario.medico
       ? await geocodeEndereco({
           endereco: data.endereco || '',
           cidade: data.cidade || '',
@@ -77,14 +78,14 @@ class AuthService {
           senha: senhaHash,
           tipo,
           // Para clínicas, salva localização diretamente no usuário
-          cidade: tipo === 'clinica' ? (data.cidade || null) : undefined,
-          estado: tipo === 'clinica' ? (data.estado || null) : undefined,
+          cidade: tipo === TipoUsuario.clinica ? (data.cidade || null) : undefined,
+          estado: tipo === TipoUsuario.clinica ? (data.estado || null) : undefined,
         },
         select: { id: true, nome: true, email: true, tipo: true },
       });
 
       let profissional = null;
-      if (tipo === 'medico') {
+      if (tipo === TipoUsuario.medico) {
         profissional = await tx.profissional.create({
           data: {
             usuarioId: usuario.id,
@@ -120,7 +121,7 @@ class AuthService {
 
     const token = generateToken({ id: usuario.id, email: usuario.email, tipo: usuario.tipo });
 
-    const profissional = usuario.tipo === 'medico'
+    const profissional = usuario.tipo === TipoUsuario.medico
       ? await prisma.profissional.findUnique({
           where: { usuarioId: usuario.id },
           select: PROFISSIONAL_PUBLIC_SELECT,

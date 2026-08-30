@@ -1,8 +1,10 @@
 // 1. Tipagem para a Pilha de Autenticação
+import { TipoCadastro } from '../types/usuario';
+
 export type AuthStackParamList = {
   Login: undefined;
   TipoSelecao: undefined;
-  Cadastro: { tipoUsuario?: 'paciente' | 'medico' | 'clinica' };
+  Cadastro: { tipoUsuario?: TipoCadastro };
   RecuperarSenha: undefined;
   EmailEnviado: { email: string };
 };

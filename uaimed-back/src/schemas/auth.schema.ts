@@ -1,4 +1,11 @@
 import { z } from "zod";
+import { TipoUsuario } from "@prisma/client";
+
+const TIPOS_CADASTRO = [
+  TipoUsuario.paciente,
+  TipoUsuario.medico,
+  TipoUsuario.clinica,
+] as const;
 
 export const signupSchema = z.object({
   nome: z.string().min(2),
@@ -6,7 +13,7 @@ export const signupSchema = z.object({
   cpf: z.string().min(11),
   telefone: z.string().min(8),
   senha: z.string().min(6),
-  tipo: z.enum(["paciente", "medico", "clinica"]).optional(),
+  tipo: z.enum(TIPOS_CADASTRO).optional(),
   // Campos opcionais para profissionais
   especialidade: z.string().min(2).optional(),
   crm: z.string().min(3).optional(),
@@ -19,7 +26,7 @@ export const signupSchema = z.object({
 
 // Se for médico, exige especialidade e crm
 export const signupSchemaValidated = signupSchema.refine((data) => {
-  if ((data as any).tipo === 'medico') {
+  if (data.tipo === TipoUsuario.medico) {
     return !!(data as any).especialidade && !!(data as any).crm;
   }
   return true;

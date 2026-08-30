@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../config/database';
 import logger from '../utils/logger';
+import { TipoUsuario } from '@prisma/client';
 
 class ContaBancariaController {
   /** GET /api/conta-bancaria — retorna dados bancários do usuário autenticado */
@@ -17,7 +18,7 @@ class ContaBancariaController {
       if (!usuario) return res.status(404).json({ error: 'Usuário não encontrado' });
 
       // Médico: dados vêm do Profissional
-      if (usuario.tipo === 'medico' && usuario.profissional) {
+      if (usuario.tipo === TipoUsuario.medico && usuario.profissional) {
         return res.json({
           pixKey: usuario.profissional.pixKey,
           banco: usuario.profissional.banco,
@@ -62,12 +63,12 @@ class ContaBancariaController {
       }
 
       // Médico: atualiza Profissional
-      if (usuario.tipo === 'medico' && usuario.profissional) {
+      if (usuario.tipo === TipoUsuario.medico && usuario.profissional) {
         await prisma.profissional.update({
           where: { id: usuario.profissional.id },
           data: { pixKey, banco, agencia, conta, tipoConta },
         });
-      } else if (usuario.tipo === 'clinica') {
+      } else if (usuario.tipo === TipoUsuario.clinica) {
         // Clínica: atualiza Usuario
         await prisma.usuario.update({
           where: { id: usuarioId },

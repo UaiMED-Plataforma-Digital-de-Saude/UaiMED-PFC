@@ -22,6 +22,7 @@ import FeaturedProfessionalsCarousel from '../../components/FeaturedProfessional
 import FeaturedClinicsCarousel from '../../components/FeaturedClinicsCarousel';
 import LocationModal, { LocationValue } from '../../components/LocationModal';
 import uaiMedApi from '../../api/uaiMedApi';
+import { TipoUsuario } from '../../types/usuario';
 
 interface HomeArtigo {
   id: string;
@@ -120,9 +121,9 @@ const CustomDrawer: React.FC<DrawerProps> = ({ visible, onClose, navigation }) =
     setTimeout(() => signOut(), 260);
   };
 
-  const isPaciente = user?.tipo === 'paciente';
-  const isMedico   = user?.tipo === 'medico';
-  const isClinica  = user?.tipo === 'clinica';
+  const isPaciente = user?.tipo === TipoUsuario.PACIENTE;
+  const isMedico   = user?.tipo === TipoUsuario.MEDICO;
+  const isClinica  = user?.tipo === TipoUsuario.CLINICA;
 
   return (
     <Modal

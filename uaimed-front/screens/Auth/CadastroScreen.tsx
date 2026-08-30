@@ -17,26 +17,20 @@ import uaiMedApi from '../../api/uaiMedApi';
 import { Ionicons } from '@expo/vector-icons';
 import AppModal from '../../components/AppModal';
 import { useModal } from '../../hooks/useModal';
+import { TipoCadastro, TipoUsuario } from '../../types/usuario';
 
 type CadastroScreenProps = StackScreenProps<AuthStackParamList, 'Cadastro'>;
 
-// Enumerado conforme solicitado
-enum TipoUsuario {
-  CLIENTE = 1,
-  PROFISSIONAL = 2,
-  CLINICA = 3,
-}
-
 const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) => {
   // Mapeamento inicial baseado nos params
-  const getInitialTipo = () => {
+  const getInitialTipo = (): TipoCadastro => {
     const param = route?.params?.tipoUsuario;
-    if (param === 'medico') return TipoUsuario.PROFISSIONAL;
-    if (param === 'clinica') return TipoUsuario.CLINICA;
-    return TipoUsuario.CLIENTE;
+    if (param === TipoUsuario.MEDICO) return TipoUsuario.MEDICO;
+    if (param === TipoUsuario.CLINICA) return TipoUsuario.CLINICA;
+    return TipoUsuario.PACIENTE;
   };
 
-  const [tipo, setTipo] = useState<TipoUsuario>(getInitialTipo());
+  const [tipo, setTipo] = useState<TipoCadastro>(getInitialTipo());
   const [nome, setNome] = useState('');
   const [documento, setDocumento] = useState(''); // CPF ou CNPJ
   const [email, setEmail] = useState('');
@@ -88,16 +82,12 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
 
     setLoading(true);
     try {
-      // Mapeia o tipo numérico para o que o backend espera (ou envia o número se o backend já aceitar)
-      const tipoBackend = tipo === TipoUsuario.CLIENTE ? 'paciente' : (tipo === TipoUsuario.PROFISSIONAL ? 'medico' : 'clinica');
-
       const payload: any = {
         nome: nome.trim(),
         email: email.trim(),
         telefone: telefone.replace(/\D/g, ''),
         senha,
-        tipo: tipoBackend, // Mantendo string para compatibilidade, ou use 'tipo' para enviar 1, 2, 3
-        tipoEnum: tipo, // Enviando o enumerado como campo adicional
+        tipo,
       };
 
       if (tipo === TipoUsuario.CLINICA) {
@@ -110,7 +100,7 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
         payload.cpf = documento.replace(/\D/g, '');
       }
 
-      if (tipo === TipoUsuario.PROFISSIONAL) {
+      if (tipo === TipoUsuario.MEDICO) {
         payload.especialidade = especialidade;
         payload.crm = crm;
         payload.endereco = endereco;
@@ -148,8 +138,8 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
           {/* INDICADOR DE TIPO */}
           {(() => {
             const config = {
-              [TipoUsuario.CLIENTE]:      { icon: 'person-circle-outline' as const, label: 'Cadastro de Paciente',      cor: '#4CAF50', bg: '#F0F7F0' },
-              [TipoUsuario.PROFISSIONAL]: { icon: 'medical-outline' as const,        label: 'Cadastro de Profissional', cor: '#4B73B2', bg: '#EEF2FB' },
+              [TipoUsuario.PACIENTE]: { icon: 'person-circle-outline' as const, label: 'Cadastro de Paciente',      cor: '#4CAF50', bg: '#F0F7F0' },
+              [TipoUsuario.MEDICO]:   { icon: 'medical-outline' as const,        label: 'Cadastro de Médico',       cor: '#4B73B2', bg: '#EEF2FB' },
               [TipoUsuario.CLINICA]:      { icon: 'business-outline' as const,       label: 'Cadastro de Clínica',      cor: '#FF9800', bg: '#FFF8F0' },
             }[tipo];
             return (
@@ -198,7 +188,7 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
             />
 
             {/* Campos de Profissional */}
-            {tipo === TipoUsuario.PROFISSIONAL && (
+            {tipo === TipoUsuario.MEDICO && (
               <>
                 <Text style={styles.label}>Especialidade *</Text>
                 <TextInput style={styles.input} placeholder="Ex: Cardiologia" value={especialidade} onChangeText={setEspecialidade} />
@@ -209,7 +199,7 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
             )}
 
             {/* Campos de Endereço (Profissional e Clínica) */}
-            {(tipo === TipoUsuario.PROFISSIONAL || tipo === TipoUsuario.CLINICA) && (
+            {(tipo === TipoUsuario.MEDICO || tipo === TipoUsuario.CLINICA) && (
               <>
                 <Text style={styles.label}>Endereço Completo</Text>
                 <TextInput style={styles.input} placeholder="Rua, Número, Bairro" value={endereco} onChangeText={setEndereco} />
