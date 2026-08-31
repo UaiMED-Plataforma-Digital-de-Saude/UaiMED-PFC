@@ -17,6 +17,8 @@ import ArtigosListaScreen from '../screens/Main/ArtigosListaScreen';
 import ArtigoDetalhesScreen from '../screens/Main/ArtigoDetalhesScreen';
 import ArtigoCadastroScreen from '../screens/Main/ArtigoCadastroScreen';
 import ConversasStack from './ConversasStack';
+import MedicoHomeScreen from '../screens/Main/MedicoHomeScreen';
+import { TipoUsuario } from '../types/usuario';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -31,9 +33,9 @@ const hiddenTab = { display: 'none' as const, width: 0, height: 0, overflow: 'hi
 const MainTabNavigator: React.FC = () => {
   const { user } = useAuth();
 
-  const isPaciente = user?.tipo === 'paciente';
-  const isMedico   = user?.tipo === 'medico';
-  const isClinica  = user?.tipo === 'clinica';
+  const isPaciente = user?.tipo === TipoUsuario.PACIENTE;
+  const isMedico   = user?.tipo === TipoUsuario.MEDICO;
+  const isClinica  = user?.tipo === TipoUsuario.CLINICA;
 
   return (
     <Tab.Navigator
@@ -169,7 +171,7 @@ const MainTabNavigator: React.FC = () => {
       {/* CENTRO: HOME */}
       <Tab.Screen
         name="Home"
-        component={HomeScreen}
+        component={isMedico ? MedicoHomeScreen : HomeScreen}
         options={{
           title: 'UaiMED',
           headerTitle: () => {

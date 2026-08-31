@@ -1,4 +1,5 @@
 import jwt, { SignOptions, Secret } from "jsonwebtoken";
+import { TipoUsuario } from "@prisma/client";
 
 const JWT_SECRET: Secret = process.env.JWT_SECRET || "dev-secret";
 const JWT_EXPIRE_IN: SignOptions["expiresIn"] =
@@ -9,7 +10,7 @@ const JWT_EXPIRE_IN: SignOptions["expiresIn"] =
 export interface TokenPayload {
   id: string;
   email: string;
-  tipo: string;
+  tipo: TipoUsuario;
 }
 
 export function generateToken(payload: TokenPayload): string {

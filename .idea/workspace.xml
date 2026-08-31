@@ -5,24 +5,28 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e61d2434-ba4d-419d-881c-3d5c109eac10" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/uaimed-back/prisma/schema.prisma" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/prisma/schema.prisma" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-back/src/controllers/agendamentos.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/controllers/agendamentos.controller.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-back/src/controllers/auth.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/controllers/auth.controller.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-back/src/controllers/medicos.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/controllers/medicos.controller.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-back/src/controllers/professional.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/controllers/professional.controller.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-back/src/controllers/admin.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/controllers/admin.controller.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-back/src/controllers/artigos.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/controllers/artigos.controller.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-back/src/controllers/clinicas.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/controllers/clinicas.controller.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-back/src/controllers/conta-bancaria.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/controllers/conta-bancaria.controller.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-back/src/middleware/role.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/middleware/role.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-back/src/routes/admin.routes.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/routes/admin.routes.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/uaimed-back/src/routes/professionals.routes.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/routes/professionals.routes.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-back/src/schemas/auth.schema.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/schemas/auth.schema.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/uaimed-back/src/services/auth.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/services/auth.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/app.json" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/app.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-back/src/types/express.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/types/express.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-back/src/utils/jwt.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/utils/jwt.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/uaimed-front/context/AuthContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/context/AuthContext.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/navigation/MainTabNavigation.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/navigation/MainTabNavigation.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/uaimed-front/navigation/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/navigation/types.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/uaimed-front/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/ConfirmacaoScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/ConfirmacaoScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/MedicoDetalhesScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/MedicoDetalhesScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/MinhasConsultasScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/MinhasConsultasScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/SelecaoHorarioScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/SelecaoHorarioScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/SelecaoHorariosDiaScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/SelecaoHorariosDiaScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Auth/CadastroScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Auth/CadastroScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Auth/TipoSelecaoScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Auth/TipoSelecaoScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Main/ArtigoDetalhesScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Main/ArtigoDetalhesScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Main/HomeScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Main/HomeScreen.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Main/PerfilScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Main/PerfilScreen.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -152,7 +156,7 @@
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "feat/cria-metodo-de-geolocalizacao-para-clientes",
+    "git-widget-placeholder": "igor/feat/docktors-screen",
     "kotlin-language-version-configured": "true",
     "settings.editor.selected.configurable": "preferences.pluginManager"
   }
@@ -169,6 +173,17 @@
   </component>
   <component name="UnknownFeatures">
     <option featureType="com.intellij.fileTypeFactory" implementationName=".env" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
   <component name="github-copilot-workspace">
     <instructionFileLocations>

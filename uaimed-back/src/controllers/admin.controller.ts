@@ -1,13 +1,14 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/database";
 import logger from "../utils/logger";
+import { TipoUsuario } from "@prisma/client";
 
 class AdminController {
   async summary(req: Request, res: Response) {
     try {
     // Basic counts
     const totalUsuarios = await prisma.usuario.count();
-    const totalPacientes = await prisma.usuario.count({ where: { tipo: 'paciente' } });
+    const totalPacientes = await prisma.usuario.count({ where: { tipo: TipoUsuario.paciente } });
     const totalMedicos = await prisma.profissional.count();
 
     // Contatos pendentes
