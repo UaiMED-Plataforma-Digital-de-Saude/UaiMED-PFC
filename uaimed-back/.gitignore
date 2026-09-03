@@ -4,4 +4,3 @@ dist/
 /.idea
 *.log
 coverage/
-prisma/migrations/
