@@ -11,5 +11,33 @@ services:
     volumes:
       # Cria automaticamente o banco uaimed_test ao iniciar o container
       - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docker"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build: .
+    container_name: uaimed_backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3333
+      DATABASE_URL: postgresql://docker:docker@postgres:5432/uaimed
+      JWT_SECRET: sua-chave-super-secreta
+      JWT_EXPIRE_IN: 7d
+      BCRYPT_ROUNDS: 10
+      FRONTEND_URL: http://localhost:19000
+    ports:
+      - "3333:3333"
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    # Mantém o Prisma Client e o schema do banco sempre sincronizados ao subir
+    command: sh -c "npx prisma generate && npx prisma migrate deploy && npm run dev"
     restart: unless-stopped
 
