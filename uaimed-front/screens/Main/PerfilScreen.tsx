@@ -491,16 +491,9 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
             <Text style={s.cardTitle}>Minha Agenda Profissional</Text>
             <ActionRow
               icon="calendar-outline"
-              label="Ver Agendamentos"
+              label="Minhas Consultas"
               sublabel="Consultas marcadas com pacientes"
-              onPress={() => navigation.navigate('Agendamentos' as any)}
-            />
-            <ActionRow
-              icon="star-outline"
-              iconColor="#F9A825"
-              label="Minhas Avaliações"
-              sublabel="Feedbacks dos pacientes"
-              onPress={() => navigation.navigate('Agendamentos', { screen: 'HistoricoAvaliacoes' })}
+              onPress={() => navigation.navigate('MedicoAgenda')}
               last
             />
           </View>

@@ -18,6 +18,7 @@ import ArtigoDetalhesScreen from '../screens/Main/ArtigoDetalhesScreen';
 import ArtigoCadastroScreen from '../screens/Main/ArtigoCadastroScreen';
 import ConversasStack from './ConversasStack';
 import MedicoHomeScreen from '../screens/Main/MedicoHomeScreen';
+import MedicoAvaliacoesScreen from '../screens/Main/MedicoAvaliacoesScreen';
 import { TipoUsuario } from '../types/usuario';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -157,6 +158,21 @@ const MainTabNavigator: React.FC = () => {
           title: 'Agenda',
           tabBarItemStyle: isMedico ? undefined : hiddenTab,
         }}
+      />
+
+      <Tab.Screen
+        name="MedicoAvaliacoes"
+        component={MedicoAvaliacoesScreen}
+        options={({ navigation }) => ({
+          title: 'Minhas Avaliações',
+          tabBarItemStyle: hiddenTab,
+          headerRight: () => null,
+          headerLeft: () => (
+            <TouchableOpacity style={{ marginLeft: 16 }} onPress={() => navigation.navigate('Home')}>
+              <Ionicons name="arrow-back" size={24} color="#333" />
+            </TouchableOpacity>
+          ),
+        })}
       />
 
       <Tab.Screen

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,8 @@ import { StackScreenProps } from '@react-navigation/stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { ConversasStackParamList } from '../../navigation/types';
 import uaiMedApi from '../../api/uaiMedApi';
+import { useAuth } from '../../hooks/useAuth';
+import { TipoUsuario } from '../../types/usuario';
 type Props = StackScreenProps<ConversasStackParamList, 'ConversasLista'>;
 
 interface ConversaItem {
@@ -27,16 +29,34 @@ interface ConversaItem {
   atualizado_em: string;
 }
 
-// ─── Avatar com logo UaiMED ───────────────────────────────────────────────────
-const AvatarUaiMED: React.FC<{ size?: number }> = ({ size = 50 }) => (
-  <View style={[avatarStyles.circle, { width: size, height: size, borderRadius: size / 2 }]}>
-    <Image
-      source={require('../../assets/logo.png')}
-      style={{ width: size * 0.7, height: size * 0.7 }}
-      resizeMode="contain"
-    />
-  </View>
-);
+// ─── Avatar do outro participante ─────────────────────────────────────────────
+const AvatarConversa: React.FC<{ nome: string; avatar: string | null; size?: number }> = ({
+  nome,
+  avatar,
+  size = 50,
+}) => {
+  const iniciais = nome
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((parte) => parte[0])
+    .join('')
+    .toUpperCase();
+
+  return (
+    <View style={[avatarStyles.circle, { width: size, height: size, borderRadius: size / 2 }]}>
+      {avatar ? (
+        <Image
+          source={{ uri: avatar }}
+          style={{ width: size, height: size, borderRadius: size / 2 }}
+          resizeMode="cover"
+        />
+      ) : (
+        <Text style={avatarStyles.initials}>{iniciais || '?'}</Text>
+      )}
+    </View>
+  );
+};
 
 const avatarStyles = StyleSheet.create({
   circle: {
@@ -46,6 +66,7 @@ const avatarStyles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#C8E6C9',
   },
+  initials: { color: '#2E7D32', fontWeight: '800', fontSize: 16 },
 });
 
 // ─── Formata timestamp relativo ───────────────────────────────────────────────
@@ -67,7 +88,7 @@ const ConversaCard: React.FC<{
   onPress: () => void;
 }> = ({ item, onPress }) => (
   <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
-    <AvatarUaiMED />
+    <AvatarConversa nome={item.nomeOutro} avatar={item.avatarOutro} />
 
     <View style={styles.cardBody}>
       <View style={styles.cardHeader}>
@@ -96,18 +117,23 @@ const ConversaCard: React.FC<{
 
 // ─── Tela Principal ───────────────────────────────────────────────────────────
 const ConversasListaScreen: React.FC<Props> = ({ navigation }) => {
+  const { user } = useAuth();
   const [conversas, setConversas] = useState<ConversaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const carregouRef = useRef(false);
 
-  const fetchConversas = useCallback(async (isRefresh = false) => {
-    if (!isRefresh) setLoading(true);
+  const fetchConversas = useCallback(async (mostrarLoading = false) => {
+    if (mostrarLoading && !carregouRef.current) setLoading(true);
     try {
       const res = await uaiMedApi.get('/conversas');
       setConversas(Array.isArray(res.data) ? res.data : []);
+      carregouRef.current = true;
+      setErro(null);
     } catch (e) {
       console.warn('Erro ao buscar conversas:', e);
-      setConversas([]);
+      setErro('Não foi possível atualizar as conversas.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -116,13 +142,15 @@ const ConversasListaScreen: React.FC<Props> = ({ navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
-      fetchConversas();
+      fetchConversas(true);
+      const polling = setInterval(() => fetchConversas(false), 4000);
+      return () => clearInterval(polling);
     }, [fetchConversas])
   );
 
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchConversas(true);
+    fetchConversas(false);
   };
 
   if (loading) {
@@ -146,39 +174,47 @@ const ConversasListaScreen: React.FC<Props> = ({ navigation }) => {
           </View>
           <Text style={styles.emptyTitle}>Nenhuma conversa ainda</Text>
           <Text style={styles.emptyDesc}>
-            Inicie uma conversa a partir do perfil de um médico ou clínica.
+            {user?.tipo === TipoUsuario.MEDICO
+              ? 'Quando um paciente enviar uma mensagem, a conversa aparecerá aqui.'
+              : 'Inicie uma conversa a partir do perfil de um médico.'}
           </Text>
-          <TouchableOpacity
-            style={styles.emptyBtn}
-            onPress={() => navigation.getParent<any>()?.navigate('Agendamentos', { screen: 'Busca' })}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="search-outline" size={18} color="#FFF" />
-            <Text style={styles.emptyBtnText}>Buscar Profissionais</Text>
-          </TouchableOpacity>
+          {user?.tipo !== TipoUsuario.MEDICO && (
+            <TouchableOpacity
+              style={styles.emptyBtn}
+              onPress={() => navigation.getParent<any>()?.navigate('Agendamentos', { screen: 'Busca' })}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="search-outline" size={18} color="#FFF" />
+              <Text style={styles.emptyBtnText}>Buscar Profissionais</Text>
+            </TouchableOpacity>
+          )}
+          {erro ? <Text style={styles.errorText}>{erro}</Text> : null}
         </View>
       ) : (
-        <FlatList
-          data={conversas}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#4CAF50" />
-          }
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          renderItem={({ item }) => (
-            <ConversaCard
-              item={item}
-              onPress={() =>
-                navigation.navigate('ConversaDetalhe', {
-                  conversaId: item.id,
-                  titulo: item.titulo,
-                  nomeOutro: item.nomeOutro,
-                })
-              }
-            />
-          )}
-        />
+        <>
+          {erro ? <Text style={styles.listError}>{erro}</Text> : null}
+          <FlatList
+            data={conversas}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.list}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#4CAF50" />
+            }
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            renderItem={({ item }) => (
+              <ConversaCard
+                item={item}
+                onPress={() =>
+                  navigation.navigate('ConversaDetalhe', {
+                    conversaId: item.id,
+                    titulo: item.titulo,
+                    nomeOutro: item.nomeOutro,
+                  })
+                }
+              />
+            )}
+          />
+        </>
       )}
     </SafeAreaView>
   );
@@ -232,6 +268,14 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: '#222', marginBottom: 8 },
   emptyDesc: { fontSize: 14, color: '#888', textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+  errorText: { color: '#B71C1C', fontSize: 12, textAlign: 'center', marginTop: 16 },
+  listError: {
+    color: '#B71C1C',
+    fontSize: 12,
+    textAlign: 'center',
+    backgroundColor: '#FFEBEE',
+    paddingVertical: 7,
+  },
   emptyBtn: {
     flexDirection: 'row',
     alignItems: 'center',

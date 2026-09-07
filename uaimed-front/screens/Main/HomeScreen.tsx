@@ -208,7 +208,7 @@ const CustomDrawer: React.FC<DrawerProps> = ({ visible, onClose, navigation }) =
               <DrawerItem
                 icon="chatbubbles-outline"
                 label="Conversas"
-                onPress={() => navigate('Conversas')}
+                onPress={() => navigate('Conversas', { screen: 'ConversasLista' })}
               />
 
               <DrawerItem

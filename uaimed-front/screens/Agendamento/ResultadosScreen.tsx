@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { AgendamentoStackParamList } from '../../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,7 @@ const ResultadosScreen: React.FC<Props> = ({ route, navigation }) => {
   const { query, especialidade, cidade, estado } = route.params ?? {};
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<any[]>([]);
+  const [iniciandoConversaId, setIniciandoConversaId] = useState<string | null>(null);
 
   /** Label da localização ativa */
   const locationLabel = cidade && estado
@@ -19,9 +20,12 @@ const ResultadosScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Inicia conversa e navega para ela
   const iniciarConversa = async (item: any) => {
+    const profissionalId = item.profissionalId ?? item.id;
+    if (!profissionalId || iniciandoConversaId) return;
+    setIniciandoConversaId(profissionalId);
     try {
       const res = await uaiMedApi.post('/conversas', {
-        profissionalId: item.profissionalId ?? item.id,
+        profissionalId,
         titulo: item.nome,
       });
       navigation.getParent<any>()?.navigate('Conversas', {
@@ -32,8 +36,14 @@ const ResultadosScreen: React.FC<Props> = ({ route, navigation }) => {
           nomeOutro: item.nome,
         },
       });
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Erro ao iniciar conversa:', e);
+      Alert.alert(
+        'Não foi possível abrir a conversa',
+        e.response?.data?.error ?? 'Verifique sua conexão e tente novamente.',
+      );
+    } finally {
+      setIniciandoConversaId(null);
     }
   };
 
@@ -50,11 +60,8 @@ const ResultadosScreen: React.FC<Props> = ({ route, navigation }) => {
         const res = await uaiMedApi.get('/medicos', { params });
         setResults(res.data);
       } catch (e) {
-        console.warn('Falha ao buscar resultados no backend, usando dados simulados', e);
-        setResults([
-          { id: 'med-001', nome: 'Dr. João Silva', especialidade: especialidade || 'Cardiologia', cidade: cidade || '', estado: estado || '' },
-          { id: 'med-002', nome: 'Dra. Ana Costa', especialidade: especialidade || 'Dermatologia', cidade: cidade || '', estado: estado || '' },
-        ]);
+        console.warn('Falha ao buscar resultados no backend', e);
+        setResults([]);
       } finally {
         setLoading(false);
       }
@@ -85,15 +92,23 @@ const ResultadosScreen: React.FC<Props> = ({ route, navigation }) => {
         )}
         {/* Ação rápida: Conversar */}
         <TouchableOpacity
-          style={styles.chatBtn}
+          style={[
+            styles.chatBtn,
+            iniciandoConversaId === (item.profissionalId ?? item.id) && { opacity: 0.65 },
+          ]}
           onPress={(e) => {
             e.stopPropagation();
             iniciarConversa(item);
           }}
+          disabled={iniciandoConversaId !== null}
           activeOpacity={0.8}
         >
-          <Ionicons name="chatbubble-outline" size={14} color="#4CAF50" />
-          <Text style={styles.chatBtnText}>Enviar mensagem</Text>
+          {iniciandoConversaId === (item.profissionalId ?? item.id)
+            ? <ActivityIndicator size="small" color="#4CAF50" />
+            : <Ionicons name="chatbubble-outline" size={14} color="#4CAF50" />}
+          <Text style={styles.chatBtnText}>
+            {iniciandoConversaId === (item.profissionalId ?? item.id) ? 'Abrindo...' : 'Enviar mensagem'}
+          </Text>
         </TouchableOpacity>
       </View>
       <Ionicons name="chevron-forward" size={18} color="#CCC" />
