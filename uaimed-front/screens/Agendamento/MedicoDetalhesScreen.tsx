@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Image, Platform, StatusBar, Linking,
+  ActivityIndicator, Image, Platform, StatusBar, Linking, Alert,
 } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -47,6 +47,7 @@ const MedicoDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
   const [perfil, setPerfil] = useState<MedicoPerfil | null>(null);
   const [loading, setLoading] = useState(true);
   const [distancia, setDistancia] = useState<number | null>(null);
+  const [iniciandoConversa, setIniciandoConversa] = useState(false);
 
   useEffect(() => {
     if (!medicoId) { setLoading(false); return; }
@@ -95,14 +96,26 @@ const MedicoDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
     });
 
   const handleConversar = async () => {
-    if (!medicoId) return;
+    if (!medicoId || iniciandoConversa) return;
+    setIniciandoConversa(true);
     try {
       const res = await uaiMedApi.post('/conversas', { profissionalId: medicoId, titulo: perfil?.nome });
       navigation.getParent<any>()?.navigate('Conversas', {
         screen: 'ConversaDetalhe',
-        params: { conversaId: res.data.id, titulo: perfil?.nome, nomeOutro: perfil?.nome },
+        params: {
+          conversaId: res.data.id,
+          titulo: perfil?.nome ?? nomeProfissional ?? 'Médico',
+          nomeOutro: perfil?.nome ?? nomeProfissional ?? 'Médico',
+        },
       });
-    } catch { /* segue */ }
+    } catch (error: any) {
+      Alert.alert(
+        'Não foi possível abrir a conversa',
+        error.response?.data?.error ?? 'Verifique sua conexão e tente novamente.',
+      );
+    } finally {
+      setIniciandoConversa(false);
+    }
   };
 
   if (loading) {
@@ -241,9 +254,18 @@ const MedicoDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* ── Footer ── */}
       {perfil && (
         <View style={s.footer}>
-          <TouchableOpacity style={s.btnSecundario} onPress={handleConversar} activeOpacity={0.85}>
-            <Ionicons name="chatbubble-outline" size={18} color="#4CAF50" />
-            <Text style={s.btnSecundarioTxt}>Conversar</Text>
+          <TouchableOpacity
+            style={[s.btnSecundario, iniciandoConversa && { opacity: 0.65 }]}
+            onPress={handleConversar}
+            disabled={iniciandoConversa}
+            activeOpacity={0.85}
+          >
+            {iniciandoConversa
+              ? <ActivityIndicator size="small" color="#4CAF50" />
+              : <Ionicons name="chatbubble-outline" size={18} color="#4CAF50" />}
+            <Text style={s.btnSecundarioTxt}>
+              {iniciandoConversa ? 'Abrindo...' : 'Conversar'}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity style={s.btnPrimario} onPress={handleAgendar} activeOpacity={0.85}>
             <Ionicons name="calendar-outline" size={18} color="#FFF" />

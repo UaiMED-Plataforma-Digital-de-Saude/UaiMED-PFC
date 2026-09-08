@@ -1,48 +1,9 @@
 import axios, { AxiosInstance } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import CONFIG, { logNetwork, logError } from '../config/index';
-
-// 1. Função para obter URL base - detecta plataforma automaticamente
-function getBaseUrl(): string {
-  // Para produção/staging usa a URL específica
-  if (CONFIG.ENVIRONMENT === 'production') {
-    return CONFIG.API.production;
-  }
-  if (CONFIG.ENVIRONMENT === 'staging') {
-    return CONFIG.API.staging;
-  }
-
-  // Detectar React Native (Expo) vs Web
-  let isReactNative = false;
-  let platform = 'web';
-
-  try {
-    // Método 1: Verificar se React Native está disponível
-    const Platform = require('react-native').Platform;
-    isReactNative = true;
-    platform = Platform.OS; // 'android' ou 'ios'
-    console.log(`📱 [getBaseUrl] React Native detectado: ${platform}`);
-  } catch (e) {
-    // Não é React Native, é web
-    isReactNative = false;
-    console.log(`✅ [getBaseUrl] Ambiente web detectado`);
-  }
-
-  // Para development
-  if (isReactNative) {
-    if (platform === 'ios') {
-      return CONFIG.API.ios; // http://localhost:3333/api
-    }
-    // Android Simulator sempre usa 10.0.0.2 (ou 10.0.2.2)
-    return CONFIG.API.android; // http://10.0.2.2:3333/api
-  }
-
-  // Web/navegador
-  return CONFIG.API.development; // http://localhost:3333/api
-}
+import CONFIG, { getApiBaseUrl, logNetwork, logError } from '../config/index';
 
 // 2. Cria a instância do Axios com URL dinâmica
-const API_BASE_URL = getBaseUrl();
+const API_BASE_URL = getApiBaseUrl();
 console.log(`🔗 [uaiMedApi] API Base URL configurada: ${API_BASE_URL}`);
 console.log(`🌐 [uaiMedApi] Ambiente: ${CONFIG.ENVIRONMENT}`);
 console.log(`📋 [uaiMedApi] URLs disponíveis:`, {
@@ -63,7 +24,7 @@ const uaiMedApi: AxiosInstance = axios.create({
 uaiMedApi.interceptors.request.use(
   async (config) => {
     // Garante que a baseURL está correta (pode ter mudado)
-    const currentBaseUrl = getBaseUrl();
+    const currentBaseUrl = getApiBaseUrl();
     if (config.baseURL !== currentBaseUrl) {
       config.baseURL = currentBaseUrl;
       console.log(`🔄 BaseURL atualizada para: ${currentBaseUrl}`);

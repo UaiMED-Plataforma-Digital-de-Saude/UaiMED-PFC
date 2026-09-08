@@ -4,6 +4,75 @@ import { geocodeEndereco } from "../services/geocoding.service";
 import logger from "../utils/logger";
 
 class ProfessionalController {
+  async listarAvaliacoes(req: Request, res: Response) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ error: 'Usuário não autenticado' });
+
+      const profissional = await prisma.profissional.findUnique({
+        where: { usuarioId: userId },
+        select: { id: true },
+      });
+      if (!profissional) return res.status(404).json({ error: 'Profissional não encontrado' });
+
+      const avaliacoes = await prisma.avaliacao.findMany({
+        where: { profissionalId: profissional.id },
+        select: {
+          id: true,
+          nota: true,
+          comentario: true,
+          criado_em: true,
+          usuario: { select: { id: true, nome: true, avatar: true } },
+        },
+        orderBy: { criado_em: 'desc' },
+      });
+
+      const totalAvaliacoes = avaliacoes.length;
+      const notaMedia = totalAvaliacoes
+        ? Number((avaliacoes.reduce((soma, item) => soma + item.nota, 0) / totalAvaliacoes).toFixed(1))
+        : 0;
+
+      return res.json({ notaMedia, totalAvaliacoes, avaliacoes });
+    } catch (err) {
+      logger.error('Erro ao listar avaliações do profissional', err);
+      return res.status(500).json({ error: 'Erro ao listar avaliações recebidas' });
+    }
+  }
+
+  async listarAgendamentos(req: Request, res: Response) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ error: 'Usuário não autenticado' });
+
+      const profissional = await prisma.profissional.findUnique({
+        where: { usuarioId: userId },
+        select: { id: true },
+      });
+      if (!profissional) return res.status(404).json({ error: 'Profissional não encontrado' });
+
+      const agendamentos = await prisma.agendamento.findMany({
+        where: { profissionalId: profissional.id },
+        select: {
+          id: true,
+          dataHora: true,
+          duracao: true,
+          status: true,
+          observacoes: true,
+          criado_em: true,
+          usuario: {
+            select: { id: true, nome: true, telefone: true },
+          },
+        },
+        orderBy: { dataHora: 'asc' },
+      });
+
+      return res.json(agendamentos);
+    } catch (err) {
+      logger.error('Erro ao listar agendamentos do profissional', err);
+      return res.status(500).json({ error: 'Erro ao listar consultas do profissional' });
+    }
+  }
+
   async meSummary(req: Request, res: Response) {
     try {
       const userId = (req as any).user?.id;
@@ -22,7 +91,11 @@ class ProfessionalController {
 
       // Próximos agendamentos (limit 10)
       const nextAppointments = await prisma.agendamento.findMany({
-        where: { profissionalId: profissional.id, dataHora: { gte: new Date() } },
+        where: {
+          profissionalId: profissional.id,
+          dataHora: { gte: new Date() },
+          status: { in: ['agendado', 'confirmado'] },
+        },
         include: { usuario: { select: { id: true, nome: true, telefone: true } } },
         orderBy: { dataHora: 'asc' },
         take: 10,

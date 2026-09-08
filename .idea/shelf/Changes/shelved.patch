@@ -1,0 +1,165 @@
+Index: uaimed-front/screens/Conversas/ConversaDetalhesScreen.tsx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import React, { useState, useCallback, useRef, useEffect } from 'react';\r\nimport {\r\n  View,\r\n  Text,\r\n  StyleSheet,\r\n  FlatList,\r\n  TouchableOpacity,\r\n  TextInput,\r\n  ActivityIndicator,\r\n  KeyboardAvoidingView,\r\n  Platform,\r\n} from 'react-native';\r\nimport { SafeAreaView } from 'react-native-safe-area-context';\r\nimport { Ionicons } from '@expo/vector-icons';\r\nimport { StackScreenProps } from '@react-navigation/stack';\r\nimport { useFocusEffect } from '@react-navigation/native';\r\nimport { ConversasStackParamList } from '../../navigation/types';\r\nimport { useAuth } from '../../hooks/useAuth';\r\nimport uaiMedApi from '../../api/uaiMedApi';\r\n\r\ntype Props = StackScreenProps<ConversasStackParamList, 'ConversaDetalhe'>;\r\n\r\ninterface Mensagem {\r\n  id: string;\r\n  texto: string;\r\n  remetenteId: string;\r\n  remetente: { id: string; nome: string; avatar: string | null };\r\n  lida: boolean;\r\n  criado_em: string;\r\n}\r\n\r\n// ─── Formata hora da mensagem ─────────────────────────────────────────────────\r\nfunction formatarHora(iso: string): string {\r\n  return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });\r\n}\r\nfunction formatarDia(iso: string): string {\r\n  const d = new Date(iso);\r\n  const hoje = new Date();\r\n  const ontem = new Date(hoje);\r\n  ontem.setDate(ontem.getDate() - 1);\r\n\r\n  if (d.toDateString() === hoje.toDateString()) return 'Hoje';\r\n  if (d.toDateString() === ontem.toDateString()) return 'Ontem';\r\n  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });\r\n}\r\n\r\n// ─── Balão de Mensagem ────────────────────────────────────────────────────────\r\nconst BolinhaMensagem: React.FC<{\r\n  item: Mensagem;\r\n  isOwn: boolean;\r\n}> = ({ item, isOwn }) => (\r\n  <View style={[bubbleStyles.container, isOwn ? bubbleStyles.own : bubbleStyles.other]}>\r\n    <View style={[bubbleStyles.bubble, isOwn ? bubbleStyles.bubbleOwn : bubbleStyles.bubbleOther]}>\r\n      <Text style={[bubbleStyles.text, isOwn && bubbleStyles.textOwn]}>{item.texto}</Text>\r\n      <View style={bubbleStyles.footer}>\r\n        <Text style={[bubbleStyles.hora, isOwn && bubbleStyles.horaOwn]}>{formatarHora(item.criado_em)}</Text>\r\n        {isOwn && (\r\n          <Ionicons\r\n            name={item.lida ? 'checkmark-done' : 'checkmark'}\r\n            size={13}\r\n            color={item.lida ? '#90CAF9' : 'rgba(255,255,255,0.6)'}\r\n            style={{ marginLeft: 3 }}\r\n          />\r\n        )}\r\n      </View>\r\n    </View>\r\n  </View>\r\n);\r\n\r\nconst bubbleStyles = StyleSheet.create({\r\n  container: { marginVertical: 2, paddingHorizontal: 12 },\r\n  own: { alignItems: 'flex-end' },\r\n  other: { alignItems: 'flex-start' },\r\n  bubble: {\r\n    maxWidth: '78%',\r\n    borderRadius: 18,\r\n    paddingHorizontal: 14,\r\n    paddingVertical: 9,\r\n    elevation: 1,\r\n    shadowColor: '#000',\r\n    shadowOffset: { width: 0, height: 1 },\r\n    shadowOpacity: 0.06,\r\n    shadowRadius: 2,\r\n  },\r\n  bubbleOwn: {\r\n    backgroundColor: '#4CAF50',\r\n    borderBottomRightRadius: 4,\r\n  },\r\n  bubbleOther: {\r\n    backgroundColor: '#FFF',\r\n    borderBottomLeftRadius: 4,\r\n    borderWidth: 1,\r\n    borderColor: '#F0F0F0',\r\n  },\r\n  text: { fontSize: 15, color: '#222', lineHeight: 21 },\r\n  textOwn: { color: '#FFF' },\r\n  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4 },\r\n  hora: { fontSize: 11, color: '#999' },\r\n  horaOwn: { color: 'rgba(255,255,255,0.7)' },\r\n});\r\n\r\n// ─── Separador de Dia ─────────────────────────────────────────────────────────\r\nconst DividerDia: React.FC<{ dia: string }> = ({ dia }) => (\r\n  <View style={dayStyles.container}>\r\n    <View style={dayStyles.line} />\r\n    <Text style={dayStyles.text}>{dia}</Text>\r\n    <View style={dayStyles.line} />\r\n  </View>\r\n);\r\nconst dayStyles = StyleSheet.create({\r\n  container: { flexDirection: 'row', alignItems: 'center', marginVertical: 12, paddingHorizontal: 16 },\r\n  line: { flex: 1, height: 1, backgroundColor: '#EEE' },\r\n  text: { marginHorizontal: 10, fontSize: 12, color: '#AAA', fontWeight: '600' },\r\n});\r\n\r\n// ─── Tela Principal ───────────────────────────────────────────────────────────\r\nconst ConversaDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {\r\n  const { conversaId, nomeOutro } = route.params;\r\n  const { user } = useAuth();\r\n  const [mensagens, setMensagens] = useState<Mensagem[]>([]);\r\n  const [loading, setLoading] = useState(true);\r\n  const [texto, setTexto] = useState('');\r\n  const [enviando, setEnviando] = useState(false);\r\n  const flatListRef = useRef<FlatList>(null);\r\n  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);\r\n\r\n  const fetchMensagens = useCallback(async () => {\r\n    try {\r\n      const res = await uaiMedApi.get(`/conversas/${conversaId}/mensagens`);\r\n      setMensagens(Array.isArray(res.data) ? res.data : []);\r\n    } catch (e) {\r\n      console.warn('Erro ao buscar mensagens:', e);\r\n    } finally {\r\n      setLoading(false);\r\n    }\r\n  }, [conversaId]);\r\n\r\n  // Polling leve a cada 5s para simular recebimento de mensagens\r\n  useFocusEffect(\r\n    useCallback(() => {\r\n      fetchMensagens();\r\n      pollingRef.current = setInterval(fetchMensagens, 5000);\r\n      return () => {\r\n        if (pollingRef.current) clearInterval(pollingRef.current);\r\n      };\r\n    }, [fetchMensagens])\r\n  );\r\n\r\n  useEffect(() => {\r\n    if (mensagens.length > 0) {\r\n      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);\r\n    }\r\n  }, [mensagens.length]);\r\n\r\n  const handleEnviar = async () => {\r\n    if (!texto.trim() || enviando) return;\r\n    const textoTemp = texto.trim();\r\n    setTexto('');\r\n    setEnviando(true);\r\n\r\n    // Otimista: adiciona mensagem imediatamente\r\n    const temp: Mensagem = {\r\n      id: `temp-${Date.now()}`,\r\n      texto: textoTemp,\r\n      remetenteId: user!.id,\r\n      remetente: { id: user!.id, nome: user!.nome, avatar: null },\r\n      lida: false,\r\n      criado_em: new Date().toISOString(),\r\n    };\r\n    setMensagens((prev) => [...prev, temp]);\r\n\r\n    try {\r\n      await uaiMedApi.post(`/conversas/${conversaId}/mensagens`, { texto: textoTemp });\r\n      fetchMensagens();\r\n    } catch (e) {\r\n      console.warn('Erro ao enviar mensagem:', e);\r\n      // Remove mensagem temporária em caso de erro\r\n      setMensagens((prev) => prev.filter((m) => m.id !== temp.id));\r\n      setTexto(textoTemp);\r\n    } finally {\r\n      setEnviando(false);\r\n    }\r\n  };\r\n\r\n  // Agrupa mensagens por dia para o separador\r\n  interface ListItem {\r\n    type: 'day' | 'msg';\r\n    key: string;\r\n    dia?: string;\r\n    msg?: Mensagem;\r\n  }\r\n  const listaComDias: ListItem[] = [];\r\n  let ultimoDia = '';\r\n  for (const m of mensagens) {\r\n    const dia = formatarDia(m.criado_em);\r\n    if (dia !== ultimoDia) {\r\n      listaComDias.push({ type: 'day', key: `day-${m.id}`, dia });\r\n      ultimoDia = dia;\r\n    }\r\n    listaComDias.push({ type: 'msg', key: m.id, msg: m });\r\n  }\r\n\r\n  return (\r\n    <SafeAreaView style={styles.container} edges={['top']}>\r\n      <KeyboardAvoidingView\r\n        style={{ flex: 1 }}\r\n        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}\r\n        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}\r\n      >\r\n        {/* ── Cabeçalho ── */}\r\n        <View style={styles.header}>\r\n          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>\r\n            <Ionicons name=\"arrow-back\" size={24} color=\"#FFF\" />\r\n          </TouchableOpacity>\r\n          <View style={styles.headerAvatar}>\r\n            <Text style={styles.headerAvatarText}>\r\n              {nomeOutro.split(' ').slice(0, 2).map((n: string) => n[0]).join('').toUpperCase()}\r\n            </Text>\r\n          </View>\r\n          <View style={{ flex: 1 }}>\r\n            <Text style={styles.headerNome} numberOfLines={1}>{nomeOutro}</Text>\r\n            <Text style={styles.headerStatus}>Online</Text>\r\n          </View>\r\n        </View>\r\n\r\n        {/* ── Lista de Mensagens ── */}\r\n        {loading ? (\r\n          <View style={styles.loadingContainer}>\r\n            <ActivityIndicator size=\"small\" color=\"#4CAF50\" />\r\n          </View>\r\n        ) : (\r\n          <FlatList\r\n            ref={flatListRef}\r\n            data={listaComDias}\r\n            keyExtractor={(item) => item.key}\r\n            contentContainerStyle={styles.listContent}\r\n            showsVerticalScrollIndicator={false}\r\n            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}\r\n            renderItem={({ item }) => {\r\n              if (item.type === 'day') {\r\n                return <DividerDia dia={item.dia!} />;\r\n              }\r\n              const msg = item.msg!;\r\n              const isOwn = msg.remetenteId === user?.id;\r\n              return <BolinhaMensagem item={msg} isOwn={isOwn} />;\r\n            }}\r\n            ListEmptyComponent={\r\n              <View style={styles.emptyMsg}>\r\n                <Ionicons name=\"chatbubble-ellipses-outline\" size={40} color=\"#DDD\" />\r\n                <Text style={styles.emptyMsgText}>Nenhuma mensagem ainda.{'\\n'}Diga olá! \uD83D\uDC4B</Text>\r\n              </View>\r\n            }\r\n          />\r\n        )}\r\n\r\n        {/* ── Campo de digitação ── */}\r\n        <View style={styles.inputBar}>\r\n          <TextInput\r\n            style={styles.input}\r\n            placeholder=\"Digite sua mensagem...\"\r\n            placeholderTextColor=\"#AAA\"\r\n            value={texto}\r\n            onChangeText={setTexto}\r\n            multiline\r\n            maxLength={500}\r\n            returnKeyType=\"send\"\r\n            blurOnSubmit={false}\r\n            onSubmitEditing={handleEnviar}\r\n          />\r\n          <TouchableOpacity\r\n            style={[styles.sendBtn, (!texto.trim() || enviando) && styles.sendBtnDisabled]}\r\n            onPress={handleEnviar}\r\n            disabled={!texto.trim() || enviando}\r\n            activeOpacity={0.8}\r\n          >\r\n            {enviando ? (\r\n              <ActivityIndicator size=\"small\" color=\"#FFF\" />\r\n            ) : (\r\n              <Ionicons name=\"send\" size={20} color=\"#FFF\" />\r\n            )}\r\n          </TouchableOpacity>\r\n        </View>\r\n      </KeyboardAvoidingView>\r\n    </SafeAreaView>\r\n  );\r\n};\r\n\r\nconst styles = StyleSheet.create({\r\n  container: { flex: 1, backgroundColor: '#F0F4F0' },\r\n\r\n  // Cabeçalho\r\n  header: {\r\n    flexDirection: 'row',\r\n    alignItems: 'center',\r\n    backgroundColor: '#4CAF50',\r\n    paddingHorizontal: 12,\r\n    paddingVertical: 12,\r\n    elevation: 4,\r\n    shadowColor: '#000',\r\n    shadowOffset: { width: 0, height: 2 },\r\n    shadowOpacity: 0.15,\r\n    shadowRadius: 4,\r\n    gap: 10,\r\n  },\r\n  backBtn: { padding: 4 },\r\n  headerAvatar: {\r\n    width: 40,\r\n    height: 40,\r\n    borderRadius: 20,\r\n    backgroundColor: 'rgba(255,255,255,0.25)',\r\n    alignItems: 'center',\r\n    justifyContent: 'center',\r\n  },\r\n  headerAvatarText: { color: '#FFF', fontWeight: '700', fontSize: 15 },\r\n  headerNome: { color: '#FFF', fontWeight: '700', fontSize: 16 },\r\n  headerStatus: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 1 },\r\n\r\n  // Lista\r\n  listContent: { paddingVertical: 12, paddingBottom: 8 },\r\n  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },\r\n\r\n  emptyMsg: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 80, gap: 12 },\r\n  emptyMsgText: { fontSize: 14, color: '#BBB', textAlign: 'center', lineHeight: 22 },\r\n\r\n  // Input bar\r\n  inputBar: {\r\n    flexDirection: 'row',\r\n    alignItems: 'flex-end',\r\n    paddingHorizontal: 12,\r\n    paddingVertical: 10,\r\n    backgroundColor: '#FFF',\r\n    borderTopWidth: 1,\r\n    borderTopColor: '#EEE',\r\n    gap: 10,\r\n  },\r\n  input: {\r\n    flex: 1,\r\n    borderWidth: 1,\r\n    borderColor: '#E0E0E0',\r\n    borderRadius: 24,\r\n    paddingHorizontal: 16,\r\n    paddingVertical: 10,\r\n    fontSize: 15,\r\n    backgroundColor: '#FAFAFA',\r\n    maxHeight: 120,\r\n    color: '#222',\r\n  },\r\n  sendBtn: {\r\n    width: 44,\r\n    height: 44,\r\n    borderRadius: 22,\r\n    backgroundColor: '#4CAF50',\r\n    alignItems: 'center',\r\n    justifyContent: 'center',\r\n    elevation: 2,\r\n    shadowColor: '#4CAF50',\r\n    shadowOffset: { width: 0, height: 2 },\r\n    shadowOpacity: 0.35,\r\n    shadowRadius: 4,\r\n  },\r\n  sendBtnDisabled: { backgroundColor: '#A5D6A7', elevation: 0, shadowOpacity: 0 },\r\n});\r\n\r\nexport default ConversaDetalhesScreen;\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/uaimed-front/screens/Conversas/ConversaDetalhesScreen.tsx b/uaimed-front/screens/Conversas/ConversaDetalhesScreen.tsx
+--- a/uaimed-front/screens/Conversas/ConversaDetalhesScreen.tsx	(revision a0a60385325f706c59bd084041805ccfaed0ef59)
++++ b/uaimed-front/screens/Conversas/ConversaDetalhesScreen.tsx	(date 1788790348420)
+@@ -9,6 +9,7 @@
+   ActivityIndicator,
+   KeyboardAvoidingView,
+   Platform,
++  RefreshControl,
+ } from 'react-native';
+ import { SafeAreaView } from 'react-native-safe-area-context';
+ import { Ionicons } from '@expo/vector-icons';
+@@ -121,28 +122,42 @@
+   const [loading, setLoading] = useState(true);
+   const [texto, setTexto] = useState('');
+   const [enviando, setEnviando] = useState(false);
++  const [refreshing, setRefreshing] = useState(false);
++  const [erro, setErro] = useState<string | null>(null);
+   const flatListRef = useRef<FlatList>(null);
+-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
++  const carregouRef = useRef(false);
++  const sequenciaRequisicaoRef = useRef(0);
++  const ultimaRequisicaoAplicadaRef = useRef(0);
+ 
+-  const fetchMensagens = useCallback(async () => {
++  const fetchMensagens = useCallback(async (mostrarLoading = false) => {
++    const requisicao = ++sequenciaRequisicaoRef.current;
++    if (mostrarLoading && !carregouRef.current) setLoading(true);
+     try {
+       const res = await uaiMedApi.get(`/conversas/${conversaId}/mensagens`);
+-      setMensagens(Array.isArray(res.data) ? res.data : []);
++      if (requisicao >= ultimaRequisicaoAplicadaRef.current) {
++        ultimaRequisicaoAplicadaRef.current = requisicao;
++        setMensagens(Array.isArray(res.data) ? res.data : []);
++      }
++      carregouRef.current = true;
++      setErro(null);
+     } catch (e) {
+       console.warn('Erro ao buscar mensagens:', e);
++      if (!carregouRef.current) {
++        setErro('Não foi possível carregar esta conversa.');
++      }
+     } finally {
+       setLoading(false);
++      setRefreshing(false);
+     }
+   }, [conversaId]);
+ 
+-  // Polling leve a cada 5s para simular recebimento de mensagens
++  // Atualiza enquanto a conversa estiver visível. O polling pode ser trocado por
++  // WebSocket no futuro sem alterar o contrato atual da API.
+   useFocusEffect(
+     useCallback(() => {
+-      fetchMensagens();
+-      pollingRef.current = setInterval(fetchMensagens, 5000);
+-      return () => {
+-        if (pollingRef.current) clearInterval(pollingRef.current);
+-      };
++      fetchMensagens(true);
++      const polling = setInterval(() => fetchMensagens(false), 3000);
++      return () => clearInterval(polling);
+     }, [fetchMensagens])
+   );
+ 
+@@ -157,31 +172,31 @@
+     const textoTemp = texto.trim();
+     setTexto('');
+     setEnviando(true);
+-
+-    // Otimista: adiciona mensagem imediatamente
+-    const temp: Mensagem = {
+-      id: `temp-${Date.now()}`,
+-      texto: textoTemp,
+-      remetenteId: user!.id,
+-      remetente: { id: user!.id, nome: user!.nome, avatar: null },
+-      lida: false,
+-      criado_em: new Date().toISOString(),
+-    };
+-    setMensagens((prev) => [...prev, temp]);
++    setErro(null);
+ 
+     try {
+-      await uaiMedApi.post(`/conversas/${conversaId}/mensagens`, { texto: textoTemp });
+-      fetchMensagens();
++      const res = await uaiMedApi.post<Mensagem>(
++        `/conversas/${conversaId}/mensagens`,
++        { texto: textoTemp },
++      );
++      setMensagens((prev) => prev.some((m) => m.id === res.data.id)
++        ? prev
++        : [...prev, res.data]);
++      await fetchMensagens(false);
+     } catch (e) {
+       console.warn('Erro ao enviar mensagem:', e);
+-      // Remove mensagem temporária em caso de erro
+-      setMensagens((prev) => prev.filter((m) => m.id !== temp.id));
+       setTexto(textoTemp);
++      setErro('A mensagem não foi enviada. Verifique sua conexão e tente novamente.');
+     } finally {
+       setEnviando(false);
+     }
+   };
+ 
++  const handleRefresh = () => {
++    setRefreshing(true);
++    fetchMensagens(false);
++  };
++
+   // Agrupa mensagens por dia para o separador
+   interface ListItem {
+     type: 'day' | 'msg';
+@@ -219,7 +234,7 @@
+           </View>
+           <View style={{ flex: 1 }}>
+             <Text style={styles.headerNome} numberOfLines={1}>{nomeOutro}</Text>
+-            <Text style={styles.headerStatus}>Online</Text>
++            <Text style={styles.headerStatus}>Mensagens atualizadas automaticamente</Text>
+           </View>
+         </View>
+ 
+@@ -236,6 +251,9 @@
+             contentContainerStyle={styles.listContent}
+             showsVerticalScrollIndicator={false}
+             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
++            refreshControl={
++              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#4CAF50" />
++            }
+             renderItem={({ item }) => {
+               if (item.type === 'day') {
+                 return <DividerDia dia={item.dia!} />;
+@@ -254,6 +272,12 @@
+         )}
+ 
+         {/* ── Campo de digitação ── */}
++        {erro ? (
++          <View style={styles.errorBar}>
++            <Ionicons name="alert-circle-outline" size={16} color="#B71C1C" />
++            <Text style={styles.errorText}>{erro}</Text>
++          </View>
++        ) : null}
+         <View style={styles.inputBar}>
+           <TextInput
+             style={styles.input}
+@@ -318,6 +342,15 @@
+   // Lista
+   listContent: { paddingVertical: 12, paddingBottom: 8 },
+   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
++  errorBar: {
++    flexDirection: 'row',
++    alignItems: 'center',
++    gap: 6,
++    backgroundColor: '#FFEBEE',
++    paddingHorizontal: 14,
++    paddingVertical: 8,
++  },
++  errorText: { flex: 1, color: '#B71C1C', fontSize: 12 },
+ 
+   emptyMsg: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 80, gap: 12 },
+   emptyMsgText: { fontSize: 14, color: '#BBB', textAlign: 'center', lineHeight: 22 },

@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -121,28 +122,42 @@ const ConversaDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [texto, setTexto] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const carregouRef = useRef(false);
+  const sequenciaRequisicaoRef = useRef(0);
+  const ultimaRequisicaoAplicadaRef = useRef(0);
 
-  const fetchMensagens = useCallback(async () => {
+  const fetchMensagens = useCallback(async (mostrarLoading = false) => {
+    const requisicao = ++sequenciaRequisicaoRef.current;
+    if (mostrarLoading && !carregouRef.current) setLoading(true);
     try {
       const res = await uaiMedApi.get(`/conversas/${conversaId}/mensagens`);
-      setMensagens(Array.isArray(res.data) ? res.data : []);
+      if (requisicao >= ultimaRequisicaoAplicadaRef.current) {
+        ultimaRequisicaoAplicadaRef.current = requisicao;
+        setMensagens(Array.isArray(res.data) ? res.data : []);
+      }
+      carregouRef.current = true;
+      setErro(null);
     } catch (e) {
       console.warn('Erro ao buscar mensagens:', e);
+      if (!carregouRef.current) {
+        setErro('Não foi possível carregar esta conversa.');
+      }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [conversaId]);
 
-  // Polling leve a cada 5s para simular recebimento de mensagens
+  // Atualiza enquanto a conversa estiver visível. O polling pode ser trocado por
+  // WebSocket no futuro sem alterar o contrato atual da API.
   useFocusEffect(
     useCallback(() => {
-      fetchMensagens();
-      pollingRef.current = setInterval(fetchMensagens, 5000);
-      return () => {
-        if (pollingRef.current) clearInterval(pollingRef.current);
-      };
+      fetchMensagens(true);
+      const polling = setInterval(() => fetchMensagens(false), 3000);
+      return () => clearInterval(polling);
     }, [fetchMensagens])
   );
 
@@ -157,29 +172,29 @@ const ConversaDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
     const textoTemp = texto.trim();
     setTexto('');
     setEnviando(true);
-
-    // Otimista: adiciona mensagem imediatamente
-    const temp: Mensagem = {
-      id: `temp-${Date.now()}`,
-      texto: textoTemp,
-      remetenteId: user!.id,
-      remetente: { id: user!.id, nome: user!.nome, avatar: null },
-      lida: false,
-      criado_em: new Date().toISOString(),
-    };
-    setMensagens((prev) => [...prev, temp]);
+    setErro(null);
 
     try {
-      await uaiMedApi.post(`/conversas/${conversaId}/mensagens`, { texto: textoTemp });
-      fetchMensagens();
+      const res = await uaiMedApi.post<Mensagem>(
+        `/conversas/${conversaId}/mensagens`,
+        { texto: textoTemp },
+      );
+      setMensagens((prev) => prev.some((m) => m.id === res.data.id)
+        ? prev
+        : [...prev, res.data]);
+      await fetchMensagens(false);
     } catch (e) {
       console.warn('Erro ao enviar mensagem:', e);
-      // Remove mensagem temporária em caso de erro
-      setMensagens((prev) => prev.filter((m) => m.id !== temp.id));
       setTexto(textoTemp);
+      setErro('A mensagem não foi enviada. Verifique sua conexão e tente novamente.');
     } finally {
       setEnviando(false);
     }
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchMensagens(false);
   };
 
   // Agrupa mensagens por dia para o separador
@@ -219,7 +234,7 @@ const ConversaDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.headerNome} numberOfLines={1}>{nomeOutro}</Text>
-            <Text style={styles.headerStatus}>Online</Text>
+            <Text style={styles.headerStatus}>Mensagens atualizadas automaticamente</Text>
           </View>
         </View>
 
@@ -236,6 +251,9 @@ const ConversaDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#4CAF50" />
+            }
             renderItem={({ item }) => {
               if (item.type === 'day') {
                 return <DividerDia dia={item.dia!} />;
@@ -254,6 +272,12 @@ const ConversaDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
         )}
 
         {/* ── Campo de digitação ── */}
+        {erro ? (
+          <View style={styles.errorBar}>
+            <Ionicons name="alert-circle-outline" size={16} color="#B71C1C" />
+            <Text style={styles.errorText}>{erro}</Text>
+          </View>
+        ) : null}
         <View style={styles.inputBar}>
           <TextInput
             style={styles.input}
@@ -318,6 +342,15 @@ const styles = StyleSheet.create({
   // Lista
   listContent: { paddingVertical: 12, paddingBottom: 8 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  errorBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFEBEE',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  errorText: { flex: 1, color: '#B71C1C', fontSize: 12 },
 
   emptyMsg: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 80, gap: 12 },
   emptyMsgText: { fontSize: 14, color: '#BBB', textAlign: 'center', lineHeight: 22 },

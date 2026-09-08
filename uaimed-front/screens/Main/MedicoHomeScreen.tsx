@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from '../../navigation/types';
 import { useAuth } from '../../hooks/useAuth';
+import MedicoDrawer from '../../components/MedicoDrawer';
 
 type Props = BottomTabScreenProps<MainTabParamList, 'Home'>;
 
@@ -27,51 +28,53 @@ const Atalho: React.FC<AtalhoProps> = ({ icon, titulo, descricao, onPress }) => 
   </TouchableOpacity>
 );
 
-const MedicoHomeScreen: React.FC<Props> = ({ navigation }) => {
+const MedicoHomeScreen: React.FC<Props> = ({ navigation, route }) => {
   const { user } = useAuth();
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const primeiroNome = user?.nome?.split(' ')[0] ?? 'Médico';
 
+  useEffect(() => {
+    if (route.params?.openMenu) {
+      setDrawerOpen(true);
+      navigation.setParams({ openMenu: undefined });
+    }
+  }, [navigation, route.params?.openMenu]);
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.hero}>
-        <View style={styles.heroIcon}>
-          <Ionicons name="medical" size={34} color="#FFF" />
+    <View style={styles.container}>
+      <MedicoDrawer visible={drawerOpen} onClose={() => setDrawerOpen(false)} navigation={navigation} />
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.hero}>
+          <View style={styles.heroIcon}>
+            <Ionicons name="medical" size={34} color="#FFF" />
+          </View>
+          <View style={styles.heroText}>
+            <Text style={styles.welcome}>Olá, Dr(a). {primeiroNome}</Text>
+            <Text style={styles.subtitle}>Você entrou na área do médico.</Text>
+          </View>
         </View>
-        <View style={styles.heroText}>
-          <Text style={styles.welcome}>Olá, Dr(a). {primeiroNome}</Text>
-          <Text style={styles.subtitle}>Você entrou na área do médico.</Text>
+
+        <View style={styles.profileCard}>
+          <Text style={styles.profileLabel}>Perfil profissional</Text>
+          <Text style={styles.profileValue}>
+            {user?.profissional?.especialidade || 'Especialidade não informada'}
+          </Text>
+          <Text style={styles.crm}>CRM: {user?.profissional?.crm || 'não informado'}</Text>
         </View>
-      </View>
 
-      <View style={styles.profileCard}>
-        <Text style={styles.profileLabel}>Perfil profissional</Text>
-        <Text style={styles.profileValue}>
-          {user?.profissional?.especialidade || 'Especialidade não informada'}
-        </Text>
-        <Text style={styles.crm}>CRM: {user?.profissional?.crm || 'não informado'}</Text>
-      </View>
+        <Text style={styles.sectionTitle}>Acesso rápido</Text>
 
-      <Text style={styles.sectionTitle}>Acesso rápido</Text>
-
-      <Atalho
-        icon="calendar-outline"
-        titulo="Minha agenda"
-        descricao="Consulte os próximos atendimentos."
-        onPress={() => navigation.navigate('MedicoAgenda')}
-      />
-      <Atalho
-        icon="person-outline"
-        titulo="Meu perfil"
-        descricao="Confira seus dados pessoais e profissionais."
-        onPress={() => navigation.navigate('Perfil')}
-      />
-      <Atalho
-        icon="newspaper-outline"
-        titulo="Artigos de saúde"
-        descricao="Publique e acompanhe seus conteúdos."
-        onPress={() => navigation.navigate('Artigos')}
-      />
-    </ScrollView>
+        <Atalho icon="calendar-outline" titulo="Minha agenda"
+          descricao="Consulte os próximos atendimentos."
+          onPress={() => navigation.navigate('MedicoAgenda')} />
+        <Atalho icon="person-outline" titulo="Meu perfil"
+          descricao="Confira seus dados pessoais e profissionais."
+          onPress={() => navigation.navigate('Perfil')} />
+        <Atalho icon="newspaper-outline" titulo="Artigos de saúde"
+          descricao="Publique e acompanhe seus conteúdos."
+          onPress={() => navigation.navigate('Artigos')} />
+      </ScrollView>
+    </View>
   );
 };
 

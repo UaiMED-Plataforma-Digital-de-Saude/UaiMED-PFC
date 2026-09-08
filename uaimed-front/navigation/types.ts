@@ -16,6 +16,7 @@ export type MainTabParamList = {
   Home: { openMenu?: boolean } | undefined;
   Agendamentos: NavigatorScreenParams<AgendamentoStackParamList> | undefined;
   MedicoAgenda?: undefined;
+  MedicoAvaliacoes?: undefined;
   ClinicDashboard?: undefined;
   Perfil: undefined;
   Ajuda: undefined;

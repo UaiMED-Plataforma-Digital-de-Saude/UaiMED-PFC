@@ -5,6 +5,8 @@
  * para facilitar manutenção e mudanças entre dev/staging/prod
  */
 
+import { Platform } from 'react-native';
+
 export const CONFIG = {
   // ============================================
   // AMBIENTE ATIVO
@@ -152,34 +154,24 @@ export function getApiBaseUrl(): string {
   
   // Para development, detecta a plataforma
   if (env === 'development') {
-    // Verifica se está rodando no React Native
-    if (typeof window === 'undefined') {
-      // React Native - detecta plataforma
-      try {
-        const { Platform } = require('react-native');
-        const platform = Platform.OS;
-        console.log(`📱 Plataforma detectada: ${platform}`);
-        
-        if (platform === 'android') {
-          console.log(`✅ Usando URL Android: ${CONFIG.API.android}`);
-          return CONFIG.API.android; // 10.0.2.2 para Android Simulator
-        }
-        if (platform === 'ios') {
-          console.log(`✅ Usando URL iOS: ${CONFIG.API.ios}`);
-          return CONFIG.API.ios; // localhost para iOS Simulator
-        }
-        
-        // Fallback para Android se plataforma desconhecida
-        console.log(`⚠️ Plataforma desconhecida (${platform}), usando Android por padrão`);
-        return CONFIG.API.android;
-      } catch (e) {
-        // Se não conseguir importar Platform, assume Android
-        console.log(`⚠️ Erro ao detectar plataforma: ${e}, usando Android por padrão`);
-        return CONFIG.API.android;
-      }
+    console.log(`📱 Plataforma detectada: ${Platform.OS}`);
+
+    if (Platform.OS === 'android') {
+      console.log(`✅ Usando URL Android: ${CONFIG.API.android}`);
+      return CONFIG.API.android;
     }
-    // Web/navegador - usa localhost
-    console.log(`✅ Usando URL Web: ${CONFIG.API.development}`);
+
+    if (Platform.OS === 'ios') {
+      console.log(`✅ Usando URL iOS: ${CONFIG.API.ios}`);
+      return CONFIG.API.ios;
+    }
+
+    if (Platform.OS === 'web') {
+      console.log(`✅ Usando URL Web: ${CONFIG.API.development}`);
+      return CONFIG.API.development;
+    }
+
+    console.log(`⚠️ Plataforma desconhecida (${Platform.OS}), usando development`);
     return CONFIG.API.development;
   }
   
