@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useCallback, useMemo } from 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 import uaiMedApi from '../api/uaiMedApi';
+import { onForceLogout } from '../api/authEvents';
 import CONFIG from '../config';
 import { TipoUsuario } from '../types/usuario';
 
@@ -39,6 +40,7 @@ export interface User {
 interface LoginResponse {
   user: User;
   token: string;
+  refreshToken: string;
 }
 
 /**
@@ -94,6 +96,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadStorageData();
   }, []);
 
+  // Disparado pelo interceptor do uaiMedApi quando o refresh falha. O storage
+  // já foi limpo lá — aqui só sincroniza o estado React e o header padrão.
+  useEffect(() => {
+    const unsubscribe = onForceLogout(() => {
+      setUser(null);
+      delete uaiMedApi.defaults.headers.common['Authorization'];
+    });
+    return unsubscribe;
+  }, []);
+
   /**
    * Função de Login — estabilizada com useCallback para evitar re-renders desnecessários
    */
@@ -110,9 +122,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         tipo: TipoUsuario.PACIENTE,
       };
       const mockToken = 'mock-token-dev';
+      const mockRefreshToken = 'mock-refresh-token-dev';
 
       setUser(mockUser);
       await AsyncStorage.setItem(CONFIG.STORAGE_KEYS.token, mockToken);
+      await AsyncStorage.setItem(CONFIG.STORAGE_KEYS.refreshToken, mockRefreshToken);
       await AsyncStorage.setItem(CONFIG.STORAGE_KEYS.user, JSON.stringify(mockUser));
       uaiMedApi.defaults.headers.common['Authorization'] = `Bearer ${mockToken}`;
       setLoading(false);
@@ -125,11 +139,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password,
       });
 
-      const { user: userData, token: authToken } = response.data;
+      const { user: userData, token: authToken, refreshToken } = response.data;
 
       setUser(userData);
 
       await AsyncStorage.setItem(CONFIG.STORAGE_KEYS.token, authToken);
+      await AsyncStorage.setItem(CONFIG.STORAGE_KEYS.refreshToken, refreshToken);
       await AsyncStorage.setItem(CONFIG.STORAGE_KEYS.user, JSON.stringify(userData));
 
       uaiMedApi.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
@@ -182,6 +197,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = useCallback(async () => {
     try {
       await AsyncStorage.removeItem(CONFIG.STORAGE_KEYS.token);
+      await AsyncStorage.removeItem(CONFIG.STORAGE_KEYS.refreshToken);
       await AsyncStorage.removeItem(CONFIG.STORAGE_KEYS.user);
 
       setUser(null);

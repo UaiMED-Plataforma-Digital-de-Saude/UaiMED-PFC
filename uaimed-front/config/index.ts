@@ -68,6 +68,7 @@ export const CONFIG = {
   // ============================================
   STORAGE_KEYS: {
     token: '@UaiMED:token',
+    refreshToken: '@UaiMED:refreshToken',
     user: '@UaiMED:user',
     theme: '@UaiMED:theme',
     language: '@UaiMED:language',
@@ -79,6 +80,7 @@ export const CONFIG = {
   ENDPOINTS: {
     // Autenticação
     login: '/sessions',
+    refreshToken: '/sessions/refresh',
     signup: '/usuarios',
     recoveryPassword: '/recuperar-senha',
     

@@ -29,7 +29,9 @@ services:
       PORT: 3333
       DATABASE_URL: postgresql://docker:docker@postgres:5432/uaimed
       JWT_SECRET: sua-chave-super-secreta
-      JWT_EXPIRE_IN: 7d
+      JWT_EXPIRE_IN: 1h
+      REFRESH_TOKEN_SECRET: outra-chave-super-secreta-diferente
+      REFRESH_TOKEN_EXPIRE_IN: 30d
       BCRYPT_ROUNDS: 10
       FRONTEND_URL: http://localhost:19000
     ports:
