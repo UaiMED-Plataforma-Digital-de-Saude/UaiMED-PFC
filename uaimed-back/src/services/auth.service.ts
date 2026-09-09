@@ -1,6 +1,6 @@
 import { prisma } from "../config/database";
 import { hashPassword, comparePassword } from "../utils/hash";
-import { generateToken } from "../utils/jwt";
+import { generateToken, generateRefreshToken, verifyRefreshToken } from "../utils/jwt";
 import { geocodeEndereco } from "./geocoding.service";
 import logger from "../utils/logger";
 import { TipoUsuario } from "@prisma/client";
@@ -68,7 +68,7 @@ class AuthService {
       : null;
 
     // Usa transação para garantir atomicidade: usuário + profissional criados juntos
-    const { usuario, profissional, token } = await prisma.$transaction(async (tx) => {
+    const { usuario, profissional, token, refreshToken } = await prisma.$transaction(async (tx) => {
       const usuario = await tx.usuario.create({
         data: {
           nome: data.nome,
@@ -104,12 +104,13 @@ class AuthService {
       }
 
       const token = generateToken({ id: usuario.id, email: usuario.email, tipo: usuario.tipo });
-      return { usuario, profissional, token };
+      const refreshToken = generateRefreshToken({ id: usuario.id, email: usuario.email, tipo: usuario.tipo });
+      return { usuario, profissional, token, refreshToken };
     });
 
     logger.success(`Novo usuário: ${usuario.email}`);
 
-    return { usuario, profissional, token };
+    return { usuario, profissional, token, refreshToken };
   }
 
   async signin(data: SignInData) {
@@ -120,6 +121,7 @@ class AuthService {
     if (!ok) throw new Error("Email ou senha incorretos");
 
     const token = generateToken({ id: usuario.id, email: usuario.email, tipo: usuario.tipo });
+    const refreshToken = generateRefreshToken({ id: usuario.id, email: usuario.email, tipo: usuario.tipo });
 
     const profissional = usuario.tipo === TipoUsuario.medico
       ? await prisma.profissional.findUnique({
@@ -140,7 +142,20 @@ class AuthService {
         profissional,
       },
       token,
+      refreshToken,
     };
+  }
+
+  async refresh(refreshToken: string) {
+    const decoded = verifyRefreshToken(refreshToken);
+    if (!decoded) throw new Error("Refresh token inválido ou expirado");
+
+    const usuario = await prisma.usuario.findUnique({ where: { id: decoded.id } });
+    if (!usuario) throw new Error("Usuário não encontrado");
+    if (!usuario.ativo) throw new Error("Usuário inativo");
+
+    const token = generateToken({ id: usuario.id, email: usuario.email, tipo: usuario.tipo });
+    return { token };
   }
 }
 

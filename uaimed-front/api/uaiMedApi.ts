@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CONFIG, { getApiBaseUrl, logNetwork, logError } from '../config/index';
+import { emitForceLogout } from './authEvents';
 
 // 2. Cria a instância do Axios com URL dinâmica
 const API_BASE_URL = getApiBaseUrl();
@@ -19,6 +20,37 @@ const uaiMedApi: AxiosInstance = axios.create({
   },
   timeout: 15000, // Timeout aumentado para 15 segundos
 });
+
+// Instância sem interceptors: evita que um 401 na própria chamada de refresh
+// dispare outra tentativa de refresh (recursão).
+const refreshClient: AxiosInstance = axios.create({ timeout: 15000 });
+
+// Enquanto um refresh está em andamento, outras requisições que caiam em 401
+// entram nesta fila em vez de disparar um novo refresh cada uma.
+let isRefreshing = false;
+let refreshSubscribers: Array<{ resolve: (token: string) => void; reject: (err: unknown) => void }> = [];
+
+function subscribeTokenRefresh(resolve: (token: string) => void, reject: (err: unknown) => void) {
+  refreshSubscribers.push({ resolve, reject });
+}
+
+function onRefreshed(token: string) {
+  refreshSubscribers.forEach((s) => s.resolve(token));
+  refreshSubscribers = [];
+}
+
+function onRefreshFailed(err: unknown) {
+  refreshSubscribers.forEach((s) => s.reject(err));
+  refreshSubscribers = [];
+}
+
+async function clearAuthStorage() {
+  await AsyncStorage.multiRemove([
+    CONFIG.STORAGE_KEYS.token,
+    CONFIG.STORAGE_KEYS.refreshToken,
+    CONFIG.STORAGE_KEYS.user,
+  ]).catch(() => {});
+}
 
 // 3. Interceptor de Requisição: Adiciona o Token e atualiza URL se necessário
 uaiMedApi.interceptors.request.use(
@@ -54,7 +86,7 @@ uaiMedApi.interceptors.response.use(
         logNetwork(`✅ ${response.status}`, response.data);
         return response;
     },
-    (error) => {
+    async (error) => {
         // Log detalhado do erro
         const errorDetails = {
           message: error.message,
@@ -65,9 +97,9 @@ uaiMedApi.interceptors.response.use(
           baseURL: error.config?.baseURL,
           fullURL: `${error.config?.baseURL}${error.config?.url}`,
         };
-        
+
         console.error('❌ Erro de rede completo:', errorDetails);
-        
+
         // Tratamento específico para Network Error
         if (error.message === 'Network Error' || error.code === 'NETWORK_ERROR' || !error.response) {
           console.error('🔴 ERRO DE CONEXÃO DETECTADO');
@@ -76,14 +108,75 @@ uaiMedApi.interceptors.response.use(
           console.error(`   Verifique se o backend está rodando em: ${errorDetails.baseURL?.replace('/api', '')}`);
           console.error(`   Para Android Simulator, deve ser: http://10.0.2.2:3333/api`);
         }
-        
-        // Tratamento para token expirado ou inválido (código 401)
+
         if (error.response && error.response.status === 401) {
-            logError('Sessão expirada (401) — limpando credenciais');
-            // Limpa token e usuário do storage para forçar novo login
-            AsyncStorage.multiRemove([CONFIG.STORAGE_KEYS.token, CONFIG.STORAGE_KEYS.user]).catch(() => {});
+            const originalRequest = error.config;
+
+            // Já tentamos renovar uma vez para essa requisição e ainda assim
+            // veio 401 — evita loop infinito.
+            if (originalRequest?._retry) {
+                await clearAuthStorage();
+                emitForceLogout();
+                logError('Erro em resposta:', errorDetails);
+                return Promise.reject(error);
+            }
+
+            const refreshToken = await AsyncStorage.getItem(CONFIG.STORAGE_KEYS.refreshToken);
+
+            if (!refreshToken) {
+                logError('Sessão expirada (401) — sem refresh token, limpando credenciais');
+                await clearAuthStorage();
+                emitForceLogout();
+                logError('Erro em resposta:', errorDetails);
+                return Promise.reject(error);
+            }
+
+            originalRequest._retry = true;
+
+            if (isRefreshing) {
+                let newToken: string;
+                try {
+                    newToken = await new Promise<string>((resolve, reject) => {
+                        subscribeTokenRefresh(resolve, reject);
+                    });
+                } catch (refreshError) {
+                    return Promise.reject(error);
+                }
+                // Retry fora do try/catch: se falhar por motivo próprio, o erro
+                // real deve propagar em vez de ser confundido com falha de refresh.
+                originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                return uaiMedApi(originalRequest);
+            }
+
+            isRefreshing = true;
+            let newToken: string;
+            try {
+                const baseURL = getApiBaseUrl();
+                const refreshResponse = await refreshClient.post(
+                    `${baseURL}${CONFIG.ENDPOINTS.refreshToken}`,
+                    { refreshToken }
+                );
+                newToken = refreshResponse.data.token;
+
+                await AsyncStorage.setItem(CONFIG.STORAGE_KEYS.token, newToken);
+                uaiMedApi.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+
+                isRefreshing = false;
+                onRefreshed(newToken);
+            } catch (refreshError) {
+                isRefreshing = false;
+                onRefreshFailed(refreshError);
+                logError('Falha ao renovar token — encerrando sessão', refreshError);
+                await clearAuthStorage();
+                emitForceLogout();
+                logError('Erro em resposta:', errorDetails);
+                return Promise.reject(error);
+            }
+            // Retry fora do try/catch — mesmo motivo do branch acima.
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            return uaiMedApi(originalRequest);
         }
-        
+
         logError('Erro em resposta:', errorDetails);
         return Promise.reject(error);
     }

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import AuthController from "../controllers/auth.controller";
-import { signupSchemaValidated as signupSchema, signinSchema } from "../schemas/auth.schema";
+import { signupSchemaValidated as signupSchema, signinSchema, refreshSchema } from "../schemas/auth.schema";
 import { validateBody } from "../middleware/validate";
 import authMiddleware from "../middleware/auth";
 import { prisma } from "../config/database";
@@ -15,6 +15,9 @@ router.post("/usuarios", validateBody(signupSchema), (req: Request, res: Respons
 
 // POST /api/sessions
 router.post("/sessions", validateBody(signinSchema), (req: Request, res: Response) => AuthController.signin(req, res));
+
+// POST /api/sessions/refresh
+router.post("/sessions/refresh", validateBody(refreshSchema), (req: Request, res: Response) => AuthController.refresh(req, res));
 
 // POST /api/auth/change-password — protegido por authMiddleware
 router.post("/auth/change-password", authMiddleware, async (req: Request, res: Response) => {

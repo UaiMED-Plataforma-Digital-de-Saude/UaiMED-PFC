@@ -6,10 +6,10 @@ class AuthController {
   async signup(req: Request, res: Response) {
     try {
       const result = await AuthService.signup(req.body);
-      // Retorna no formato esperado pelo frontend: { user, token }
       return res.status(201).json({
         user: { ...result.usuario, profissional: result.profissional },
         token: result.token,
+        refreshToken: result.refreshToken,
       });
     } catch (err: any) {
       logger.error("Erro ao registrar", err);
@@ -28,14 +28,25 @@ class AuthController {
       if (!email || !password) return res.status(400).json({ error: "Email e senha são obrigatórios" });
 
       const result = await AuthService.signin({ email, senha: password });
-      // Retorna no formato esperado pelo frontend: { user, token }
       return res.json({
         user: result.usuario,
         token: result.token,
+        refreshToken: result.refreshToken,
       });
     } catch (err: any) {
       logger.error("Erro ao autenticar", err);
       return res.status(401).json({ error: err?.message || "Erro ao autenticar" });
+    }
+  }
+
+  async refresh(req: Request, res: Response) {
+    try {
+      const { refreshToken } = req.body;
+      const result = await AuthService.refresh(refreshToken);
+      return res.json({ token: result.token });
+    } catch (err: any) {
+      logger.error("Erro ao renovar token", err);
+      return res.status(401).json({ error: err?.message || "Erro ao renovar token" });
     }
   }
 }
