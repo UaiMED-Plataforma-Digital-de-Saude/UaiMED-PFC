@@ -16,7 +16,7 @@ class AuthController {
       // P2002 = unique constraint violation (e-mail ou CPF duplicado)
       // ou mensagem lançada pelo service antes da query
       if (err?.code === 'P2002' || err?.message === 'Email já cadastrado') {
-        return res.status(409).json({ error: 'E-mail ou CPF já cadastrado' });
+        return res.status(409).json({ error: 'E-mail, CPF ou CNPJ já cadastrado' });
       }
       return res.status(400).json({ error: err?.message || "Erro ao registrar" });
     }

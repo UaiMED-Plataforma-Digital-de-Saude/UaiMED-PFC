@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,15 +6,12 @@ import {
   TextInput,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
-  FlatList,
-  Modal,
 } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { AgendamentoStackParamList } from '../../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
 import LocationModal, { LocationValue } from '../../components/LocationModal';
-import uaiMedApi from '../../api/uaiMedApi';
+import EspecialidadeDropdown from '../../components/EspecialidadeDropdown';
 
 type SearchScreenProps = StackScreenProps<AgendamentoStackParamList, 'Busca'>;
 
@@ -34,34 +31,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation }) => {
     { id: '8', nome: 'Oftalmologia', icon: 'eye-outline', color: '#00BCD4' },
   ];
 
-  // Estados para Especialidades
-  const [especialidades, setEspecialidades] = useState<{ id: string, nome: string }[]>([]);
   const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
-  const [loadingSpecs, setLoadingSpecs] = useState(false);
-  const [specModalVisible, setSpecModalVisible] = useState(false);
-
-  // Busca especialidades do back-end
-  useEffect(() => {
-    const fetchSpecialties = async () => {
-      setLoadingSpecs(true);
-      try {
-        // Tentativa de buscar do backend real
-        const response = await uaiMedApi.get('/especialidades');
-        setEspecialidades(response.data);
-      } catch (err) {
-        console.warn('Backend /especialidades não encontrado, usando mocks');
-        // MOCK solicitado para teste
-        setEspecialidades([
-          { id: '1', nome: 'Cardiologia' },
-          { id: '2', nome: 'Dermatologia' },
-          { id: '3', nome: 'Pediatria' },
-        ]);
-      } finally {
-        setLoadingSpecs(false);
-      }
-    };
-    fetchSpecialties();
-  }, []);
 
   const buildParams = () => ({
     ...(location.uf ? { estado: location.uf } : {}),
@@ -101,16 +71,11 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation }) => {
 
         {/* 2. Seleção de Especialidade (Dropdown) */}
         <Text style={styles.inputLabel}>Especialidade</Text>
-        <TouchableOpacity
-          style={styles.dropdownButton}
-          onPress={() => setSpecModalVisible(true)}
-        >
-          <Ionicons name="medical-outline" size={20} color="#4CAF50" style={{ marginRight: 10 }} />
-          <Text style={[styles.dropdownText, !selectedSpecialty && { color: '#999' }]}>
-            {selectedSpecialty || 'Selecione uma especialidade'}
-          </Text>
-          <Ionicons name="chevron-down" size={18} color="#999" />
-        </TouchableOpacity>
+        <EspecialidadeDropdown
+          value={selectedSpecialty}
+          onChange={setSelectedSpecialty}
+          permitirLimpar
+        />
 
         {/* 3. Seletor de Localização */}
         <Text style={styles.inputLabel}>Onde?</Text>
@@ -166,51 +131,6 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation }) => {
 
       </ScrollView>
 
-      {/* Modal de Especialidades */}
-      <Modal visible={specModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Especialidades</Text>
-              <TouchableOpacity onPress={() => setSpecModalVisible(false)}>
-                <Ionicons name="close" size={28} color="#333" />
-              </TouchableOpacity>
-            </View>
-
-            {loadingSpecs ? (
-              <ActivityIndicator size="large" color="#4CAF50" style={{ margin: 20 }} />
-            ) : (
-              <FlatList
-                data={especialidades}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.specItem}
-                    onPress={() => {
-                      setSelectedSpecialty(item.nome);
-                      setSpecModalVisible(false);
-                    }}
-                  >
-                    <Text style={styles.specItemText}>{item.nome}</Text>
-                    {selectedSpecialty === item.nome && (
-                      <Ionicons name="checkmark" size={20} color="#4CAF50" />
-                    )}
-                  </TouchableOpacity>
-                )}
-                ListEmptyComponent={<Text style={styles.emptyText}>Nenhuma especialidade encontrada.</Text>}
-              />
-            )}
-
-            <TouchableOpacity
-              style={styles.clearButton}
-              onPress={() => { setSelectedSpecialty(null); setSpecModalVisible(false); }}
-            >
-              <Text style={styles.clearButtonText}>Limpar Filtro</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
       {/* Modal de Localização */}
       <LocationModal
         visible={locationModalVisible}
@@ -256,22 +176,6 @@ const styles = StyleSheet.create({
     borderColor: '#EEE',
   },
   searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#333',
-  },
-  dropdownButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F7F7F7',
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    paddingVertical: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#EEE',
-  },
-  dropdownText: {
     flex: 1,
     fontSize: 16,
     color: '#333',
@@ -356,59 +260,6 @@ const styles = StyleSheet.create({
     color: '#555',
     textAlign: 'center',
   },
-
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#FFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#111',
-  },
-  specItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  specItemText: {
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#999',
-    marginVertical: 20,
-  },
-  clearButton: {
-    marginTop: 10,
-    padding: 15,
-    alignItems: 'center',
-  },
-  clearButtonText: {
-    color: '#F44336',
-    fontWeight: '700',
-    fontSize: 14,
-  }
 });
 
 export default SearchScreen;

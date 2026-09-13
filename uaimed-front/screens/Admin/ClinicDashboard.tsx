@@ -37,10 +37,9 @@ const ClinicDashboard: React.FC = () => {
           {summary ? (
             <>
               <View style={styles.card}>
-                <Text style={styles.cardTitle}>Usuários</Text>
-                <Text>Total: {summary.totalUsuarios}</Text>
-                <Text>Pacientes: {summary.totalPacientes}</Text>
-                <Text>Médicos: {summary.totalMedicos}</Text>
+                <Text style={styles.cardTitle}>Visão da Clínica</Text>
+                <Text>Pacientes atendidos: {summary.totalPacientes}</Text>
+                <Text>Médicos vinculados: {summary.totalMedicos}</Text>
               </View>
 
               <View style={styles.card}>

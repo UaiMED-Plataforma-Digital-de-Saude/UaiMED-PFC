@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import { useFocusEffect } from '@react-navigation/native';
 import { MainTabParamList } from '../../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../hooks/useAuth';
@@ -15,6 +16,7 @@ import uaiMedApi from '../../api/uaiMedApi';
 import { TipoUsuario } from '../../types/usuario';
 import LocalizacaoMedicoCard from '../../components/LocalizacaoMedicoCard';
 import { googleMapsUrl } from '../../utils/geo';
+import { SolicitacaoVinculoClinica } from '../../types/clinica';
 
 type PerfilScreenProps = BottomTabScreenProps<MainTabParamList, 'Perfil'>;
 
@@ -102,6 +104,9 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   const [agencia, setAgencia]           = React.useState('');
   const [conta, setConta]               = React.useState('');
   const [tipoConta, setTipoConta]       = React.useState<'corrente' | 'poupanca'>('corrente');
+  const [solicitacoesClinica, setSolicitacoesClinica] = React.useState<SolicitacaoVinculoClinica[]>([]);
+  const [solicitacoesLoading, setSolicitacoesLoading] = React.useState(false);
+  const [respondendoClinicaId, setRespondendoClinicaId] = React.useState<string | null>(null);
 
   const { modal, showModal, hideModal } = useModal();
 
@@ -110,14 +115,58 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   const isClinica  = user?.tipo === TipoUsuario.CLINICA;
   const tipoLabel  = isPaciente ? 'Paciente' : isMedico ? 'Médico' : 'Clínica';
 
+  const carregarSolicitacoesClinica = React.useCallback(async () => {
+    if (!isMedico) return;
+    setSolicitacoesLoading(true);
+    try {
+      const resposta = await uaiMedApi.get<SolicitacaoVinculoClinica[]>('/clinicas/solicitacoes');
+      setSolicitacoesClinica(resposta.data);
+    } catch {
+      setSolicitacoesClinica([]);
+    } finally {
+      setSolicitacoesLoading(false);
+    }
+  }, [isMedico]);
+
+  useFocusEffect(React.useCallback(() => {
+    carregarSolicitacoesClinica();
+  }, [carregarSolicitacoesClinica]));
+
+  const responderSolicitacaoClinica = async (
+    solicitacao: SolicitacaoVinculoClinica,
+    acao: 'aceitar' | 'recusar',
+  ) => {
+    setRespondendoClinicaId(solicitacao.clinicaId);
+    try {
+      await uaiMedApi.patch(`/clinicas/solicitacoes/${solicitacao.clinicaId}`, { acao });
+      setSolicitacoesClinica((atuais) =>
+        atuais.filter((item) => item.clinicaId !== solicitacao.clinicaId));
+      showModal(
+        acao === 'aceitar' ? 'Vínculo aceito' : 'Solicitação recusada',
+        acao === 'aceitar'
+          ? `Agora você faz parte da equipe de ${solicitacao.nome}.`
+          : `A solicitação de ${solicitacao.nome} foi recusada.`,
+        { type: acao === 'aceitar' ? 'success' : 'info' },
+      );
+    } catch (error: any) {
+      showModal(
+        'Não foi possível responder',
+        error.response?.data?.error ?? 'Tente novamente.',
+        { type: 'error' },
+      );
+    } finally {
+      setRespondendoClinicaId(null);
+    }
+  };
+
   // ── Entrar em modo de edição ───────────────────────────────────
   const handleStartEdit = () => {
     setEditNome(user?.nome ?? '');
     setEditTelefone(user?.telefone ?? '');
-    setEditEndereco(user?.profissional?.endereco ?? '');
-    setEditCidade(user?.profissional?.cidade ?? '');
-    setEditEstado(user?.profissional?.estado ?? '');
-    setEditCep(user?.profissional?.cep ?? '');
+    setEditEndereco(isMedico ? (user?.profissional?.endereco ?? '') : (user?.endereco ?? ''));
+    setEditCidade(isMedico ? (user?.profissional?.cidade ?? '') : (user?.cidade ?? ''));
+    setEditEstado(isMedico ? (user?.profissional?.estado ?? '') : (user?.estado ?? ''));
+    setEditCep(isMedico ? (user?.profissional?.cep ?? '') : (user?.cep ?? ''));
     setEditMode(true);
   };
 
@@ -131,7 +180,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
       showModal('Campo obrigatório', 'O nome não pode ficar vazio.', { type: 'warning' });
       return;
     }
-    if (isMedico && (!editEndereco.trim() || !editCidade.trim() || !editEstado.trim())) {
+    if ((isMedico || isClinica) && (!editEndereco.trim() || !editCidade.trim() || !editEstado.trim())) {
       showModal('Campo obrigatório', 'Endereço, cidade e estado são obrigatórios.', { type: 'warning' });
       return;
     }
@@ -141,6 +190,12 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
         uaiMedApi.put('/users/me', {
           nome: editNome.trim(),
           telefone: editTelefone.trim(),
+          ...(isClinica ? {
+            endereco: editEndereco.trim(),
+            cidade: editCidade.trim(),
+            estado: editEstado.trim(),
+            cep: editCep.trim(),
+          } : {}),
         }),
         isMedico
           ? uaiMedApi.put('/professionals/me/endereco', {
@@ -154,6 +209,12 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
       await updateUser({
         nome: contaRes.data.user.nome,
         telefone: contaRes.data.user.telefone,
+        ...(isClinica ? {
+          endereco: contaRes.data.user.endereco,
+          cidade: contaRes.data.user.cidade,
+          estado: contaRes.data.user.estado,
+          cep: contaRes.data.user.cep,
+        } : {}),
         ...(enderecoRes ? { profissional: { ...user?.profissional, ...enderecoRes.data } } : {}),
       });
       setEditMode(false);
@@ -400,6 +461,53 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
                   />
                 </>
               )}
+              {isClinica && (
+                <>
+                  <Text style={s.fieldLabelReadonly}>CNPJ</Text>
+                  <Text style={s.fieldReadonlyValue}>{user.cnpj || 'Não informado'}</Text>
+                  <Text style={s.fieldLabel}>Endereço da Clínica</Text>
+                  <TextInput
+                    style={s.fieldInput}
+                    value={editEndereco}
+                    onChangeText={setEditEndereco}
+                    placeholder="Rua, número, bairro"
+                    editable={!saveLoading}
+                  />
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <View style={{ flex: 2 }}>
+                      <Text style={s.fieldLabel}>Cidade</Text>
+                      <TextInput
+                        style={s.fieldInput}
+                        value={editCidade}
+                        onChangeText={setEditCidade}
+                        placeholder="Cidade"
+                        editable={!saveLoading}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.fieldLabel}>UF</Text>
+                      <TextInput
+                        style={s.fieldInput}
+                        value={editEstado}
+                        onChangeText={setEditEstado}
+                        placeholder="MG"
+                        maxLength={2}
+                        autoCapitalize="characters"
+                        editable={!saveLoading}
+                      />
+                    </View>
+                  </View>
+                  <Text style={s.fieldLabel}>CEP</Text>
+                  <TextInput
+                    style={s.fieldInput}
+                    value={editCep}
+                    onChangeText={setEditCep}
+                    placeholder="00000-000"
+                    keyboardType="numeric"
+                    editable={!saveLoading}
+                  />
+                </>
+              )}
 
               <TouchableOpacity
                 style={[s.saveBtn, saveLoading && { opacity: 0.7 }]}
@@ -428,11 +536,79 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
                 </>
               )}
               {isClinica && (
-                <InfoRow icon="business-outline" label="CNPJ" value={user.cnpj || user.cpf || 'Não informado'} iconColor="#00838F" last />
+                <>
+                  <InfoRow icon="business-outline" label="CNPJ" value={user.cnpj || user.cpf || 'Não informado'} iconColor="#00838F" />
+                  <InfoRow
+                    icon="location-outline"
+                    label="Endereço"
+                    value={[user.endereco, user.cidade, user.estado].filter(Boolean).join(', ') || 'Não informado'}
+                    iconColor="#2E7D32"
+                    last
+                  />
+                </>
               )}
             </>
           )}
         </View>
+
+        {/* ── Solicitações de vínculo com clínicas — somente MÉDICO ── */}
+        {isMedico && !editMode && (
+          <View style={s.card}>
+            <View style={s.solicitacoesTitleRow}>
+              <Text style={[s.cardTitle, { marginBottom: 0 }]}>Solicitações de clínicas</Text>
+              {solicitacoesClinica.length > 0 && (
+                <View style={s.solicitacoesBadge}>
+                  <Text style={s.solicitacoesBadgeText}>{solicitacoesClinica.length}</Text>
+                </View>
+              )}
+            </View>
+
+            {solicitacoesLoading ? (
+              <ActivityIndicator size="small" color="#2E7D32" style={{ marginVertical: 18 }} />
+            ) : solicitacoesClinica.length === 0 ? (
+              <View style={s.solicitacoesEmpty}>
+                <Ionicons name="business-outline" size={25} color="#AAB8AA" />
+                <Text style={s.solicitacoesEmptyText}>Nenhuma solicitação pendente.</Text>
+              </View>
+            ) : solicitacoesClinica.map((solicitacao) => {
+              const processando = respondendoClinicaId === solicitacao.clinicaId;
+              return (
+                <View key={solicitacao.clinicaId} style={s.solicitacaoCard}>
+                  <View style={s.solicitacaoHeader}>
+                    <View style={s.solicitacaoIcon}>
+                      <Ionicons name="business" size={19} color="#2E7D32" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.solicitacaoNome}>{solicitacao.nome}</Text>
+                      <Text style={s.solicitacaoLocal}>
+                        {[solicitacao.cidade, solicitacao.estado].filter(Boolean).join(', ') || 'Localização não informada'}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={s.solicitacaoTexto}>Esta clínica quer adicionar você à equipe médica.</Text>
+                  <View style={s.solicitacaoActions}>
+                    <TouchableOpacity
+                      style={[s.solicitacaoButton, s.recusarButton]}
+                      disabled={processando}
+                      onPress={() => responderSolicitacaoClinica(solicitacao, 'recusar')}
+                    >
+                      <Text style={s.recusarButtonText}>Recusar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[s.solicitacaoButton, s.aceitarButton]}
+                      disabled={processando}
+                      onPress={() => responderSolicitacaoClinica(solicitacao, 'aceitar')}
+                    >
+                      {processando
+                        ? <ActivityIndicator size="small" color="#FFF" />
+                        : <Text style={s.aceitarButtonText}>Aceitar vínculo</Text>}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
 
         {/* ── 1b. Localização do consultório — somente MÉDICO ── */}
         {isMedico && !editMode && (
@@ -737,6 +913,25 @@ const s = StyleSheet.create({
   },
   cardTitle: { fontSize: 13, fontWeight: '700', color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
   avisoSemMapa: { fontSize: 12, color: '#AAA', marginTop: 10, lineHeight: 17 },
+
+  // Solicitações de vínculo com clínicas
+  solicitacoesTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  solicitacoesBadge: { minWidth: 23, height: 23, borderRadius: 12, paddingHorizontal: 7, alignItems: 'center', justifyContent: 'center', backgroundColor: '#E65100' },
+  solicitacoesBadgeText: { color: '#FFF', fontSize: 11, fontWeight: '800' },
+  solicitacoesEmpty: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 },
+  solicitacoesEmptyText: { color: '#8A958A', fontSize: 12 },
+  solicitacaoCard: { borderWidth: 1, borderColor: '#DDE8DD', borderRadius: 12, padding: 12, marginTop: 8, backgroundColor: '#FBFDFB' },
+  solicitacaoHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  solicitacaoIcon: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#E8F5E9' },
+  solicitacaoNome: { color: '#1E2A1E', fontSize: 14, fontWeight: '700' },
+  solicitacaoLocal: { color: '#899189', fontSize: 11, marginTop: 2 },
+  solicitacaoTexto: { color: '#626A62', fontSize: 12, lineHeight: 17, marginTop: 10 },
+  solicitacaoActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  solicitacaoButton: { flex: 1, minHeight: 38, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  recusarButton: { borderWidth: 1, borderColor: '#E7A4A4', backgroundColor: '#FFF' },
+  recusarButtonText: { color: '#B3261E', fontSize: 12, fontWeight: '700' },
+  aceitarButton: { backgroundColor: '#2E7D32' },
+  aceitarButtonText: { color: '#FFF', fontSize: 12, fontWeight: '700' },
 
   // Campos de edição
   fieldLabel: { fontSize: 11, fontWeight: '700', color: '#4CAF50', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4, marginTop: 8 },

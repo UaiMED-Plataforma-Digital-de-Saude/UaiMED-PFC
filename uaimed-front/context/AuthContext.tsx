@@ -19,6 +19,10 @@ export interface User {
   cnpj?: string;
   telefone?: string;
   avatar?: string | null;
+  endereco?: string | null;
+  cidade?: string | null;
+  estado?: string | null;
+  cep?: string | null;
   tipo: TipoUsuario;
   profissional?: {
     id: string;
