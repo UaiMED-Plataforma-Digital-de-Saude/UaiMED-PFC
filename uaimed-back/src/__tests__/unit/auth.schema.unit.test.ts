@@ -132,6 +132,38 @@ describe('Auth schemas — validação Zod', () => {
       });
       expect(result.success).toBe(true);
     });
+
+    it('rejeita especialidade digitada fora do catálogo oficial', () => {
+      const result = signupSchemaValidated.safeParse({
+        ...base,
+        especialidade: 'Cardio inventada',
+        crm: 'CRM-RJ-99999',
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('aceita clínica com CNPJ e sem CPF', () => {
+      const result = signupSchemaValidated.safeParse({
+        nome: 'Clínica Saúde Ltda',
+        email: 'contato@clinicasaude.com',
+        cnpj: '12345678000199',
+        telefone: '31999999999',
+        senha: 'senha456',
+        tipo: 'clinica',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('rejeita clínica sem CNPJ', () => {
+      const result = signupSchemaValidated.safeParse({
+        nome: 'Clínica Saúde Ltda',
+        email: 'contato@clinicasaude.com',
+        telefone: '31999999999',
+        senha: 'senha456',
+        tipo: 'clinica',
+      });
+      expect(result.success).toBe(false);
+    });
   });
 });
 

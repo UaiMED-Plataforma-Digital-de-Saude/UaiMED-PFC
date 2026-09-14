@@ -18,6 +18,7 @@ export type MainTabParamList = {
   MedicoAgenda?: undefined;
   MedicoAvaliacoes?: undefined;
   ClinicDashboard?: undefined;
+  ClinicaMedicos?: undefined;
   Perfil: undefined;
   Ajuda: undefined;
   Artigos: undefined;

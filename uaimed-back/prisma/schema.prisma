@@ -14,42 +14,52 @@ enum TipoUsuario {
   admin
 }
 
+enum StatusVinculoClinica {
+  pendente
+  aceito
+  recusado
+}
+
 model Usuario {
-  id            String        @id @default(uuid())
-  nome          String
-  email         String        @unique
-  cpf           String        @unique
-  telefone      String
-  senha         String
-  tipo          TipoUsuario   @default(paciente)
-  avatar        String?
-  cidade        String?
-  estado        String?
-  pixKey        String?
-  banco         String?
-  agencia       String?
-  conta         String?
-  tipoConta     String?
-  ativo         Boolean       @default(true)
-  criado_em     DateTime      @default(now())
-  atualizado_em DateTime      @updatedAt
-  agendamentos  Agendamento[]
-  avaliacoes    Avaliacao[]
-  contatos      Contato[]
-  pagamentos    Pagamento[]
-  profissional  Profissional?
-  conversas     Conversa[]
-  mensagens     Mensagem[]
-  artigos       Artigo[]
+  id             String                @id @default(uuid())
+  nome           String
+  email          String                @unique
+  cpf            String?               @unique
+  cnpj           String?               @unique
+  telefone       String
+  senha          String
+  tipo           TipoUsuario           @default(paciente)
+  avatar         String?
+  endereco       String?
+  cidade         String?
+  estado         String?
+  cep            String?
+  pixKey         String?
+  banco          String?
+  agencia        String?
+  conta          String?
+  tipoConta      String?
+  ativo          Boolean               @default(true)
+  criado_em      DateTime              @default(now())
+  atualizado_em  DateTime              @updatedAt
+  agendamentos   Agendamento[]
+  avaliacoes     Avaliacao[]
+  contatos       Contato[]
+  pagamentos     Pagamento[]
+  profissional   Profissional?
+  conversas      Conversa[]
+  mensagens      Mensagem[]
+  artigos        Artigo[]
+  medicosClinica ClinicaProfissional[] @relation("ClinicaVinculos")
 
   @@map("usuarios")
 }
 
 model Profissional {
-  id            String        @id @default(uuid())
-  usuarioId     String        @unique
+  id            String                @id @default(uuid())
+  usuarioId     String                @unique
   especialidade String
-  crm           String        @unique
+  crm           String                @unique
   dataFormacao  DateTime
   endereco      String
   cidade        String
@@ -62,16 +72,33 @@ model Profissional {
   agencia       String?
   conta         String?
   tipoConta     String?
-  precoConsulta Float         @default(150.00)
-  criado_em     DateTime      @default(now())
-  atualizado_em DateTime      @updatedAt
+  precoConsulta Float                 @default(150.00)
+  criado_em     DateTime              @default(now())
+  atualizado_em DateTime              @updatedAt
   agendamentos  Agendamento[]
   avaliacoes    Avaliacao[]
   contatos      Contato[]
-  usuario       Usuario       @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuario       Usuario               @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   conversas     Conversa[]
+  clinicas      ClinicaProfissional[]
 
   @@map("profissionais")
+}
+
+model ClinicaProfissional {
+  clinicaId      String
+  profissionalId String
+  status         StatusVinculoClinica @default(pendente)
+  criado_em      DateTime             @default(now())
+  atualizado_em  DateTime             @default(now()) @updatedAt
+  respondido_em  DateTime?
+  clinica        Usuario              @relation("ClinicaVinculos", fields: [clinicaId], references: [id], onDelete: Cascade)
+  profissional   Profissional         @relation(fields: [profissionalId], references: [id], onDelete: Cascade)
+
+  @@id([clinicaId, profissionalId])
+  @@index([profissionalId])
+  @@index([profissionalId, status])
+  @@map("clinicas_profissionais")
 }
 
 model Agendamento {
@@ -198,4 +225,3 @@ model Mensagem {
 
   @@map("mensagens")
 }
-

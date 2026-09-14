@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AppModal from '../../components/AppModal';
 import { useModal } from '../../hooks/useModal';
 import { TipoCadastro, TipoUsuario } from '../../types/usuario';
+import EspecialidadeDropdown from '../../components/EspecialidadeDropdown';
 
 type CadastroScreenProps = StackScreenProps<AuthStackParamList, 'Cadastro'>;
 
@@ -75,6 +76,28 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
       return;
     }
 
+    const documentoNumeros = documento.replace(/\D/g, '');
+    const tamanhoDocumento = tipo === TipoUsuario.CLINICA ? 14 : 11;
+    if (documentoNumeros.length !== tamanhoDocumento) {
+      showModal(
+        'Documento inválido',
+        tipo === TipoUsuario.CLINICA
+          ? 'O CNPJ deve possuir exatamente 14 dígitos.'
+          : 'O CPF deve possuir exatamente 11 dígitos.',
+        { type: 'warning' },
+      );
+      return;
+    }
+
+    if (tipo === TipoUsuario.MEDICO && (!especialidade || !crm.trim())) {
+      showModal(
+        'Dados profissionais obrigatórios',
+        'Selecione uma especialidade e informe o CRM.',
+        { type: 'warning' },
+      );
+      return;
+    }
+
     if (senha !== confirmaSenha) {
       showModal('Erro na senha', 'As senhas não coincidem.', { type: 'error' });
       return;
@@ -91,18 +114,18 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
       };
 
       if (tipo === TipoUsuario.CLINICA) {
-        payload.cnpj = documento.replace(/\D/g, '');
+        payload.cnpj = documentoNumeros;
         payload.endereco = endereco;
         payload.cidade = cidade;
         payload.estado = estado;
         payload.cep = cep.replace(/\D/g, '');
       } else {
-        payload.cpf = documento.replace(/\D/g, '');
+        payload.cpf = documentoNumeros;
       }
 
       if (tipo === TipoUsuario.MEDICO) {
         payload.especialidade = especialidade;
-        payload.crm = crm;
+        payload.crm = crm.trim();
         payload.endereco = endereco;
         payload.cidade = cidade;
         payload.estado = estado;
@@ -116,7 +139,14 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
         buttons: [{ text: 'Ir para Login', onPress: () => navigation.navigate('Login') }]
       });
     } catch (err: any) {
-      showModal('Erro', err.response?.data?.error || 'Não foi possível realizar o cadastro.', { type: 'error' });
+      const details = err.response?.data?.details;
+      const validationMessage = Array.isArray(details)
+        ? details.find((detail: any) => typeof detail?.message === 'string')?.message
+        : undefined;
+      const message = validationMessage
+        || err.response?.data?.error
+        || 'Não foi possível realizar o cadastro.';
+      showModal('Erro', message, { type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -165,7 +195,11 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
               placeholder={tipo === TipoUsuario.CLINICA ? "00.000.000/0000-00" : "000.000.000-00"}
               keyboardType="numeric"
               value={tipo === TipoUsuario.CLINICA ? formatCNPJ(documento) : formatCPF(documento)}
-              onChangeText={setDocumento}
+              onChangeText={(value) => {
+                const limite = tipo === TipoUsuario.CLINICA ? 14 : 11;
+                setDocumento(value.replace(/\D/g, '').slice(0, limite));
+              }}
+              maxLength={tipo === TipoUsuario.CLINICA ? 18 : 14}
             />
 
             <Text style={styles.label}>E-mail *</Text>
@@ -191,7 +225,11 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
             {tipo === TipoUsuario.MEDICO && (
               <>
                 <Text style={styles.label}>Especialidade *</Text>
-                <TextInput style={styles.input} placeholder="Ex: Cardiologia" value={especialidade} onChangeText={setEspecialidade} />
+                <EspecialidadeDropdown
+                  value={especialidade || null}
+                  onChange={(value) => setEspecialidade(value ?? '')}
+                  disabled={loading}
+                />
 
                 <Text style={styles.label}>CRM *</Text>
                 <TextInput style={styles.input} placeholder="000000-MG" value={crm} onChangeText={setCrm} />

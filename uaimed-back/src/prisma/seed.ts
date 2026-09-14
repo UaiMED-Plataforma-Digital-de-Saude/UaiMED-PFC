@@ -2,6 +2,7 @@ import { faker } from "@faker-js/faker/locale/pt_BR";
 import { prisma } from "../config/database";
 import { hashPassword } from "../utils/hash";
 import logger from "../utils/logger";
+import { ESPECIALIDADES_MEDICAS } from "../constants/especialidades";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -31,12 +32,6 @@ function pick<T>(arr: ReadonlyArray<T>): T {
 }
 
 // ── Constantes ────────────────────────────────────────────────────────────────
-
-const ESPECIALIDADES = [
-  "Cardiologia", "Dermatologia", "Pediatria", "Ortopedia",
-  "Neurologia", "Ginecologia", "Psiquiatria", "Clínica Geral",
-  "Oftalmologia", "Urologia",
-];
 
 const STATUS_AGENDAMENTO = ["agendado", "confirmado", "concluido", "cancelado"];
 
@@ -86,6 +81,7 @@ async function main() {
   await prisma.avaliacao.deleteMany();
   await prisma.contato.deleteMany();
   await prisma.agendamento.deleteMany();
+  await prisma.clinicaProfissional.deleteMany();
   await prisma.profissional.deleteMany();
   await prisma.artigo.deleteMany();
   await prisma.usuario.deleteMany();
@@ -112,7 +108,7 @@ async function main() {
     data: {
       nome: "Equipe UaiMED",
       email: "admin@uaimed.com",
-      cpf: fakeCpf(cpfIdx++),
+      cnpj: "00000000000100",
       telefone: "(31) 3000-0000",
       senha,
       tipo: "clinica",
@@ -281,13 +277,13 @@ async function main() {
     },
   ];
 
-  await Promise.all(
-    clinicasFixasData.map((c) =>
+  const clinicasFixas = await Promise.all(
+    clinicasFixasData.map((c, index) =>
       prisma.usuario.create({
         data: {
           nome:      c.nome,
           email:     c.email,
-          cpf:       fakeCpf(cpfIdx++),
+          cnpj:      `1000000000${String(index + 1).padStart(4, "0")}`,
           telefone:  c.telefone,
           senha,
           tipo:      "clinica",
@@ -373,7 +369,7 @@ async function main() {
   const profissionaisExtras = await Promise.all(
     Array.from({ length: 4 }, (_, i) => {
       const estado = pick(estadosList);
-      const especialidade = pick(ESPECIALIDADES);
+      const especialidade = pick(ESPECIALIDADES_MEDICAS);
       const prefixo = i % 2 === 0 ? "Dr." : "Dra.";
       const localCpfIdx = cpfIdx++;
       return (async () => {
@@ -411,6 +407,22 @@ async function main() {
 
   const todosProfissionais = [...profissionaisFixos, ...profissionaisExtras];
   const profIds = todosProfissionais.map((p) => p.profissional);
+
+  // Vínculos de demonstração para a área da clínica.
+  await prisma.clinicaProfissional.createMany({
+    data: [
+      ...profIds.slice(0, 4).map((profissional) => ({
+        clinicaId: adminUser.id,
+        profissionalId: profissional.id,
+        status: 'aceito' as const,
+      })),
+      ...profIds.slice(2, 5).map((profissional) => ({
+        clinicaId: clinicasFixas[0].id,
+        profissionalId: profissional.id,
+        status: 'aceito' as const,
+      })),
+    ],
+  });
 
   // ── Agendamentos ───────────────────────────────────────────────────────────
   logger.info("Criando agendamentos fixos...");

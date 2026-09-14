@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TipoUsuario } from "@prisma/client";
+import { especialidadeMedicaValida } from "../constants/especialidades";
 
 const TIPOS_CADASTRO = [
   TipoUsuario.paciente,
@@ -10,7 +11,8 @@ const TIPOS_CADASTRO = [
 export const signupSchema = z.object({
   nome: z.string().min(2),
   email: z.string().email(),
-  cpf: z.string().min(11),
+  cpf: z.string().min(11).optional(),
+  cnpj: z.string().min(14).optional(),
   telefone: z.string().min(8),
   senha: z.string().min(6),
   tipo: z.enum(TIPOS_CADASTRO).optional(),
@@ -24,15 +26,62 @@ export const signupSchema = z.object({
   cep: z.string().optional(),
 });
 
-// Se for médico, exige especialidade e crm
-export const signupSchemaValidated = signupSchema.refine((data) => {
-  if (data.tipo === TipoUsuario.medico) {
-    return !!(data as any).especialidade && !!(data as any).crm;
+export const signupSchemaValidated = signupSchema.superRefine((data, ctx) => {
+  const tipo = data.tipo ?? TipoUsuario.paciente;
+  const cpf = data.cpf?.replace(/\D/g, "");
+  const cnpj = data.cnpj?.replace(/\D/g, "");
+
+  if (tipo === TipoUsuario.clinica) {
+    if (!cnpj) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "CNPJ é obrigatório para cadastro de clínica",
+        path: ["cnpj"],
+      });
+    } else if (cnpj.length !== 14) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "CNPJ deve possuir 14 dígitos",
+        path: ["cnpj"],
+      });
+    }
+  } else if (!cpf) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "CPF é obrigatório para cadastro de paciente ou médico",
+      path: ["cpf"],
+    });
+  } else if (cpf.length !== 11) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "CPF deve possuir 11 dígitos",
+      path: ["cpf"],
+    });
   }
-  return true;
-}, {
-  message: 'Especialidade e CRM são obrigatórios para cadastro de profissional',
-  path: ['especialidade', 'crm'],
+
+  if (tipo === TipoUsuario.medico) {
+    if (!data.especialidade) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Especialidade é obrigatória para cadastro de médico",
+        path: ["especialidade"],
+      });
+    } else if (!especialidadeMedicaValida(data.especialidade)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Selecione uma especialidade válida",
+        path: ["especialidade"],
+      });
+    }
+
+    if (!data.crm) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "CRM é obrigatório para cadastro de médico",
+        path: ["crm"],
+      });
+    }
+  }
 });
 
 export const signinSchema = z.object({

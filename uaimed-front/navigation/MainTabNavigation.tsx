@@ -19,6 +19,8 @@ import ArtigoCadastroScreen from '../screens/Main/ArtigoCadastroScreen';
 import ConversasStack from './ConversasStack';
 import MedicoHomeScreen from '../screens/Main/MedicoHomeScreen';
 import MedicoAvaliacoesScreen from '../screens/Main/MedicoAvaliacoesScreen';
+import ClinicaHomeScreen from '../screens/Main/ClinicaHomeScreen';
+import ClinicaMedicosScreen from '../screens/Main/ClinicaMedicosScreen';
 import { TipoUsuario } from '../types/usuario';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -92,6 +94,7 @@ const MainTabNavigator: React.FC = () => {
             case 'Agendamentos': iconName = focused ? 'calendar' : 'calendar-outline';   break;
             case 'MedicoAgenda': iconName = focused ? 'calendar' : 'calendar-outline';   break;
             case 'ClinicDashboard': iconName = focused ? 'bar-chart' : 'bar-chart-outline'; break;
+            case 'ClinicaMedicos': iconName = focused ? 'people' : 'people-outline'; break;
             case 'Conversas':    iconName = focused ? 'chatbubbles' : 'chatbubbles-outline'; break;
             case 'Perfil':       iconName = focused ? 'person' : 'person-outline';     break;
           }
@@ -184,10 +187,25 @@ const MainTabNavigator: React.FC = () => {
         }}
       />
 
+      <Tab.Screen
+        name="ClinicaMedicos"
+        component={ClinicaMedicosScreen}
+        options={({ navigation }) => ({
+          title: 'Equipe Médica',
+          tabBarItemStyle: hiddenTab,
+          headerRight: () => null,
+          headerLeft: () => (
+            <TouchableOpacity style={{ marginLeft: 16 }} onPress={() => navigation.navigate('Home')}>
+              <Ionicons name="arrow-back" size={24} color="#333" />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+
       {/* CENTRO: HOME */}
       <Tab.Screen
         name="Home"
-        component={isMedico ? MedicoHomeScreen : HomeScreen}
+        component={isMedico ? MedicoHomeScreen : isClinica ? ClinicaHomeScreen : HomeScreen}
         options={{
           title: 'UaiMED',
           headerTitle: () => {

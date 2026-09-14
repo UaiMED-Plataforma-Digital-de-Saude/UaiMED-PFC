@@ -11,15 +11,37 @@ router.put('/users/me', authMiddleware, async (req, res) => {
     const userId = (req as any).user?.id;
     if (!userId) return res.status(401).json({ error: 'Usuário não autenticado' });
 
-    const { nome, telefone } = req.body as { nome?: string; telefone?: string };
+    const { nome, telefone, endereco, cidade, estado, cep } = req.body as {
+      nome?: string;
+      telefone?: string;
+      endereco?: string;
+      cidade?: string;
+      estado?: string;
+      cep?: string;
+    };
+    const usuarioAtual = await prisma.usuario.findUnique({
+      where: { id: userId },
+      select: { tipo: true },
+    });
+    if (!usuarioAtual) return res.status(404).json({ error: 'Usuário não encontrado' });
 
     const updated = await prisma.usuario.update({
       where: { id: userId },
       data: {
         ...(nome?.trim()     ? { nome: nome.trim() }         : {}),
         ...(telefone?.trim() ? { telefone: telefone.trim() } : {}),
+        ...(usuarioAtual.tipo === 'clinica' ? {
+          endereco: endereco?.trim() || null,
+          cidade: cidade?.trim() || null,
+          estado: estado?.trim().toUpperCase() || null,
+          cep: cep?.trim() || null,
+        } : {}),
       },
-      select: { id: true, nome: true, email: true, cpf: true, telefone: true, tipo: true, avatar: true },
+      select: {
+        id: true, nome: true, email: true, cpf: true, cnpj: true,
+        telefone: true, tipo: true, avatar: true, endereco: true,
+        cidade: true, estado: true, cep: true,
+      },
     });
 
     return res.json({ user: updated });

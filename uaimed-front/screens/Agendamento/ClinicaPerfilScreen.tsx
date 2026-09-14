@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Image, Platform, StatusBar,
+  ActivityIndicator, Image, Linking, Platform, StatusBar,
 } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,20 +21,18 @@ interface ClinicaPerfil {
   localizacao: string | null;
   pixKey: string | null;
   nota: number;
+  medicos: Array<{
+    id: string;
+    nome: string;
+    avatar: string | null;
+    especialidade: string;
+    crm: string;
+    cidade: string;
+    estado: string;
+    totalAgendamentos: number;
+    totalAvaliacoes: number;
+  }>;
 }
-
-const SERVICOS: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
-  { icon: 'medkit-outline',    label: 'Consultas Médicas' },
-  { icon: 'flask-outline',     label: 'Exames Laboratoriais' },
-  { icon: 'fitness-outline',   label: 'Fisioterapia' },
-  { icon: 'heart-outline',     label: 'Cardiologia' },
-  { icon: 'eye-outline',       label: 'Oftalmologia' },
-];
-
-const DIFERENCIAIS = [
-  'Agendamento Online', 'Estacionamento', 'Acessibilidade',
-  'WiFi Gratuito', 'Atendimento Humanizado', 'Convênios Aceitos',
-];
 
 const ClinicaPerfilScreen: React.FC<Props> = ({ route, navigation }) => {
   const { clinicaId, nomeClinica } = route.params ?? {};
@@ -56,15 +54,12 @@ const ClinicaPerfilScreen: React.FC<Props> = ({ route, navigation }) => {
     navigation.getParent<any>()?.navigate('Home');
   };
 
-  const handleConversar = async () => {
-    if (!clinicaId) return;
-    try {
-      const res = await uaiMedApi.post('/conversas', { profissionalId: clinicaId, titulo: nome });
-      navigation.getParent<any>()?.navigate('Conversas', {
-        screen: 'ConversaDetalhe',
-        params: { conversaId: res.data.id, titulo: nome, nomeOutro: nome },
-      });
-    } catch { /* segue */ }
+  const handleContato = () => {
+    if (perfil?.telefone) {
+      Linking.openURL(`tel:${perfil.telefone.replace(/\D/g, '')}`);
+      return;
+    }
+    if (perfil?.email) Linking.openURL(`mailto:${perfil.email}`);
   };
 
   if (loading) {
@@ -128,8 +123,8 @@ const ClinicaPerfilScreen: React.FC<Props> = ({ route, navigation }) => {
                 <View style={[s.statIcon, { backgroundColor: '#E8F5E9' }]}>
                   <Ionicons name="shield-checkmark-outline" size={18} color="#4CAF50" />
                 </View>
-                <Text style={s.statVal}>100%</Text>
-                <Text style={s.statLbl}>Verificada</Text>
+                <Text style={s.statVal}>{perfil.medicos.length}</Text>
+                <Text style={s.statLbl}>Médicos</Text>
               </View>
               <View style={s.statCard}>
                 <View style={[s.statIcon, { backgroundColor: '#E3F2FD' }]}>
@@ -140,7 +135,7 @@ const ClinicaPerfilScreen: React.FC<Props> = ({ route, navigation }) => {
               </View>
             </View>
 
-            {/* Informações + Serviços no mesmo card */}
+            {/* Informações */}
             <View style={s.card}>
               <Text style={s.cardTitle}>Informações da Clínica</Text>
               {perfil.localizacao
@@ -151,31 +146,39 @@ const ClinicaPerfilScreen: React.FC<Props> = ({ route, navigation }) => {
                 : null}
             </View>
 
-            {/* Serviços */}
+            {/* Equipe médica vinculada */}
             <View style={s.card}>
-              <Text style={s.cardTitle}>Serviços Oferecidos</Text>
-              {SERVICOS.map((srv, i) => (
-                <View key={i} style={[s.serviceRow, i === SERVICOS.length - 1 && { borderBottomWidth: 0, paddingBottom: 0 }]}>
-                  <View style={s.serviceIcon}>
-                    <Ionicons name={srv.icon} size={16} color="#4CAF50" />
+              <Text style={s.cardTitle}>Equipe Médica ({perfil.medicos.length})</Text>
+              {perfil.medicos.length ? perfil.medicos.map((medico, i) => (
+                <TouchableOpacity
+                  key={medico.id}
+                  style={[s.medicoRow, i === perfil.medicos.length - 1 && { borderBottomWidth: 0 }]}
+                  onPress={() => navigation.navigate('DetalhesMedico', {
+                    medicoId: medico.id,
+                    nomeProfissional: medico.nome,
+                  })}
+                  activeOpacity={0.75}
+                >
+                  <View style={s.medicoAvatar}>
+                    {medico.avatar
+                      ? <Image source={{ uri: medico.avatar }} style={s.medicoAvatarImage} />
+                      : <Text style={s.medicoAvatarText}>
+                          {medico.nome.split(' ').filter(Boolean).slice(0, 2).map(parte => parte[0]).join('').toUpperCase()}
+                        </Text>}
                   </View>
-                  <Text style={s.serviceLabel}>{srv.label}</Text>
-                  <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.medicoNome}>{medico.nome}</Text>
+                    <Text style={s.medicoEspecialidade}>{medico.especialidade}</Text>
+                    <Text style={s.medicoCrm}>CRM {medico.crm}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color="#CCC" />
+                </TouchableOpacity>
+              )) : (
+                <View style={s.equipeVazia}>
+                  <Ionicons name="people-outline" size={34} color="#C8D8C8" />
+                  <Text style={s.equipeVaziaText}>Nenhum médico vinculado.</Text>
                 </View>
-              ))}
-            </View>
-
-            {/* Diferenciais */}
-            <View style={s.card}>
-              <Text style={s.cardTitle}>Nossos Diferenciais</Text>
-              <View style={s.tagsWrap}>
-                {DIFERENCIAIS.map(tag => (
-                  <View key={tag} style={s.tag}>
-                    <Ionicons name="checkmark" size={11} color="#2E7D32" style={{ marginRight: 3 }} />
-                    <Text style={s.tagTxt}>{tag}</Text>
-                  </View>
-                ))}
-              </View>
+              )}
             </View>
           </>
         ) : (
@@ -192,8 +195,8 @@ const ClinicaPerfilScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* ── Footer ── */}
       {perfil && (
         <View style={s.footer}>
-          <TouchableOpacity style={s.btnSecundario} onPress={handleConversar} activeOpacity={0.85}>
-            <Ionicons name="chatbubble-outline" size={18} color="#4CAF50" />
+          <TouchableOpacity style={s.btnSecundario} onPress={handleContato} activeOpacity={0.85}>
+            <Ionicons name="call-outline" size={18} color="#4CAF50" />
             <Text style={s.btnSecundarioTxt}>Contato</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -319,25 +322,22 @@ const s = StyleSheet.create({
   infoLabel: { fontSize: 10, color: '#BBB', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
   infoValue: { fontSize: 13, color: '#2A2A2A', fontWeight: '500', marginTop: 1 },
 
-  // Serviços
-  serviceRow: {
+  // Equipe médica
+  medicoRow: {
     flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: '#F3F3F3',
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F3F3F3',
   },
-  serviceIcon: {
-    width: 32, height: 32, borderRadius: 8,
-    backgroundColor: '#E8F5E9', alignItems: 'center', justifyContent: 'center', marginRight: 10,
+  medicoAvatar: {
+    width: 42, height: 42, borderRadius: 21, overflow: 'hidden',
+    backgroundColor: '#E8F5E9', alignItems: 'center', justifyContent: 'center', marginRight: 11,
   },
-  serviceLabel: { flex: 1, fontSize: 13, color: '#2A2A2A', fontWeight: '500' },
-
-  // Tags
-  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  tag: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#E8F5E9', borderRadius: 20,
-    paddingHorizontal: 10, paddingVertical: 5,
-  },
-  tagTxt: { fontSize: 12, color: '#2E7D32', fontWeight: '600' },
+  medicoAvatarImage: { width: 42, height: 42 },
+  medicoAvatarText: { color: '#2E7D32', fontSize: 13, fontWeight: '800' },
+  medicoNome: { color: '#222', fontSize: 13, fontWeight: '700' },
+  medicoEspecialidade: { color: '#2E7D32', fontSize: 12, marginTop: 2 },
+  medicoCrm: { color: '#999', fontSize: 10, marginTop: 2 },
+  equipeVazia: { alignItems: 'center', paddingVertical: 20 },
+  equipeVaziaText: { color: '#999', fontSize: 12, marginTop: 7 },
 
   // Erro
   erroBg: { alignItems: 'center', justifyContent: 'center', paddingTop: 80, gap: 12 },

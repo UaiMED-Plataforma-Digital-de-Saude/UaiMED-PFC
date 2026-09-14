@@ -1,18 +1,32 @@
 import { Request, Response } from "express";
+import { StatusVinculoClinica } from "@prisma/client";
 import { prisma } from "../config/database";
 import logger from "../utils/logger";
-import { TipoUsuario } from "@prisma/client";
 
 class AdminController {
   async summary(req: Request, res: Response) {
     try {
-    // Basic counts
-    const totalUsuarios = await prisma.usuario.count();
-    const totalPacientes = await prisma.usuario.count({ where: { tipo: TipoUsuario.paciente } });
-    const totalMedicos = await prisma.profissional.count();
+      const clinicaId = req.user?.id;
+      if (!clinicaId) return res.status(401).json({ error: 'Usuário não autenticado' });
 
-    // Contatos pendentes
-    const totalContatosPendentes = await prisma.contato.count({ where: { status: 'nao_lido' } });
+      const vinculos = await prisma.clinicaProfissional.findMany({
+        where: { clinicaId, status: StatusVinculoClinica.aceito },
+        select: { profissionalId: true },
+      });
+      const profissionalIds = vinculos.map((item) => item.profissionalId);
+
+      const pacientes = await prisma.agendamento.findMany({
+        where: { profissionalId: { in: profissionalIds } },
+        select: { usuarioId: true },
+        distinct: ['usuarioId'],
+      });
+      const totalPacientes = pacientes.length;
+      const totalUsuarios = totalPacientes;
+      const totalMedicos = profissionalIds.length;
+
+      const totalContatosPendentes = await prisma.contato.count({
+        where: { profissionalId: { in: profissionalIds }, status: 'nao_lido' },
+      });
 
       // Agendamentos hoje
       const start = new Date();
@@ -20,16 +34,20 @@ class AdminController {
       const end = new Date(start);
       end.setDate(end.getDate() + 1);
 
-      const totalAgendamentosHoje = await prisma.agendamento.count({ where: { dataHora: { gte: start, lt: end } } });
+      const totalAgendamentosHoje = await prisma.agendamento.count({
+        where: { profissionalId: { in: profissionalIds }, dataHora: { gte: start, lt: end } },
+      });
 
       // Agendamentos por status (groupBy)
       const agendPorStatusRaw = await prisma.agendamento.groupBy({
         by: ['status'],
+        where: { profissionalId: { in: profissionalIds } },
         _count: { _all: true },
       });
 
       // Top profissionais (por número de agendamentos) - buscamos contagens e ordenamos em JS
       const profs = await prisma.profissional.findMany({
+        where: { id: { in: profissionalIds } },
         include: {
           usuario: { select: { nome: true } },
           _count: { select: { agendamentos: true } },
@@ -54,7 +72,9 @@ class AdminController {
         const startD = new Date(d.date);
         const endD = new Date(startD);
         endD.setDate(endD.getDate() + 1);
-        const count = await prisma.agendamento.count({ where: { dataHora: { gte: startD, lt: endD } } });
+        const count = await prisma.agendamento.count({
+          where: { profissionalId: { in: profissionalIds }, dataHora: { gte: startD, lt: endD } },
+        });
         return { day: d.day, count };
       }));
 

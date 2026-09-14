@@ -4,11 +4,13 @@ import { generateToken, generateRefreshToken, verifyRefreshToken } from "../util
 import { geocodeEndereco } from "./geocoding.service";
 import logger from "../utils/logger";
 import { TipoUsuario } from "@prisma/client";
+import { especialidadeMedicaValida } from "../constants/especialidades";
 
 export interface SignUpData {
   nome: string;
   email: string;
-  cpf: string;
+  cpf?: string;
+  cnpj?: string;
   telefone: string;
   senha: string;
   tipo?: TipoUsuario;
@@ -50,10 +52,41 @@ class AuthService {
     const senhaHash = await hashPassword(data.senha);
     const tipo = data.tipo || TipoUsuario.paciente;
 
+    const tiposPermitidos: TipoUsuario[] = [
+      TipoUsuario.paciente,
+      TipoUsuario.medico,
+      TipoUsuario.clinica,
+    ];
+    if (!tiposPermitidos.includes(tipo)) {
+      throw new Error('Tipo de usuário inválido para cadastro');
+    }
+
+    const cpfNormalizado = data.cpf?.replace(/\D/g, '');
+    const cnpjNormalizado = data.cnpj?.replace(/\D/g, '');
+
+    if (tipo === TipoUsuario.clinica && !cnpjNormalizado) {
+      throw new Error('CNPJ é obrigatório para cadastro de clínica');
+    }
+
+    if (tipo === TipoUsuario.clinica && cnpjNormalizado!.length !== 14) {
+      throw new Error('CNPJ deve possuir 14 dígitos');
+    }
+
+    if (tipo !== TipoUsuario.clinica && !cpfNormalizado) {
+      throw new Error('CPF é obrigatório para cadastro de paciente ou médico');
+    }
+
+    if (tipo !== TipoUsuario.clinica && cpfNormalizado!.length !== 11) {
+      throw new Error('CPF deve possuir 11 dígitos');
+    }
+
     // Se for médico, valida campos obrigatórios antes de criar qualquer registro
     if (tipo === TipoUsuario.medico) {
       if (!data.especialidade || !data.crm) {
         throw new Error('Especialidade e CRM são obrigatórios para cadastro de profissional');
+      }
+      if (!especialidadeMedicaValida(data.especialidade)) {
+        throw new Error('Selecione uma especialidade válida');
       }
     }
 
@@ -73,15 +106,22 @@ class AuthService {
         data: {
           nome: data.nome,
           email: data.email,
-          cpf: data.cpf,
+          cpf: tipo === TipoUsuario.clinica ? null : cpfNormalizado,
+          cnpj: tipo === TipoUsuario.clinica ? cnpjNormalizado : null,
           telefone: data.telefone,
           senha: senhaHash,
           tipo,
           // Para clínicas, salva localização diretamente no usuário
+          endereco: tipo === TipoUsuario.clinica ? (data.endereco?.trim() || null) : undefined,
           cidade: tipo === TipoUsuario.clinica ? (data.cidade || null) : undefined,
           estado: tipo === TipoUsuario.clinica ? (data.estado || null) : undefined,
+          cep: tipo === TipoUsuario.clinica ? (data.cep?.trim() || null) : undefined,
         },
-        select: { id: true, nome: true, email: true, tipo: true },
+        select: {
+          id: true, nome: true, email: true, cpf: true, cnpj: true,
+          telefone: true, tipo: true, endereco: true, cidade: true,
+          estado: true, cep: true, avatar: true,
+        },
       });
 
       let profissional = null;
@@ -136,9 +176,14 @@ class AuthService {
         nome: usuario.nome,
         email: usuario.email,
         cpf: usuario.cpf,
+        cnpj: usuario.cnpj,
         telefone: usuario.telefone,
         tipo: usuario.tipo,
         avatar: usuario.avatar,
+        endereco: usuario.endereco,
+        cidade: usuario.cidade,
+        estado: usuario.estado,
+        cep: usuario.cep,
         profissional,
       },
       token,
