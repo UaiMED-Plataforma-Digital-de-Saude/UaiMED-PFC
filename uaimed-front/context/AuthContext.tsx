@@ -161,6 +161,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         errorMessage = 'E-mail ou senha incorretos.';
       } else if (error.response?.status === 404) {
         errorMessage = 'Usuário não encontrado.';
+      } else if (error.response?.status === 429) {
+        errorMessage = 'Muitas tentativas de login. Aguarde um minuto antes de tentar novamente.';
       } else if (error.message === 'Network Error' || !error.response) {
         errorMessage = 'Erro de conexão com o servidor.';
         errorDetails = `\n\nDica: Verifique se:\n- Seu backend está rodando\n- A URL em src/config/index.ts está correta\n- Você está na mesma rede\n\nDetalhes: ${error.message}`;

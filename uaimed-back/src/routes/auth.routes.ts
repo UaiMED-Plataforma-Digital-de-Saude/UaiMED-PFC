@@ -15,7 +15,7 @@ const router = Router();
 router.post("/usuarios", createAuthRateLimit(), validateBody(signupSchema), (req: Request, res: Response) => AuthController.signup(req, res));
 
 // POST /api/sessions
-router.post("/sessions", createAuthRateLimit(), validateBody(signinSchema), (req: Request, res: Response) => AuthController.signin(req, res));
+router.post("/sessions", createAuthRateLimit({ skipSuccessfulRequests: true }), validateBody(signinSchema), (req: Request, res: Response) => AuthController.signin(req, res));
 
 // POST /api/sessions/refresh
 router.post("/sessions/refresh", validateBody(refreshSchema), (req: Request, res: Response) => AuthController.refresh(req, res));

@@ -6,26 +6,9 @@
   <component name="ChangeListManager">
     <list default="true" id="e61d2434-ba4d-419d-881c-3d5c109eac10" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-back/prisma/schema.prisma" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/prisma/schema.prisma" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-back/src/__tests__/clinicas.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/__tests__/clinicas.test.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-back/src/__tests__/unit/auth.schema.unit.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/__tests__/unit/auth.schema.unit.test.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-back/src/controllers/admin.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/controllers/admin.controller.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-back/src/controllers/auth.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/controllers/auth.controller.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-back/src/controllers/clinicas.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/controllers/clinicas.controller.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-back/src/controllers/especialidades.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/controllers/especialidades.controller.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-back/src/prisma/seed.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/prisma/seed.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-back/src/routes/clinicas.routes.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/routes/clinicas.routes.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-back/src/routes/users.routes.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/routes/users.routes.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-back/src/schemas/auth.schema.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/schemas/auth.schema.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-back/src/services/auth.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/services/auth.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-back/src/middleware/rateLimit.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/middleware/rateLimit.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uaimed-back/src/routes/auth.routes.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-back/src/routes/auth.routes.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/uaimed-front/context/AuthContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/context/AuthContext.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/navigation/MainTabNavigation.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/navigation/MainTabNavigation.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/navigation/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/navigation/types.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Admin/ClinicDashboard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Admin/ClinicDashboard.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/ClinicaPerfilScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/ClinicaPerfilScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/SearchScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Agendamento/SearchScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Auth/CadastroScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Auth/CadastroScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uaimed-front/screens/Main/PerfilScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/uaimed-front/screens/Main/PerfilScreen.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -143,22 +126,22 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
-    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
-    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "feat/rate-limiting-endpoints-autenticacao",
+    "kotlin-language-version-configured": "true",
+    "settings.editor.selected.configurable": "preferences.pluginManager"
   }
-}</component>
+}]]></component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
       <changelist id="e61d2434-ba4d-419d-881c-3d5c109eac10" name="Changes" comment="" />
