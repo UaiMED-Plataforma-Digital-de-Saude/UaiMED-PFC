@@ -87,6 +87,15 @@ describe('Agendamentos — criar e sugestões de horário', () => {
     expect(res.status).toBe(400);
   });
 
+  it('rejeita agendamento com dataHora inválida', async () => {
+    const res = await request(app)
+      .post('/api/agendamentos')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ medicoId: profissional.id, dataHora: 'não-é-uma-data' });
+    expect(res.status).toBe(400);
+    expect(res.body.details?.[0]?.path).toEqual(['dataHora']);
+  });
+
   it('retorna sugestões de horário para um médico', async () => {
     const res = await request(app)
       .get(`/api/agendamentos/sugestoes-horario?medicoId=${profissional.id}`);

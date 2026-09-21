@@ -127,6 +127,30 @@ describe('Pagamentos endpoints', () => {
     expect(res.status).toBe(400);
   });
 
+  it('rejeita pagamento com valor negativo', async () => {
+    const res = await request(app)
+      .post('/api/pagamentos')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ agendamentoId: uuidv4(), valor: -50, metodo: 'pix' });
+    expect(res.status).toBe(400);
+    expect(res.body.details?.[0]?.path).toEqual(['valor']);
+  });
+
+  it('rejeita pagamento com insuranceCoveragePercent fora de 0-100', async () => {
+    const res = await request(app)
+      .post('/api/pagamentos')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        agendamentoId: uuidv4(),
+        valor: 100,
+        metodo: 'pix',
+        usingPlan: true,
+        insuranceCoveragePercent: 150,
+      });
+    expect(res.status).toBe(400);
+    expect(res.body.details?.[0]?.path).toEqual(['insuranceCoveragePercent']);
+  });
+
   it('rejeita listagem de pagamentos sem autenticação', async () => {
     const res = await request(app).get('/api/pagamentos');
     expect(res.status).toBe(401);
