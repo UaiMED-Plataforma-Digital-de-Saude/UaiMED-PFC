@@ -3,6 +3,7 @@ import AuthController from "../controllers/auth.controller";
 import { signupSchemaValidated as signupSchema, signinSchema, refreshSchema } from "../schemas/auth.schema";
 import { validateBody } from "../middleware/validate";
 import authMiddleware from "../middleware/auth";
+import { createAuthRateLimit } from "../middleware/rateLimit";
 import { prisma } from "../config/database";
 import bcrypt from "bcryptjs";
 import ENV from "../config/env";
@@ -11,10 +12,10 @@ import logger from "../utils/logger";
 const router = Router();
 
 // POST /api/usuarios
-router.post("/usuarios", validateBody(signupSchema), (req: Request, res: Response) => AuthController.signup(req, res));
+router.post("/usuarios", createAuthRateLimit(), validateBody(signupSchema), (req: Request, res: Response) => AuthController.signup(req, res));
 
 // POST /api/sessions
-router.post("/sessions", validateBody(signinSchema), (req: Request, res: Response) => AuthController.signin(req, res));
+router.post("/sessions", createAuthRateLimit(), validateBody(signinSchema), (req: Request, res: Response) => AuthController.signin(req, res));
 
 // POST /api/sessions/refresh
 router.post("/sessions/refresh", validateBody(refreshSchema), (req: Request, res: Response) => AuthController.refresh(req, res));
