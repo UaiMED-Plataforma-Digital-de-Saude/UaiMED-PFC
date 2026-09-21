@@ -181,7 +181,7 @@ describe('Clínicas — listagem e recomendadas', () => {
       ]));
 
       const parcial = await request(app)
-        .get('/api/clinicas/me/medicos?query=Vínculo')
+        .get(`/api/clinicas/me/medicos?query=${encodeURIComponent('Vínculo')}`)
         .set('Authorization', `Bearer ${tokenClinica}`);
       expect(parcial.status).toBe(200);
       expect(parcial.body).toEqual([]);

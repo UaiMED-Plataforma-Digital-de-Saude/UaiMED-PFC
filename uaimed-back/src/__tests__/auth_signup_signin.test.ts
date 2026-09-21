@@ -8,7 +8,8 @@ describe('Auth — signup e signin', () => {
   const unique = uuidv4();
   const email = `signup-${unique}@example.com`;
   const senha = 'senha123';
-  const cpf = unique.replace(/-/g, '').slice(0, 11);
+  const cpf = unique.replace(/\D/g, '').padEnd(11, '0').slice(0, 11);
+  const cpfDuplicado = uuidv4().replace(/\D/g, '').padEnd(11, '0').slice(0, 11);
 
   afterAll(async () => {
     await prisma.usuario.deleteMany({ where: { email } }).catch(() => {});
@@ -34,7 +35,7 @@ describe('Auth — signup e signin', () => {
     const res = await request(app).post('/api/usuarios').send({
       nome: 'Duplicado',
       email,
-      cpf: `dup${unique.replace(/-/g, '').slice(0, 8)}`,
+      cpf: cpfDuplicado,
       telefone: '11999999999',
       senha,
       tipo: 'paciente',

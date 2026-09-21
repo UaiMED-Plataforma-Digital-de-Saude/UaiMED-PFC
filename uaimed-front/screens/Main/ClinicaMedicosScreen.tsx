@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import {
-  ActivityIndicator, Alert, FlatList, Image, RefreshControl,
+  ActivityIndicator, FlatList, Image, RefreshControl,
   StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { MainTabParamList } from '../../navigation/types';
 import { MedicoClinica, MinhaClinicaResponse } from '../../types/clinica';
 import uaiMedApi from '../../api/uaiMedApi';
+import AppModal from '../../components/AppModal';
+import { useModal } from '../../hooks/useModal';
 
 type Props = BottomTabScreenProps<MainTabParamList, 'ClinicaMedicos'>;
 
@@ -78,6 +80,7 @@ const ClinicaMedicosScreen: React.FC<Props> = () => {
   const [pesquisou, setPesquisou] = useState(false);
   const [processandoId, setProcessandoId] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const { modal, showModal, hideModal } = useModal();
 
   const carregarResumo = useCallback(async () => {
     const resposta = await uaiMedApi.get<MinhaClinicaResponse>('/clinicas/me');
@@ -129,11 +132,11 @@ const ClinicaMedicosScreen: React.FC<Props> = () => {
         setMedicos((atuais) => atuais.map((item) => item.id === medico.id
           ? { ...item, vinculado: false, statusVinculo: 'pendente' }
           : item));
-        Alert.alert('Solicitação enviada', `${medico.nome} precisa aceitar o vínculo no perfil médico.`);
+        showModal('Solicitação enviada', `${medico.nome} precisa aceitar o vínculo no perfil médico.`, { type: 'success' });
       }
       await carregarResumo();
     } catch (error: any) {
-      Alert.alert('Não foi possível atualizar', error.response?.data?.error ?? 'Tente novamente.');
+      showModal('Não foi possível atualizar', error.response?.data?.error ?? 'Tente novamente.', { type: 'error' });
     } finally {
       setProcessandoId(null);
     }
@@ -141,19 +144,22 @@ const ClinicaMedicosScreen: React.FC<Props> = () => {
 
   const confirmarAcao = (medico: MedicoClinica) => {
     const vinculado = medico.statusVinculo === 'aceito' || medico.vinculado;
-    Alert.alert(
+    showModal(
       vinculado ? 'Remover médico' : 'Enviar solicitação',
       vinculado
         ? `Deseja remover ${medico.nome} da equipe da clínica?`
         : `Deseja solicitar a ${medico.nome} o vínculo com a clínica?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: vinculado ? 'Remover' : 'Enviar',
-          style: vinculado ? 'destructive' : 'default',
-          onPress: () => executarAcao(medico),
-        },
-      ],
+      {
+        type: 'confirm',
+        buttons: [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: vinculado ? 'Remover' : 'Enviar',
+            style: vinculado ? 'destructive' : 'default',
+            onPress: () => executarAcao(medico),
+          },
+        ],
+      },
     );
   };
 
@@ -224,6 +230,7 @@ const ClinicaMedicosScreen: React.FC<Props> = () => {
           </View>
         ) : null}
       />
+      <AppModal {...modal} onClose={hideModal} />
     </View>
   );
 };
