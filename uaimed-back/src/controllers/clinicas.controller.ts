@@ -255,9 +255,6 @@ class ClinicasController {
       if (!clinicaId) return res.status(401).json({ error: 'Usuário não autenticado' });
 
       const { profissionalId } = req.body;
-      if (typeof profissionalId !== 'string' || !profissionalId.trim()) {
-        return res.status(400).json({ error: 'profissionalId é obrigatório' });
-      }
 
       const profissional = await prisma.profissional.findFirst({
         where: { id: profissionalId, usuario: { ativo: true, tipo: TipoUsuario.medico } },
@@ -369,9 +366,6 @@ class ClinicasController {
 
       const { clinicaId } = req.params;
       const { acao } = req.body;
-      if (acao !== 'aceitar' && acao !== 'recusar') {
-        return res.status(400).json({ error: 'A ação deve ser aceitar ou recusar' });
-      }
 
       const profissional = await prisma.profissional.findUnique({
         where: { usuarioId },

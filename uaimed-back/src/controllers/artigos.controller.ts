@@ -52,16 +52,12 @@ class ArtigosController {
       if (!autorId) return res.status(401).json({ error: 'Usuário não autenticado' });
 
       const { titulo, resumo, categoria, corpo, banner } = req.body as {
-        titulo?: string;
-        resumo?: string;
-        categoria?: string;
-        corpo?: string;
-        banner?: string;
+        titulo: string;
+        resumo?: string | null;
+        categoria: string;
+        corpo: string;
+        banner?: string | null;
       };
-
-      if (!titulo?.trim() || !categoria?.trim() || !corpo?.trim()) {
-        return res.status(400).json({ error: 'Título, categoria e corpo são obrigatórios' });
-      }
 
       const artigo = await prisma.artigo.create({
         data: {
@@ -98,20 +94,12 @@ class ArtigosController {
       }
 
       const { titulo, resumo, categoria, corpo, banner } = req.body as {
-        titulo?: string;
+        titulo: string;
         resumo?: string | null;
-        categoria?: string;
-        corpo?: string;
+        categoria: string;
+        corpo: string;
         banner?: string | null;
       };
-
-      if (!titulo?.trim() || !categoria?.trim() || !corpo?.trim()) {
-        return res.status(400).json({ error: 'Título, categoria e corpo são obrigatórios' });
-      }
-
-      if (banner && !banner.startsWith('data:image/')) {
-        return res.status(400).json({ error: 'Banner inválido. Envie uma imagem no formato base64.' });
-      }
 
       const artigo = await prisma.artigo.update({
         where: { id: artigoAtual.id },

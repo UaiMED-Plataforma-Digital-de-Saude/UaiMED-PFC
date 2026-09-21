@@ -1,6 +1,8 @@
 import { Router, Request, Response } from "express";
 import authMiddleware from "../middleware/auth";
 import ConversasController from "../controllers/conversas.controller";
+import { validateBody } from "../middleware/validate";
+import { iniciarConversaSchema, enviarMensagemSchema } from "../schemas/conversa.schema";
 
 const router = Router();
 
@@ -10,7 +12,7 @@ router.get("/conversas", authMiddleware, (req: Request, res: Response) =>
 );
 
 // POST /api/conversas              – iniciar ou retomar conversa com profissional
-router.post("/conversas", authMiddleware, (req: Request, res: Response) =>
+router.post("/conversas", authMiddleware, validateBody(iniciarConversaSchema), (req: Request, res: Response) =>
   ConversasController.iniciarOuRetomar(req, res)
 );
 
@@ -20,7 +22,7 @@ router.get("/conversas/:conversaId/mensagens", authMiddleware, (req: Request, re
 );
 
 // POST /api/conversas/:conversaId/mensagens – enviar mensagem
-router.post("/conversas/:conversaId/mensagens", authMiddleware, (req: Request, res: Response) =>
+router.post("/conversas/:conversaId/mensagens", authMiddleware, validateBody(enviarMensagemSchema), (req: Request, res: Response) =>
   ConversasController.enviarMensagem(req, res)
 );
 

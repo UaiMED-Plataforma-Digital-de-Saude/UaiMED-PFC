@@ -3,6 +3,8 @@ import ProfessionalController from "../controllers/professional.controller";
 import authMiddleware from "../middleware/auth";
 import requireRole from "../middleware/role";
 import { TipoUsuario } from "@prisma/client";
+import { validateBody } from "../middleware/validate";
+import { atualizarEnderecoSchema } from "../schemas/professional.schema";
 
 const router = Router();
 
@@ -16,6 +18,6 @@ router.get('/professionals/me/agendamentos', authMiddleware, requireRole(TipoUsu
 router.get('/professionals/me/avaliacoes', authMiddleware, requireRole(TipoUsuario.medico), (req, res) => ProfessionalController.listarAvaliacoes(req, res));
 
 // PUT /api/professionals/me/endereco - atualiza endereço e re-geocodifica
-router.put('/professionals/me/endereco', authMiddleware, requireRole(TipoUsuario.medico), (req, res) => ProfessionalController.atualizarEndereco(req, res));
+router.put('/professionals/me/endereco', authMiddleware, requireRole(TipoUsuario.medico), validateBody(atualizarEnderecoSchema), (req, res) => ProfessionalController.atualizarEndereco(req, res));
 
 export default router;

@@ -8,7 +8,6 @@ class AvaliacoesController {
       const { profissionalId, nota, comentario } = req.body;
       const usuarioId = (req as any).user?.id;
       if (!usuarioId) return res.status(401).json({ error: "Usuário não autenticado" });
-      if (!profissionalId || !nota || nota < 1 || nota > 5) return res.status(400).json({ error: "Profissional ID e nota (1-5) são obrigatórios" });
 
       const avaliacao = await prisma.avaliacao.create({ data: { usuarioId, profissionalId, nota, comentario } });
       logger.success(`Avaliação criada: ${avaliacao.id}`);

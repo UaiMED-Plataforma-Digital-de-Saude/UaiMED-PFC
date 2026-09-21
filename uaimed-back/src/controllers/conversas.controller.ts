@@ -3,8 +3,6 @@ import { TipoUsuario } from "@prisma/client";
 import { prisma } from "../config/database";
 import logger from "../utils/logger";
 
-const LIMITE_MENSAGEM = 500;
-
 class ConversasController {
   // ── Listar todas as conversas do usuário logado ──────────────────────────────
   async listar(req: Request, res: Response) {
@@ -98,9 +96,6 @@ class ConversasController {
       }
 
       const { profissionalId, titulo } = req.body;
-      if (typeof profissionalId !== "string" || !profissionalId.trim()) {
-        return res.status(400).json({ error: "profissionalId obrigatório" });
-      }
 
       const profissional = await prisma.profissional.findFirst({
         where: {
@@ -190,14 +185,6 @@ class ConversasController {
 
       const { conversaId } = req.params;
       const { texto } = req.body;
-      if (typeof texto !== "string" || !texto.trim()) {
-        return res.status(400).json({ error: "Mensagem não pode ser vazia" });
-      }
-      if (texto.trim().length > LIMITE_MENSAGEM) {
-        return res.status(400).json({
-          error: `A mensagem deve ter no máximo ${LIMITE_MENSAGEM} caracteres`,
-        });
-      }
 
       // Verifica acesso
       const profissional = await prisma.profissional.findUnique({ where: { usuarioId } });
