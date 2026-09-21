@@ -2,11 +2,13 @@ import { Router } from "express";
 import authMiddleware from "../middleware/auth";
 import { prisma } from "../config/database";
 import logger from "../utils/logger";
+import { validateBody } from "../middleware/validate";
+import { atualizarPerfilSchema, atualizarAvatarSchema, notificationsSchema } from "../schemas/users.schema";
 
 const router = Router();
 
 // PUT /api/users/me — atualiza nome e telefone do usuário autenticado
-router.put('/users/me', authMiddleware, async (req, res) => {
+router.put('/users/me', authMiddleware, validateBody(atualizarPerfilSchema), async (req, res) => {
   try {
     const userId = (req as any).user?.id;
     if (!userId) return res.status(401).json({ error: 'Usuário não autenticado' });
@@ -52,15 +54,12 @@ router.put('/users/me', authMiddleware, async (req, res) => {
 });
 
 // PUT /api/users/me/avatar — recebe base64 e salva no campo avatar
-router.put('/users/me/avatar', authMiddleware, async (req, res) => {
+router.put('/users/me/avatar', authMiddleware, validateBody(atualizarAvatarSchema), async (req, res) => {
   try {
     const userId = (req as any).user?.id;
     if (!userId) return res.status(401).json({ error: 'Usuário não autenticado' });
 
-    const { avatar } = req.body as { avatar?: string };
-    if (!avatar || !avatar.startsWith('data:image/')) {
-      return res.status(400).json({ error: 'Imagem inválida. Envie no formato base64.' });
-    }
+    const { avatar } = req.body as { avatar: string };
 
     const updated = await prisma.usuario.update({
       where: { id: userId },
@@ -76,7 +75,7 @@ router.put('/users/me/avatar', authMiddleware, async (req, res) => {
 });
 
 // POST /api/users/me/notifications
-router.post('/users/me/notifications', authMiddleware, async (req, res) => {
+router.post('/users/me/notifications', authMiddleware, validateBody(notificationsSchema), async (req, res) => {
   try {
     const userId = (req as any).user?.id;
     if (!userId) return res.status(401).json({ error: 'Usuário não autenticado' });

@@ -6,7 +6,6 @@ class PagamentosController {
   async validarCupom(req: Request, res: Response) {
     try {
       const { codigo } = req.body;
-      if (!codigo) return res.status(400).json({ error: "Código do cupom obrigatório" });
 
       const cupom = await prisma.cupom.findUnique({ where: { codigo: codigo.toUpperCase() } });
       if (!cupom || !cupom.ativo) return res.status(400).json({ valido: false, mensagem: "Cupom inválido ou expirado" });
@@ -55,7 +54,6 @@ class PagamentosController {
       const { agendamentoId, valor, metodo, cupom, usingPlan, insuranceProvider, insuranceCoveragePercent } = req.body;
       const usuarioId = (req as any).user?.id;
       if (!usuarioId) return res.status(401).json({ error: "Usuário não autenticado" });
-      if (!agendamentoId || !valor || !metodo) return res.status(400).json({ error: "Campos obrigatórios ausentes" });
 
       let desconto = 0;
       let planDiscount = 0;

@@ -57,11 +57,6 @@ class ContaBancariaController {
 
       if (!usuario) return res.status(404).json({ error: 'Usuário não encontrado' });
 
-      // Valida tipo de conta
-      if (tipoConta && !['corrente', 'poupanca'].includes(tipoConta)) {
-        return res.status(400).json({ error: 'Tipo de conta inválido. Use "corrente" ou "poupanca".' });
-      }
-
       // Médico: atualiza Profissional
       if (usuario.tipo === TipoUsuario.medico && usuario.profissional) {
         await prisma.profissional.update({

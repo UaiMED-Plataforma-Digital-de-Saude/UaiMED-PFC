@@ -10,9 +10,6 @@ class AgendamentosController {
       if (!usuarioId) return res.status(401).json({ error: 'Usuário não autenticado' });
 
       const { medicoId, dataHora, observacoes } = req.body;
-      if (!medicoId || !dataHora) {
-        return res.status(400).json({ error: 'medicoId e dataHora são obrigatórios' });
-      }
 
       // Verifica se o usuário ainda existe na DB (token pode ter userId de sessão antiga)
       const usuarioExiste = await prisma.usuario.findUnique({ where: { id: usuarioId } });

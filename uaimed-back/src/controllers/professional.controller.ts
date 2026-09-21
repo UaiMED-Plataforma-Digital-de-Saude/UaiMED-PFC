@@ -140,11 +140,8 @@ class ProfessionalController {
       if (!userId) return res.status(401).json({ error: 'Usuário não autenticado' });
 
       const { endereco, cidade, estado, cep } = req.body as {
-        endereco?: string; cidade?: string; estado?: string; cep?: string;
+        endereco: string; cidade: string; estado: string; cep?: string;
       };
-      if (!endereco?.trim() || !cidade?.trim() || !estado?.trim()) {
-        return res.status(400).json({ error: 'Endereço, cidade e estado são obrigatórios' });
-      }
 
       const profissional = await prisma.profissional.findUnique({ where: { usuarioId: userId } });
       if (!profissional) return res.status(404).json({ error: 'Profissional não encontrado' });
