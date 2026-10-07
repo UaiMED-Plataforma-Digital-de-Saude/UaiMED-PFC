@@ -41,12 +41,15 @@ export const CONFIG = {
   // ============================================
   // CONFIGURAÇÕES DE DEBUG
   // ============================================
+  // enableNetworkLogs/enableErrorDetails são calculados a partir de
+  // ENVIRONMENT (ver abaixo) para nunca vazar payloads de requisição
+  // em staging/produção.
   DEBUG: {
     // Exibir logs de API?
-    enableNetworkLogs: true,
-    
+    enableNetworkLogs: false,
+
     // Exibir detalhes de erros?
-    enableErrorDetails: true,
+    enableErrorDetails: false,
     
     // Simular erros de rede?
     simulateNetworkError: false,
@@ -137,6 +140,11 @@ export const CONFIG = {
   APP_VERSION: '1.0.0',
   SUPPORT_EMAIL: 'suporte@uaimed.com',
 };
+
+// Logs de rede/erro só ficam ativos em development — evita vazar payloads
+// de requisição (dados de usuário, pagamentos etc.) em staging/produção.
+CONFIG.DEBUG.enableNetworkLogs = CONFIG.ENVIRONMENT === 'development';
+CONFIG.DEBUG.enableErrorDetails = CONFIG.ENVIRONMENT === 'development';
 
 /**
  * Obtém a URL base da API para o ambiente ativo
