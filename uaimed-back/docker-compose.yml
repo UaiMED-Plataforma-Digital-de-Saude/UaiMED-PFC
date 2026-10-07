@@ -39,7 +39,7 @@ services:
     volumes:
       - ./:/app
       - /app/node_modules
-    # Mantém o Prisma Client e o schema do banco sempre sincronizados ao subir
-    command: sh -c "npx prisma generate && npx prisma migrate deploy && npm run db:seed && npm run dev"
+    # Reinstala dependências e mantém o Prisma Client/schema sempre sincronizados ao subir
+    command: sh -c "npm install && npx prisma generate && npx prisma migrate deploy && npm run db:seed && npm run dev"
     restart: unless-stopped
 
