@@ -107,5 +107,22 @@ describe('Agendamentos — criar e sugestões de horário', () => {
     const res = await request(app).get('/api/agendamentos/sugestoes-horario');
     expect(res.status).toBe(400);
   });
+
+  it('não sugere horários em dias marcados como indisponíveis pelo médico', async () => {
+    await prisma.horarioAtendimento.createMany({
+      data: Array.from({ length: 7 }, (_, diaSemana) => ({
+        profissionalId: profissional.id,
+        diaSemana,
+        ativo: false,
+        horaInicio: '08:00',
+        horaFim: '17:00',
+      })),
+    });
+
+    const res = await request(app)
+      .get(`/api/agendamentos/sugestoes-horario?medicoId=${profissional.id}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(0);
+  });
 });
 

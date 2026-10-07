@@ -2,6 +2,28 @@ import { Request, Response } from "express";
 import { prisma } from "../config/database";
 import logger from "../utils/logger";
 
+interface JanelaDia {
+  ativo: boolean;
+  inicioMin: number;
+  fimMin: number;
+}
+
+function paraMinutos(horaHHmm: string): number {
+  const [h, m] = horaHHmm.split(':').map(Number);
+  return h * 60 + m;
+}
+
+/**
+ * Resolve a janela de atendimento (ativo + intervalo em minutos) de um dia da
+ * semana. Sem configuração (médico nunca definiu disponibilidade), cai no
+ * comportamento padrão de sempre: ativo, 08:00-17:00.
+ */
+function janelaDoDia(diaSemana: number, config: Map<number, { ativo: boolean; horaInicio: string; horaFim: string }>): JanelaDia {
+  const dia = config.get(diaSemana);
+  if (!dia) return { ativo: true, inicioMin: 8 * 60, fimMin: 17 * 60 };
+  return { ativo: dia.ativo, inicioMin: paraMinutos(dia.horaInicio), fimMin: paraMinutos(dia.horaFim) };
+}
+
 class AgendamentosController {
   // POST /api/agendamentos
   async criar(req: Request, res: Response) {
@@ -134,14 +156,24 @@ class AgendamentosController {
       });
       const conflitosSet = new Set(conflitos.map((c) => c.dataHora.toISOString()));
 
+      // Disponibilidade configurada pelo médico (vazio = cai no padrão 08:00-17:00 ativo todo dia)
+      const horariosConfigurados = await prisma.horarioAtendimento.findMany({
+        where: { profissionalId: String(medicoId) },
+        select: { diaSemana: true, ativo: true, horaInicio: true, horaFim: true },
+      });
+      const configPorDia = new Map(horariosConfigurados.map((h) => [h.diaSemana, h]));
+
       const horarios: string[] = [];
 
       if (specificDate) {
-        // Retorna todos os slots do dia solicitado (08:00–16:30, de 30 em 30 min)
+        // Retorna todos os slots do dia solicitado, respeitando a janela do médico pra esse dia da semana
         const [year, month, day] = (data as string).split('-').map(Number);
-        for (let hora = 8; hora < 17; hora++) {
-          for (let min = 0; min < 60; min += 30) {
-            const slot = new Date(year, month - 1, day, hora, min, 0, 0);
+        const diaSemana = new Date(year, month - 1, day).getDay();
+        const janela = janelaDoDia(diaSemana, configPorDia);
+
+        if (janela.ativo) {
+          for (let min = janela.inicioMin; min < janela.fimMin; min += 30) {
+            const slot = new Date(year, month - 1, day, Math.floor(min / 60), min % 60, 0, 0);
             if (slot > now && !conflitosSet.has(slot.toISOString())) {
               horarios.push(slot.toISOString());
             }
@@ -152,13 +184,14 @@ class AgendamentosController {
         for (let dia = 0; dia < 7 && horarios.length < 10; dia++) {
           const baseDate = new Date(now);
           baseDate.setDate(now.getDate() + dia);
-          for (let hora = 8; hora < 17 && horarios.length < 10; hora++) {
-            for (let min = 0; min < 60 && horarios.length < 10; min += 30) {
-              const slot = new Date(baseDate);
-              slot.setHours(hora, min, 0, 0);
-              if (slot > now && !conflitosSet.has(slot.toISOString())) {
-                horarios.push(slot.toISOString());
-              }
+          const janela = janelaDoDia(baseDate.getDay(), configPorDia);
+          if (!janela.ativo) continue;
+
+          for (let min = janela.inicioMin; min < janela.fimMin && horarios.length < 10; min += 30) {
+            const slot = new Date(baseDate);
+            slot.setHours(Math.floor(min / 60), min % 60, 0, 0);
+            if (slot > now && !conflitosSet.has(slot.toISOString())) {
+              horarios.push(slot.toISOString());
             }
           }
         }

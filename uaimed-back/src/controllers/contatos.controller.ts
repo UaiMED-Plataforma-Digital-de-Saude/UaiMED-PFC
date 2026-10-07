@@ -35,12 +35,35 @@ class ContatosController {
             ...(profissional ? [{ profissionalId: profissional.id }] : []),
           ],
         },
+        include: { usuario: { select: { id: true, nome: true, telefone: true } } },
         orderBy: { criado_em: "desc" },
       });
       return res.json(contatos);
     } catch (err) {
       logger.error("Erro ao listar contatos", err);
       return res.status(500).json({ error: "Erro ao listar contatos" });
+    }
+  }
+
+  async marcarLido(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ error: "Usuário não autenticado" });
+
+      const profissional = await prisma.profissional.findUnique({ where: { usuarioId: userId } });
+      if (!profissional) return res.status(404).json({ error: "Profissional não encontrado" });
+
+      const { id } = req.params;
+      const contato = await prisma.contato.findUnique({ where: { id } });
+      if (!contato || contato.profissionalId !== profissional.id) {
+        return res.status(404).json({ error: "Contato não encontrado" });
+      }
+
+      const atualizado = await prisma.contato.update({ where: { id }, data: { status: "lido" } });
+      return res.json(atualizado);
+    } catch (err) {
+      logger.error("Erro ao marcar contato como lido", err);
+      return res.status(500).json({ error: "Erro ao marcar contato como lido" });
     }
   }
 }

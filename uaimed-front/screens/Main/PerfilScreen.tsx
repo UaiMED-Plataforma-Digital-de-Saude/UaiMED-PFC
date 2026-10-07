@@ -79,6 +79,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   const [editCidade, setEditCidade]     = React.useState('');
   const [editEstado, setEditEstado]     = React.useState('');
   const [editCep, setEditCep]           = React.useState('');
+  const [editPreco, setEditPreco]       = React.useState('');
   const [saveLoading, setSaveLoading] = React.useState(false);
   const [avatarLoading, setAvatarLoading] = React.useState(false);
 
@@ -167,6 +168,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
     setEditCidade(isMedico ? (user?.profissional?.cidade ?? '') : (user?.cidade ?? ''));
     setEditEstado(isMedico ? (user?.profissional?.estado ?? '') : (user?.estado ?? ''));
     setEditCep(isMedico ? (user?.profissional?.cep ?? '') : (user?.cep ?? ''));
+    setEditPreco(isMedico ? String(user?.profissional?.precoConsulta ?? '') : '');
     setEditMode(true);
   };
 
@@ -184,9 +186,14 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
       showModal('Campo obrigatório', 'Endereço, cidade e estado são obrigatórios.', { type: 'warning' });
       return;
     }
+    const precoNumerico = Number(editPreco.replace(',', '.'));
+    if (isMedico && (!editPreco.trim() || Number.isNaN(precoNumerico) || precoNumerico <= 0)) {
+      showModal('Campo obrigatório', 'Informe um preço de consulta válido.', { type: 'warning' });
+      return;
+    }
     setSaveLoading(true);
     try {
-      const [contaRes, enderecoRes] = await Promise.all([
+      const [contaRes, enderecoRes, precoRes] = await Promise.all([
         uaiMedApi.put('/users/me', {
           nome: editNome.trim(),
           telefone: editTelefone.trim(),
@@ -205,6 +212,9 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
               cep: editCep.trim(),
             })
           : Promise.resolve(null),
+        isMedico
+          ? uaiMedApi.put('/professionals/me/preco', { precoConsulta: precoNumerico })
+          : Promise.resolve(null),
       ]);
       await updateUser({
         nome: contaRes.data.user.nome,
@@ -215,7 +225,9 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
           estado: contaRes.data.user.estado,
           cep: contaRes.data.user.cep,
         } : {}),
-        ...(enderecoRes ? { profissional: { ...user?.profissional, ...enderecoRes.data } } : {}),
+        ...(enderecoRes || precoRes ? {
+          profissional: { ...user?.profissional, ...enderecoRes?.data, ...precoRes?.data },
+        } : {}),
       });
       setEditMode(false);
       showModal('Perfil atualizado!', 'Suas informações foram salvas com sucesso.', { type: 'success' });
@@ -415,6 +427,16 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
                   <Text style={s.fieldLabelReadonly}>Especialidade</Text>
                   <Text style={s.fieldReadonlyValue}>{user.profissional?.especialidade || 'Não informado'}</Text>
 
+                  <Text style={s.fieldLabel}>Preço da Consulta (R$)</Text>
+                  <TextInput
+                    style={s.fieldInput}
+                    value={editPreco}
+                    onChangeText={setEditPreco}
+                    placeholder="150.00"
+                    keyboardType="decimal-pad"
+                    editable={!saveLoading}
+                  />
+
                   <Text style={s.fieldLabel}>Endereço do Consultório</Text>
                   <Text style={s.fieldHint}>
                     Usado para posicionar o pino no mapa que os pacientes veem.
@@ -532,7 +554,16 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
               {isMedico && (
                 <>
                   <InfoRow icon="ribbon-outline"  label="CRM"          value={user.profissional?.crm || 'Não informado'} iconColor="#F57C00" />
-                  <InfoRow icon="medical-outline" label="Especialidade" value={user.profissional?.especialidade || 'Não informado'} iconColor="#E53935" last />
+                  <InfoRow icon="medical-outline" label="Especialidade" value={user.profissional?.especialidade || 'Não informado'} iconColor="#E53935" />
+                  <InfoRow
+                    icon="cash-outline"
+                    label="Preço da consulta"
+                    value={user.profissional?.precoConsulta != null
+                      ? `R$ ${user.profissional.precoConsulta.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      : 'Não informado'}
+                    iconColor="#2E7D32"
+                    last
+                  />
                 </>
               )}
               {isClinica && (
@@ -670,6 +701,13 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
               label="Minhas Consultas"
               sublabel="Consultas marcadas com pacientes"
               onPress={() => navigation.navigate('MedicoAgenda')}
+            />
+            <ActionRow
+              icon="time-outline"
+              iconColor="#1E88E5"
+              label="Horários de Atendimento"
+              sublabel="Dias e janelas de horário em que você atende"
+              onPress={() => navigation.navigate('MedicoDisponibilidade')}
               last
             />
           </View>

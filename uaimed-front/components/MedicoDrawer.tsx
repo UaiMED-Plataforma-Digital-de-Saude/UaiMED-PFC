@@ -12,6 +12,7 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   navigation: BottomTabNavigationProp<MainTabParamList>;
+  pendingContacts?: number;
 }
 
 interface ItemProps {
@@ -19,21 +20,27 @@ interface ItemProps {
   label: string;
   onPress: () => void;
   color?: string;
+  badge?: number;
 }
 
 const WIDTH = Dimensions.get('window').width * 0.8;
 
-const DrawerItem: React.FC<ItemProps> = ({ icon, label, onPress, color = '#333' }) => (
+const DrawerItem: React.FC<ItemProps> = ({ icon, label, onPress, color = '#333', badge }) => (
   <TouchableOpacity style={styles.item} onPress={onPress} activeOpacity={0.7}>
     <View style={styles.itemIcon}>
       <Ionicons name={icon} size={21} color={color} />
     </View>
     <Text style={[styles.itemText, { color }]}>{label}</Text>
+    {!!badge && badge > 0 && (
+      <View style={styles.itemBadge}>
+        <Text style={styles.itemBadgeText}>{badge > 9 ? '9+' : badge}</Text>
+      </View>
+    )}
     <Ionicons name="chevron-forward" size={16} color="#C1C1C1" />
   </TouchableOpacity>
 );
 
-const MedicoDrawer: React.FC<Props> = ({ visible, onClose, navigation }) => {
+const MedicoDrawer: React.FC<Props> = ({ visible, onClose, navigation, pendingContacts = 0 }) => {
   const { user, signOut } = useAuth();
   const translateX = useRef(new Animated.Value(-WIDTH)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -88,6 +95,10 @@ const MedicoDrawer: React.FC<Props> = ({ visible, onClose, navigation }) => {
               onPress={() => navigate('MedicoAgenda')} />
             <DrawerItem icon="star-outline" label="Minhas Avaliações"
               onPress={() => navigate('MedicoAvaliacoes')} />
+            <DrawerItem icon="bar-chart-outline" label="Dashboard"
+              onPress={() => navigate('MedicoDashboard')} />
+            <DrawerItem icon="mail-outline" label="Contatos" badge={pendingContacts}
+              onPress={() => navigate('MedicoContatos')} />
             <DrawerItem icon="person-outline" label="Meu Perfil"
               onPress={() => navigate('Perfil')} />
             <DrawerItem icon="chatbubbles-outline" label="Conversas"
@@ -129,6 +140,11 @@ const styles = StyleSheet.create({
   item: { flexDirection: 'row', alignItems: 'center', minHeight: 52, paddingHorizontal: 17 },
   itemIcon: { width: 34, alignItems: 'center', marginRight: 8 },
   itemText: { flex: 1, fontSize: 14, fontWeight: '600' },
+  itemBadge: {
+    minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5,
+    backgroundColor: '#E53935', alignItems: 'center', justifyContent: 'center', marginRight: 6,
+  },
+  itemBadgeText: { color: '#FFF', fontSize: 11, fontWeight: '800' },
   footer: { borderTopWidth: 1, borderTopColor: '#EFEFEF', paddingTop: 3, paddingBottom: 9 },
   version: { color: '#B5B5B5', fontSize: 11, marginLeft: 21, marginTop: 5 },
 });

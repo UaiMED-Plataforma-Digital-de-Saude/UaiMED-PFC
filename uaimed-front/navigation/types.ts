@@ -17,6 +17,9 @@ export type MainTabParamList = {
   Agendamentos: NavigatorScreenParams<AgendamentoStackParamList> | undefined;
   MedicoAgenda?: undefined;
   MedicoAvaliacoes?: undefined;
+  MedicoDashboard?: undefined;
+  MedicoContatos?: undefined;
+  MedicoDisponibilidade?: undefined;
   ClinicDashboard?: undefined;
   ClinicaMedicos?: undefined;
   Perfil: undefined;
