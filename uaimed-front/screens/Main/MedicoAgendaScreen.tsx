@@ -1,12 +1,13 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  ActivityIndicator, FlatList, RefreshControl, StyleSheet,
+  ActivityIndicator, RefreshControl, SectionList, StyleSheet,
   Text, TouchableOpacity, View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../hooks/useAuth';
 import uaiMedApi from '../../api/uaiMedApi';
+import { iniciais } from '../../utils/format';
 
 interface ConsultaMedico {
   id: string;
@@ -23,6 +24,33 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string
   concluido: { label: 'Concluída', color: '#686868', icon: 'checkmark-done-outline' },
   cancelado: { label: 'Cancelada', color: '#D32F2F', icon: 'close-circle-outline' },
 };
+
+// Título do cabeçalho de seção: "Hoje" / "Amanhã" / data por extenso.
+function formatTituloSecao(iso: string): string {
+  const data = new Date(iso);
+  const hoje = new Date();
+  const amanha = new Date(hoje);
+  amanha.setDate(hoje.getDate() + 1);
+  const mesmoDia = (a: Date, b: Date) => a.toDateString() === b.toDateString();
+  if (mesmoDia(data, hoje)) return 'Hoje';
+  if (mesmoDia(data, amanha)) return 'Amanhã';
+  return data.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'short' });
+}
+
+function agruparPorDia(consultas: ConsultaMedico[]) {
+  const grupos = new Map<string, ConsultaMedico[]>();
+  for (const item of consultas) {
+    const chave = new Date(item.dataHora).toDateString();
+    const grupo = grupos.get(chave);
+    if (grupo) grupo.push(item);
+    else grupos.set(chave, [item]);
+  }
+  return Array.from(grupos.entries()).map(([chave, data]) => ({
+    title: formatTituloSecao(data[0].dataHora),
+    key: chave,
+    data,
+  }));
+}
 
 const MedicoAgendaScreen: React.FC = () => {
   const { user } = useAuth();
@@ -69,14 +97,16 @@ const MedicoAgendaScreen: React.FC = () => {
       .sort((a, b) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime());
   }, [activeTab, consultas, proximas]);
 
+  const secoes = useMemo(() => agruparPorDia(filtradas), [filtradas]);
+
   const renderConsulta = ({ item }: { item: ConsultaMedico }) => {
     const data = new Date(item.dataHora);
     const cfg = STATUS_CONFIG[item.status] ?? { label: item.status, color: '#777', icon: 'ellipse-outline' };
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, { borderLeftColor: cfg.color }]}>
         <View style={styles.cardHeader}>
-          <View style={styles.patientIcon}>
-            <Ionicons name="person-outline" size={21} color="#2E7D32" />
+          <View style={[styles.patientIcon, { backgroundColor: `${cfg.color}1A` }]}>
+            <Text style={[styles.patientIniciais, { color: cfg.color }]}>{iniciais(item.usuario.nome)}</Text>
           </View>
           <View style={styles.patientInfo}>
             <Text style={styles.patientName} numberOfLines={1}>{item.usuario.nome}</Text>
@@ -89,17 +119,10 @@ const MedicoAgendaScreen: React.FC = () => {
         </View>
 
         <View style={styles.detailRow}>
-          <Ionicons name="calendar-outline" size={16} color="#777" />
-          <Text style={styles.detailText}>{data.toLocaleDateString('pt-BR', {
-            weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
-          })}</Text>
           <Ionicons name="time-outline" size={16} color="#777" />
           <Text style={styles.detailText}>{data.toLocaleTimeString('pt-BR', {
             hour: '2-digit', minute: '2-digit',
           })}</Text>
-        </View>
-
-        <View style={styles.detailRow}>
           <Ionicons name="hourglass-outline" size={16} color="#777" />
           <Text style={styles.detailText}>{item.duracao} minutos</Text>
         </View>
@@ -148,10 +171,13 @@ const MedicoAgendaScreen: React.FC = () => {
 
       {erro ? <Text style={styles.errorText}>{erro}</Text> : null}
 
-      <FlatList
-        data={filtradas}
+      <SectionList
+        sections={secoes}
         keyExtractor={(item) => item.id}
         renderItem={renderConsulta}
+        renderSectionHeader={({ section }) => (
+          <Text style={styles.sectionHeader}>{section.title}</Text>
+        )}
         contentContainerStyle={filtradas.length ? styles.list : styles.emptyList}
         refreshControl={<RefreshControl refreshing={refreshing}
           onRefresh={() => fetchConsultas(true)} colors={['#2E7D32']} />}
@@ -190,11 +216,16 @@ const styles = StyleSheet.create({
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 60 },
   emptyTitle: { color: '#777', fontSize: 16, fontWeight: '700', marginTop: 12 },
   emptySubtitle: { color: '#A0A0A0', fontSize: 12, marginTop: 5 },
+  sectionHeader: {
+    color: '#5F6F60', fontSize: 13, fontWeight: '800', textTransform: 'capitalize',
+    marginTop: 14, marginBottom: 8, backgroundColor: '#F6F8F6',
+  },
   card: { backgroundColor: '#FFF', borderRadius: 14, padding: 15, marginBottom: 12,
-    borderWidth: 1, borderColor: '#E8EAE8' },
+    borderWidth: 1, borderColor: '#E8EAE8', borderLeftWidth: 4 },
   cardHeader: { flexDirection: 'row', alignItems: 'center' },
   patientIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center',
     justifyContent: 'center', backgroundColor: '#E8F5E9' },
+  patientIniciais: { fontSize: 14, fontWeight: '800' },
   patientInfo: { flex: 1, marginHorizontal: 11 },
   patientName: { color: '#252525', fontSize: 15, fontWeight: '800' },
   patientPhone: { color: '#858585', fontSize: 12, marginTop: 3 },

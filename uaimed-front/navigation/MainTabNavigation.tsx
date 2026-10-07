@@ -19,6 +19,9 @@ import ArtigoCadastroScreen from '../screens/Main/ArtigoCadastroScreen';
 import ConversasStack from './ConversasStack';
 import MedicoHomeScreen from '../screens/Main/MedicoHomeScreen';
 import MedicoAvaliacoesScreen from '../screens/Main/MedicoAvaliacoesScreen';
+import MedicoDashboardScreen from '../screens/Main/MedicoDashboardScreen';
+import MedicoContatosScreen from '../screens/Main/MedicoContatosScreen';
+import MedicoDisponibilidadeScreen from '../screens/Main/MedicoDisponibilidadeScreen';
 import ClinicaHomeScreen from '../screens/Main/ClinicaHomeScreen';
 import ClinicaMedicosScreen from '../screens/Main/ClinicaMedicosScreen';
 import { TipoUsuario } from '../types/usuario';
@@ -172,6 +175,51 @@ const MainTabNavigator: React.FC = () => {
           headerRight: () => null,
           headerLeft: () => (
             <TouchableOpacity style={{ marginLeft: 16 }} onPress={() => navigation.navigate('Home')}>
+              <Ionicons name="arrow-back" size={24} color="#333" />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+
+      <Tab.Screen
+        name="MedicoDashboard"
+        component={MedicoDashboardScreen}
+        options={({ navigation }) => ({
+          title: 'Dashboard',
+          tabBarItemStyle: hiddenTab,
+          headerRight: () => null,
+          headerLeft: () => (
+            <TouchableOpacity style={{ marginLeft: 16 }} onPress={() => navigation.navigate('Home')}>
+              <Ionicons name="arrow-back" size={24} color="#333" />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+
+      <Tab.Screen
+        name="MedicoContatos"
+        component={MedicoContatosScreen}
+        options={({ navigation }) => ({
+          title: 'Contatos',
+          tabBarItemStyle: hiddenTab,
+          headerRight: () => null,
+          headerLeft: () => (
+            <TouchableOpacity style={{ marginLeft: 16 }} onPress={() => navigation.navigate('Home')}>
+              <Ionicons name="arrow-back" size={24} color="#333" />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+
+      <Tab.Screen
+        name="MedicoDisponibilidade"
+        component={MedicoDisponibilidadeScreen}
+        options={({ navigation }) => ({
+          title: 'Horários de Atendimento',
+          tabBarItemStyle: hiddenTab,
+          headerRight: () => null,
+          headerLeft: () => (
+            <TouchableOpacity style={{ marginLeft: 16 }} onPress={() => navigation.navigate('Perfil')}>
               <Ionicons name="arrow-back" size={24} color="#333" />
             </TouchableOpacity>
           ),

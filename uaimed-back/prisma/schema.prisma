@@ -81,8 +81,22 @@ model Profissional {
   usuario       Usuario               @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   conversas     Conversa[]
   clinicas      ClinicaProfissional[]
+  horarios      HorarioAtendimento[]
 
   @@map("profissionais")
+}
+
+model HorarioAtendimento {
+  id             String       @id @default(uuid())
+  profissionalId String
+  diaSemana      Int          // 0=domingo ... 6=sábado (igual Date.getDay())
+  ativo          Boolean      @default(true)
+  horaInicio     String       // "HH:mm"
+  horaFim        String       // "HH:mm"
+  profissional   Profissional @relation(fields: [profissionalId], references: [id], onDelete: Cascade)
+
+  @@unique([profissionalId, diaSemana])
+  @@map("horarios_atendimento")
 }
 
 model ClinicaProfissional {

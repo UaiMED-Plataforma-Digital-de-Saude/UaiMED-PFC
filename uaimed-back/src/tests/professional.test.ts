@@ -85,4 +85,107 @@ describe('Professional summary endpoint', () => {
     expect(res.body).toHaveProperty('nextAppointments');
     expect(res.body).toHaveProperty('revenueThisMonth');
   });
+
+  it('returns weekly and monthly series including the seeded appointment', async () => {
+    const res = await request(app)
+      .get('/api/professionals/me/summary')
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+
+    expect(res.body.weekly).toHaveLength(7);
+    expect(res.body.monthly).toHaveLength(6);
+
+    const hoje = res.body.weekly[res.body.weekly.length - 1];
+    expect(hoje.count).toBeGreaterThanOrEqual(1);
+    expect(hoje.revenue).toBeGreaterThanOrEqual(100);
+
+    const mesAtual = res.body.monthly[res.body.monthly.length - 1];
+    expect(mesAtual.count).toBeGreaterThanOrEqual(1);
+    expect(mesAtual.revenue).toBeGreaterThanOrEqual(100);
+
+    for (const ponto of [...res.body.weekly, ...res.body.monthly]) {
+      expect(typeof ponto.count).toBe('number');
+      expect(typeof ponto.revenue).toBe('number');
+    }
+  });
+
+  it('updates the consultation price for the authenticated medico', async () => {
+    const res = await request(app)
+      .put('/api/professionals/me/preco')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ precoConsulta: 199.9 });
+    expect(res.status).toBe(200);
+    expect(res.body.precoConsulta).toBe(199.9);
+  });
+
+  it('rejects a non-positive consultation price', async () => {
+    const res = await request(app)
+      .put('/api/professionals/me/preco')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ precoConsulta: -10 });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns a default availability template when the medico never configured one', async () => {
+    const res = await request(app)
+      .get('/api/professionals/me/disponibilidade')
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(7);
+    expect(res.body.find((d: any) => d.diaSemana === 0).ativo).toBe(false);
+    expect(res.body.find((d: any) => d.diaSemana === 1).ativo).toBe(true);
+  });
+
+  it('replaces the weekly availability and reflects it back on GET', async () => {
+    const semanaCustom = Array.from({ length: 7 }, (_, diaSemana) => ({
+      diaSemana,
+      ativo: diaSemana !== 0,
+      horaInicio: '09:00',
+      horaFim: '12:00',
+    }));
+
+    const putRes = await request(app)
+      .put('/api/professionals/me/disponibilidade')
+      .set('Authorization', `Bearer ${token}`)
+      .send(semanaCustom);
+    expect(putRes.status).toBe(200);
+    expect(putRes.body).toHaveLength(7);
+
+    const getRes = await request(app)
+      .get('/api/professionals/me/disponibilidade')
+      .set('Authorization', `Bearer ${token}`);
+    const domingo = getRes.body.find((d: any) => d.diaSemana === 0);
+    expect(domingo.ativo).toBe(false);
+    const segunda = getRes.body.find((d: any) => d.diaSemana === 1);
+    expect(segunda).toMatchObject({ ativo: true, horaInicio: '09:00', horaFim: '12:00' });
+  });
+
+  it('rejects availability payloads with less than 7 days or invalid time range', async () => {
+    const incompleta = await request(app)
+      .put('/api/professionals/me/disponibilidade')
+      .set('Authorization', `Bearer ${token}`)
+      .send([{ diaSemana: 0, ativo: true, horaInicio: '08:00', horaFim: '17:00' }]);
+    expect(incompleta.status).toBe(400);
+
+    const semanaInvalida = Array.from({ length: 7 }, (_, diaSemana) => ({
+      diaSemana,
+      ativo: true,
+      horaInicio: '18:00',
+      horaFim: '08:00', // fim antes do início
+    }));
+    const horarioInvalido = await request(app)
+      .put('/api/professionals/me/disponibilidade')
+      .set('Authorization', `Bearer ${token}`)
+      .send(semanaInvalida);
+    expect(horarioInvalido.status).toBe(400);
+  });
+
+  it('rejects preco/disponibilidade endpoints for non-medico users', async () => {
+    const patientToken = generateToken({ id: patientUser.id, email: patientUser.email, tipo: patientUser.tipo });
+    const res = await request(app)
+      .put('/api/professionals/me/preco')
+      .set('Authorization', `Bearer ${patientToken}`)
+      .send({ precoConsulta: 100 });
+    expect(res.status).toBe(403);
+  });
 });

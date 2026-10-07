@@ -12,6 +12,7 @@ describe('Contatos API', () => {
   let profissionalUsuario: any;
   let profissional: any;
   let token: string;
+  let medToken: string;
 
   beforeAll(async () => {
     // create user
@@ -26,6 +27,7 @@ describe('Contatos API', () => {
     profissional = await prisma.profissional.create({ data: { usuarioId: profissionalUsuario.id, especialidade: 'Cardiologia', crm: `CRM-${unique}`, dataFormacao: new Date(), endereco: 'Rua X', cidade: 'Cidade', estado: 'UF', cep: '00000-000' } });
 
     token = generateToken({ id: user.id, email: user.email, tipo: user.tipo });
+    medToken = generateToken({ id: profissionalUsuario.id, email: profissionalUsuario.email, tipo: profissionalUsuario.tipo });
   });
 
   afterAll(async () => {
@@ -58,5 +60,38 @@ describe('Contatos API', () => {
     // ensure the endpoint returns at least one contato for this usuario
     expect(Array.isArray(listRes.body)).toBe(true);
     expect(listRes.body.length).toBeGreaterThan(0);
+
+    // o contato listado já deve trazer o nome/telefone de quem enviou
+    const criado = listRes.body.find((c: any) => c.id === res.body.id);
+    expect(criado.usuario).toMatchObject({ id: user.id, nome: user.nome });
+  });
+
+  it('allows the recipient medico to mark a contato as lido', async () => {
+    const criado = await request(app)
+      .post('/api/contatos')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ profissionalId: profissional.id, assunto: 'Outro teste', mensagem: 'Outra mensagem' })
+      .expect(201);
+
+    const patchRes = await request(app)
+      .patch(`/api/contatos/${criado.body.id}/lido`)
+      .set('Authorization', `Bearer ${medToken}`)
+      .expect(200);
+
+    expect(patchRes.body.status).toBe('lido');
+  });
+
+  it('rejects marking a contato as lido by someone who is not the recipient', async () => {
+    const criado = await request(app)
+      .post('/api/contatos')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ profissionalId: profissional.id, assunto: 'Terceiro teste', mensagem: 'Terceira mensagem' })
+      .expect(201);
+
+    // o paciente (dono da mensagem, não o médico destinatário) não é 'medico' -> 403
+    await request(app)
+      .patch(`/api/contatos/${criado.body.id}/lido`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
   });
 });

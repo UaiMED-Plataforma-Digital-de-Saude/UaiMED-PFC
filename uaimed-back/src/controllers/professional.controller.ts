@@ -1,7 +1,10 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/database";
 import { geocodeEndereco } from "../services/geocoding.service";
+import { getWeeklySeries, getMonthlySeries } from "../services/dashboard.service";
 import logger from "../utils/logger";
+
+const DIAS_SEMANA = [0, 1, 2, 3, 4, 5, 6];
 
 class ProfessionalController {
   async listarAvaliacoes(req: Request, res: Response) {
@@ -119,6 +122,12 @@ class ProfessionalController {
       // Pendências: contatos não lidos
       const pendingContacts = await prisma.contato.count({ where: { profissionalId: profissional.id, status: 'nao_lido' } });
 
+      // Séries semanal (7 dias) e mensal (6 meses) de agendamentos/receita
+      const [weekly, monthly] = await Promise.all([
+        getWeeklySeries([profissional.id]),
+        getMonthlySeries([profissional.id]),
+      ]);
+
       return res.json({
         profissional: { id: profissional.id, especialidade: profissional.especialidade },
         totalToday,
@@ -126,6 +135,8 @@ class ProfessionalController {
         ratingAvg,
         revenueThisMonth,
         pendingContacts,
+        weekly,
+        monthly,
       });
     } catch (err) {
       logger.error('Professional summary error', err);
@@ -174,6 +185,90 @@ class ProfessionalController {
     } catch (err) {
       logger.error('Erro ao atualizar endereço do profissional', err);
       return res.status(500).json({ error: 'Erro ao atualizar endereço' });
+    }
+  }
+
+  /** PUT /api/professionals/me/preco — atualiza o preço da consulta */
+  async atualizarPreco(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ error: 'Usuário não autenticado' });
+
+      const { precoConsulta } = req.body as { precoConsulta: number };
+
+      const profissional = await prisma.profissional.findUnique({ where: { usuarioId: userId } });
+      if (!profissional) return res.status(404).json({ error: 'Profissional não encontrado' });
+
+      const atualizado = await prisma.profissional.update({
+        where: { id: profissional.id },
+        data: { precoConsulta },
+        select: { precoConsulta: true },
+      });
+
+      logger.success(`Preço de consulta atualizado: profissional ${profissional.id}`);
+      return res.json(atualizado);
+    } catch (err) {
+      logger.error('Erro ao atualizar preço da consulta', err);
+      return res.status(500).json({ error: 'Erro ao atualizar preço da consulta' });
+    }
+  }
+
+  /** GET /api/professionals/me/disponibilidade — retorna a janela de atendimento por dia da semana */
+  async obterDisponibilidade(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ error: 'Usuário não autenticado' });
+
+      const profissional = await prisma.profissional.findUnique({ where: { usuarioId: userId } });
+      if (!profissional) return res.status(404).json({ error: 'Profissional não encontrado' });
+
+      const horarios = await prisma.horarioAtendimento.findMany({
+        where: { profissionalId: profissional.id },
+        orderBy: { diaSemana: 'asc' },
+        select: { diaSemana: true, ativo: true, horaInicio: true, horaFim: true },
+      });
+
+      // Médico ainda não configurou nada — devolve o padrão atual (seg-sex, 08:00-17:00)
+      // sem persistir, só pra tela abrir com algo sensato pra editar.
+      if (horarios.length === 0) {
+        return res.json(DIAS_SEMANA.map((diaSemana) => ({
+          diaSemana,
+          ativo: diaSemana >= 1 && diaSemana <= 5,
+          horaInicio: '08:00',
+          horaFim: '17:00',
+        })));
+      }
+
+      return res.json(horarios);
+    } catch (err) {
+      logger.error('Erro ao buscar disponibilidade do profissional', err);
+      return res.status(500).json({ error: 'Erro ao buscar disponibilidade' });
+    }
+  }
+
+  /** PUT /api/professionals/me/disponibilidade — substitui a janela de atendimento dos 7 dias */
+  async atualizarDisponibilidade(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ error: 'Usuário não autenticado' });
+
+      const dias = req.body as Array<{ diaSemana: number; ativo: boolean; horaInicio: string; horaFim: string }>;
+
+      const profissional = await prisma.profissional.findUnique({ where: { usuarioId: userId } });
+      if (!profissional) return res.status(404).json({ error: 'Profissional não encontrado' });
+
+      const resultado = await prisma.$transaction([
+        prisma.horarioAtendimento.deleteMany({ where: { profissionalId: profissional.id } }),
+        ...dias.map((dia) => prisma.horarioAtendimento.create({
+          data: { profissionalId: profissional.id, ...dia },
+        })),
+      ]);
+
+      logger.success(`Disponibilidade atualizada: profissional ${profissional.id}`);
+      return res.json(resultado.slice(1));
+    } catch (err) {
+      logger.error('Erro ao atualizar disponibilidade do profissional', err);
+      return res.status(500).json({ error: 'Erro ao atualizar disponibilidade' });
     }
   }
 }
