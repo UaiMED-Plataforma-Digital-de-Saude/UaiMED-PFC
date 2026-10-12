@@ -1,0 +1,2 @@
+ALTER TABLE "usuarios" ADD COLUMN "destaque" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "profissionais" ADD COLUMN "destaque" BOOLEAN NOT NULL DEFAULT false;

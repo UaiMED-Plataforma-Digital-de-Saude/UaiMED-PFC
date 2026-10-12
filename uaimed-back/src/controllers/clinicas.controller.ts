@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { StatusVinculoClinica, TipoUsuario } from '@prisma/client';
 import { prisma } from '../config/database';
 import logger from '../utils/logger';
+import { ARTICLE_ADMIN_EMAIL } from '../constants/articleAdmin';
 
 const medicoInclude = {
   usuario: {
@@ -31,7 +32,7 @@ class ClinicasController {
   async recomendadas(req: Request, res: Response) {
     try {
       const { estado, cidade } = req.query;
-      const where: any = { tipo: TipoUsuario.clinica, ativo: true };
+      const where: any = { tipo: TipoUsuario.clinica, ativo: true, destaque: true, email: { not: ARTICLE_ADMIN_EMAIL } };
 
       if (estado) where.estado = estado;
       if (cidade) where.cidade = cidade;
@@ -56,8 +57,7 @@ class ClinicasController {
             },
           },
         },
-        take: 10,
-        orderBy: { criado_em: 'desc' },
+        orderBy: { nome: 'asc' },
       });
 
       return res.json(clinicas.map((clinica) => ({

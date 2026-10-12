@@ -5,6 +5,7 @@ import { geocodeEndereco } from "./geocoding.service";
 import logger from "../utils/logger";
 import { TipoUsuario } from "@prisma/client";
 import { especialidadeMedicaValida } from "../constants/especialidades";
+import { ARTICLE_ADMIN_EMAIL } from '../constants/articleAdmin';
 
 export interface SignUpData {
   nome: string;
@@ -46,6 +47,9 @@ const PROFISSIONAL_PUBLIC_SELECT = {
 
 class AuthService {
   async signup(data: SignUpData) {
+    if (data.email.trim().toLowerCase() === ARTICLE_ADMIN_EMAIL) {
+      throw new Error('Este e-mail é reservado à administração');
+    }
     const existing = await prisma.usuario.findUnique({ where: { email: data.email } });
     if (existing) throw new Error("Email já cadastrado");
 

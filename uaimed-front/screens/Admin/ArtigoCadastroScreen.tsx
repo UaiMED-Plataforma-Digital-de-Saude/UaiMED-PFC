@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TextInput,
   TouchableOpacity, Image, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -11,6 +11,9 @@ import { MainTabParamList } from '../../navigation/types';
 import uaiMedApi from '../../api/uaiMedApi';
 import AppModal from '../../components/AppModal';
 import { useModal } from '../../hooks/useModal';
+import { useAuth } from '../../hooks/useAuth';
+import { isArticleAdmin } from '../../utils/articleAdmin';
+import { useFocusEffect } from '@react-navigation/native';
 
 type Props = BottomTabScreenProps<MainTabParamList, 'ArtigoCadastro'>;
 
@@ -20,6 +23,8 @@ const CATEGORIAS = [
 ];
 
 const ArtigoCadastroScreen: React.FC<Props> = ({ navigation, route }) => {
+  const { user } = useAuth();
+  const permitido = isArticleAdmin(user);
   const [titulo, setTitulo]       = useState('');
   const [resumo, setResumo]       = useState('');
   const [categoria, setCategoria] = useState('');
@@ -37,8 +42,17 @@ const ArtigoCadastroScreen: React.FC<Props> = ({ navigation, route }) => {
     navigation.setOptions({ title: editando ? 'Editar Artigo' : 'Novo Artigo' });
   }, [editando, navigation]);
 
-  useEffect(() => {
-    if (!artigoId) return;
+  useFocusEffect(useCallback(() => {
+    if (!permitido) return;
+    if (!artigoId) {
+      setTitulo('');
+      setResumo('');
+      setCategoria('');
+      setCorpo('');
+      setBanner(null);
+      setLoadingArtigo(false);
+      return;
+    }
 
     let ativo = true;
     setLoadingArtigo(true);
@@ -56,7 +70,7 @@ const ArtigoCadastroScreen: React.FC<Props> = ({ navigation, route }) => {
     });
 
     return () => { ativo = false; };
-  }, [artigoId]);
+  }, [artigoId, permitido, showModal]));
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -77,6 +91,7 @@ const ArtigoCadastroScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const handlePublicar = async () => {
+    if (!permitido || loading) return;
     if (!titulo.trim() || !categoria || !corpo.trim()) {
       showModal('Campos obrigatórios', 'Preencha título, categoria e o corpo do artigo.', { type: 'warning' });
       return;
@@ -102,10 +117,8 @@ const ArtigoCadastroScreen: React.FC<Props> = ({ navigation, route }) => {
         editando ? 'As alterações foram salvas com sucesso.' : 'Seu artigo foi publicado com sucesso.', {
         type: 'success',
         buttons: [{
-          text: editando ? 'Ver Artigo' : 'Ver Artigos',
-          onPress: () => artigoId
-            ? navigation.navigate('ArtigoDetalhes', { artigoId })
-            : navigation.navigate('Artigos'),
+          text: 'Voltar à administração',
+          onPress: () => navigation.navigate('AdminArtigos'),
         }],
       });
     } catch (e: any) {
@@ -117,6 +130,8 @@ const ArtigoCadastroScreen: React.FC<Props> = ({ navigation, route }) => {
       setLoading(false);
     }
   };
+
+  if (!permitido) return null;
 
   if (loadingArtigo) {
     return (

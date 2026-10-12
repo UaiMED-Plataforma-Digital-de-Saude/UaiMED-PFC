@@ -23,6 +23,7 @@ describe('Clínicas — listagem e recomendadas', () => {
     clinica1 = await prisma.usuario.create({
       data: {
         nome: 'Clínica São Paulo Teste',
+        destaque: true,
         email: `clinica1-${unique}@example.com`,
         cpf: `${cpfBase}001`,
         telefone: '11999990001',
@@ -38,6 +39,7 @@ describe('Clínicas — listagem e recomendadas', () => {
     clinica2 = await prisma.usuario.create({
       data: {
         nome: 'Clínica Goiânia Teste',
+        destaque: true,
         email: `clinica2-${unique}@example.com`,
         cpf: `${cpfBase}002`,
         telefone: '62999990002',
@@ -53,6 +55,7 @@ describe('Clínicas — listagem e recomendadas', () => {
     clinicaInativa = await prisma.usuario.create({
       data: {
         nome: 'Clínica Inativa Teste',
+        destaque: true,
         email: `clinica-inativa-${unique}@example.com`,
         cpf: `${cpfBase}003`,
         telefone: '11999990003',
@@ -328,11 +331,16 @@ describe('Clínicas — listagem e recomendadas', () => {
       expect(clinica.localizacao).toBe('Goiânia, GO');
     });
 
-    it('retorna no máximo 10 clínicas', async () => {
+    it('retorna apenas clínicas selecionadas para destaque', async () => {
       const res = await request(app).get('/api/clinicas/recomendadas');
 
       expect(res.status).toBe(200);
-      expect(res.body.length).toBeLessThanOrEqual(10);
+      const ids = res.body.map((c: any) => c.id);
+      expect(ids).toContain(clinica1.id);
+      expect(ids).toContain(clinica2.id);
+      const naoSelecionada = await prisma.usuario.findUnique({ where: { email: `clinica-signup-${unique}@example.com` } });
+      expect(naoSelecionada).not.toBeNull();
+      expect(ids).not.toContain(naoSelecionada!.id);
     });
   });
 });

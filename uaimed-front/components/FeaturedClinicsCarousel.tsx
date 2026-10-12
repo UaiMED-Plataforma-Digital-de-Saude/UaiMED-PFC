@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -32,7 +33,7 @@ const FeaturedClinicsCarousel: React.FC<Props> = ({ estado, cidade, onPress }) =
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     let mounted = true;
     const fetch = async () => {
       setLoading(true);
@@ -53,7 +54,7 @@ const FeaturedClinicsCarousel: React.FC<Props> = ({ estado, cidade, onPress }) =
 
     fetch();
     return () => { mounted = false; };
-  }, [estado, cidade]);
+  }, [estado, cidade]));
 
   if (loading) {
     return (
@@ -67,7 +68,7 @@ const FeaturedClinicsCarousel: React.FC<Props> = ({ estado, cidade, onPress }) =
     return (
       <View style={styles.emptyContainer}>
         <Ionicons name="business-outline" size={32} color="#CCC" />
-        <Text style={styles.emptyText}>Nenhuma clínica encontrada</Text>
+        <Text style={styles.emptyText}>{estado || cidade ? 'Nenhuma clínica em destaque nesta região' : 'Nenhuma clínica em destaque no momento'}</Text>
       </View>
     );
   }
