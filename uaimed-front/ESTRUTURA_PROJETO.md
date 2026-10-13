@@ -6,7 +6,6 @@ uaimed/
 ├── app.json                         # Configuração do Expo
 ├── package.json                     # Dependências do projeto
 ├── tsconfig.json                    # Configuração TypeScript
-├── MELHORIAS_REALIZADAS.md          # Documento de mudanças
 ├── ESTRUTURA_PROJETO.md             # Este arquivo
 │
 ├── src/
