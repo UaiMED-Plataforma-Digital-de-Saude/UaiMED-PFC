@@ -1,4 +1,4 @@
-# Relatório Técnico Executivo — UaiMED
+# Relatório Técnico — UaiMED
 
 ## Visão Geral
 
