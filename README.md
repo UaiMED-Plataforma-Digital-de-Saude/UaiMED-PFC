@@ -8,16 +8,16 @@ O UaiMED é uma plataforma digital de saúde composta por backend (Node.js/TypeS
 
 ## Arquitetura
 
-- **Backend:** API RESTful, autenticação JWT, banco PostgreSQL, ORM Prisma, testes automáticos (Vitest), deploy via Docker Compose.
-- **Frontend:** App React Native, navegação robusta, integração total com backend, dashboards, pagamentos e avaliações.
-- **CI/CD:** Pipeline GitHub Actions, testes automatizados, deploy orientado a containers.
+- **Backend:** API RESTful, autenticação JWT, banco PostgreSQL, ORM Prisma, testes automáticos (Vitest), ambiente local via Docker Compose.
+- **Frontend:** App React Native, navegação robusta, integração com backend, dashboards, pagamentos e avaliações.
+- **CI:** GitHub Actions executa testes e checagem de TypeScript do backend a cada push/PR.
 
 ---
 
 ## Status Atual
 
-- Backend e frontend completos e integrados
-- Testes automatizados confiáveis (Vitest)
+- Backend e frontend funcionais e integrados, com os fluxos principais implementados
+- Testes automatizados no backend (Vitest); frontend ainda sem suíte de testes própria
 - Cobertura de requisitos essenciais: autenticação, agendamento, pagamentos, dashboards, avaliações
 - Documentação técnica detalhada (`DOCUMENTACAO_PROJETO_UAIMED.md`)
 
@@ -57,7 +57,7 @@ cd uaimed
 cd uaimed-back
 npm ci
 docker-compose up -d    # inicia Postgres
-npm run dev             # servidor em localhost:3000
+npm run dev             # servidor em localhost:3333
 ```
 
 3. **Frontend**
@@ -75,15 +75,14 @@ npm start               # inicia Metro/Expo
 ## Documentação Detalhada
 
 - [Documentação Técnica Completa](./DOCUMENTACAO_PROJETO_UAIMED.md)
-- [Verificação de Integração e Testes](./VERIFICATION_WHAT_WAS_DONE.md)
-- Documentos de setup, troubleshooting e arquitetura em `documents/`
+- Documentos de setup, dashboards e testes em `documents/`
 
 ---
 
 ## Licença
 
-Coloque aqui a licença escolhida (ex: MIT).
+Este projeto é proprietário — todos os direitos reservados. Consulte o arquivo [LICENSE](./LICENSE) para detalhes. Uso, cópia ou distribuição sem autorização da equipe UaiMED não são permitidos.
 
 ---
 
-> Relatório técnico atualizado em 11/03/2026 — Equipe UaiMED
+> Relatório técnico atualizado em 13/10/2026 — Equipe UaiMED

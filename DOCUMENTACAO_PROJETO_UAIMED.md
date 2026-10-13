@@ -1,9 +1,9 @@
 # 📘 Documentação Completa do Projeto UaiMED
 
-**Versão**: 1.6.0  
-**Data**: 17 de Abril de 2026  
+**Versão**: 1.7.0  
+**Data**: 13 de Outubro de 2026  
 **Classificação**: Documentação Técnica de Engenharia de Software  
-**Status**: Projeto em Desenvolvimento Avançado — Testes automatizados completos (32 casos), novas telas de Auth (RecuperarSenha, EmailEnviado, TipoSelecao) e tela de Ajuda
+**Status**: Projeto em Desenvolvimento Avançado — Seção de Avaliação do Projeto (percurso, decisões técnicas, desafios, resultados e perspectivas) revisada com base no histórico real do Git (135 commits, 63 PRs, Fev–Out/2026)
 
 ---
 
@@ -21,7 +21,7 @@
 10. [Engenharia de Dados](#10-engenharia-de-dados)
 11. [Aspectos Analíticos](#11-aspectos-analíticos)
 12. [Aspectos Comunicacionais](#12-aspectos-comunicacionais)
-13. [Conclusão](#13-conclusão)
+13. [Avaliação do Projeto e Conclusão](#13-avaliação-do-projeto-e-conclusão)
 14. [Changelog](#14-changelog)
 
 ---
@@ -126,7 +126,7 @@ Plataforma mobile-first que:
 | RF03.1 | Busca de profissionais | Alta | ✅ Implementado |
 | RF03.2 | Exibição de disponibilidade | Alta | ✅ Implementado |
 | RF03.3 | Criação de agendamento | Alta | ✅ Implementado |
-| RF03.4 | Cancelamento | Alta | ⚠️ Parcial (backend OK, frontend pendente) |
+| RF03.4 | Cancelamento/reagendamento pelo paciente | Alta | 🔴 Bug — frontend chama `PATCH /agendamentos/:id/cancelar`, endpoint inexistente no backend |
 | RF03.5 | Visualização de agenda | Alta | ✅ Implementado |
 | RF03.6 | Fluxo completo Busca→Confirmação→Pagamento→Avaliação | Alta | ✅ Implementado (v1.3.0) |
 
@@ -153,9 +153,10 @@ Plataforma mobile-first que:
 #### RF06 - Comunicação
 | ID | Requisito | Prioridade | Status |
 |----|-----------|------------|--------|
-| RF06.1 | Enviar mensagens | Média | ✅ Implementado |
+| RF06.1 | Enviar mensagens (contatos) | Média | ✅ Implementado |
 | RF06.2 | Visualizar mensagens | Média | ✅ Implementado |
 | RF06.3 | Status de leitura | Baixa | ✅ Implementado |
+| RF06.4 | Chat/Conversas (iniciar, retomar, histórico) | Média | ✅ Implementado |
 
 #### RF07 - Dashboards e Analytics
 | ID | Requisito | Prioridade | Status |
@@ -164,6 +165,34 @@ Plataforma mobile-first que:
 | RF07.2 | Dashboard de médico | Alta | ✅ Implementado |
 | RF07.3 | Relatórios por período | Média | ⚠️ Parcial |
 | RF07.4 | Gráficos e visualizações | Média | ⚠️ Parcial |
+| RF07.5 | Central de contatos do médico (dashboard) | Média | ✅ Implementado |
+| RF07.6 | Gestão de preço e disponibilidade (médico) | Alta | ✅ Implementado |
+
+#### RF10 - Clínicas (Operação Avançada)
+| ID | Requisito | Prioridade | Status |
+|----|-----------|------------|--------|
+| RF10.1 | Listagem e recomendação de clínicas | Média | ✅ Implementado |
+| RF10.2 | Perfil de clínica (`/clinicas/me`) | Alta | ✅ Implementado |
+| RF10.3 | Vínculo/desvínculo de médico com clínica | Alta | ✅ Implementado |
+| RF10.4 | Solicitações de vínculo | Média | ✅ Implementado |
+
+#### RF11 - Artigos de Saúde
+| ID | Requisito | Prioridade | Status |
+|----|-----------|------------|--------|
+| RF11.1 | Listagem e leitura pública de artigos | Média | ✅ Implementado |
+| RF11.2 | Cadastro/edição de artigos (admin) | Média | ✅ Implementado |
+
+#### RF12 - Geolocalização
+| ID | Requisito | Prioridade | Status |
+|----|-----------|------------|--------|
+| RF12.1 | Endereço do profissional geocodificado | Alta | ✅ Implementado |
+| RF12.2 | Busca de profissionais por proximidade | Alta | ✅ Implementado |
+
+#### RF13 - Administração
+| ID | Requisito | Prioridade | Status |
+|----|-----------|------------|--------|
+| RF13.1 | Gestão de destaques da Home | Média | ✅ Implementado |
+| RF13.2 | Painel administrativo (perfil, artigos, destaques) | Alta | ✅ Implementado |
 
 #### RF08 - Notificações e Confirmações
 | ID | Requisito | Prioridade | Status |
@@ -190,9 +219,10 @@ Plataforma mobile-first que:
 #### RNF02 - Segurança
 - **RNF02.1**: Senhas criptografadas (bcrypt) ✅
 - **RNF02.2**: JWT com expiração (7 dias) ✅
-- **RNF02.3**: Proteção LGPD ⚠️
-- **RNF02.4**: Validação de entrada (Zod) ✅
-- **RNF02.5**: Refresh automático de token ⚠️ (interceptor no axios; endpoint refresh pendente)
+- **RNF02.3**: Proteção LGPD ⚠️ (sem anonimização, consentimento ou auditoria de acesso implementados)
+- **RNF02.4**: Validação de entrada (Zod) ✅ (cobertura ampla via `validateBody` em praticamente todas as rotas de escrita)
+- **RNF02.5**: Refresh automático de token ✅ (`POST /api/sessions/refresh` implementado e funcional desde Set/2026)
+- **RNF02.6**: Rate limiting contra brute-force em login/cadastro ✅ (`express-rate-limit`, 10 tentativas/IP/min)
 
 #### RNF03 - Disponibilidade
 - **RNF03.1**: Uptime 99.5% ⚠️
@@ -206,7 +236,7 @@ Plataforma mobile-first que:
 
 #### RNF05 - Manutenibilidade
 - **RNF05.1**: Padrões TypeScript ✅
-- **RNF05.2**: Cobertura de testes ≥ 32 casos automatizados ✅
+- **RNF05.2**: Cobertura de testes ≥ 139 casos automatizados (20 arquivos) ✅
 - **RNF05.3**: Documentação completa ✅
 
 ---
@@ -629,7 +659,28 @@ Role: medico
 }
 ```
 
-### 7.3 Pipeline de Analytics
+**Endpoints complementares (adicionados a partir de Set/Out 2026):**
+| Endpoint | Descrição |
+|---|---|
+| `GET /professionals/me/agendamentos` | Agenda detalhada do médico |
+| `GET /professionals/me/avaliacoes` | Avaliações recebidas |
+| `GET/PUT /professionals/me/preco` | Preço da consulta |
+| `GET/PUT /professionals/me/disponibilidade` | Horários de disponibilidade |
+| `PUT /professionals/me/endereco` | Endereço (re-geocodificado automaticamente) |
+
+Essas rotas sustentam as telas `MedicoDashboardScreen`, `MedicoContatosScreen` e `MedicoDisponibilidadeScreen`, entregues em Set–Out/2026.
+
+### 7.3 Painel de Administração
+
+**Endpoint**
+```
+GET/PUT /api/admin/destaques
+GET /api/admin/summary   (Role: clinica)
+```
+
+Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPerfilScreen`. Permite gerenciar destaques da Home e artigos de saúde publicados (acesso restrito por papel/e-mail de administrador).
+
+### 7.4 Pipeline de Analytics
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -664,15 +715,21 @@ Role: medico
 #### ✅ Implementado
 
 **Backend:**
-- ✅ Arquitetura REST API completa
-- ✅ Autenticação JWT funcional
+- ✅ Arquitetura REST API completa (14 módulos de rotas: auth, usuários, médicos, profissionais, clínicas, agendamentos, pagamentos, avaliações, contatos, conversas, especialidades, artigos, admin, conta-bancária)
+- ✅ Autenticação JWT funcional + **refresh token** (`POST /api/sessions/refresh`)
 - ✅ CRUD completo de todas as entidades
-- ✅ Validação com Zod
+- ✅ Validação com Zod (cobertura ampla via `validateBody`)
 - ✅ Middleware de autenticação e autorização
+- ✅ **Rate limiting** contra brute-force em login/cadastro (`express-rate-limit`)
 - ✅ Sistema de pagamentos completo (PIX, cartão, boleto)
 - ✅ Sistema de avaliações
-- ✅ Dashboards (clínica e médico)
-- ✅ **32 casos de teste automatizados** cobrindo todos os endpoints principais
+- ✅ Dashboards (clínica e médico) + painel de administração
+- ✅ Clínicas: vínculo/desvínculo de médicos, recomendações, solicitações
+- ✅ Artigos de saúde (leitura pública + CRUD administrativo)
+- ✅ Geolocalização (geocodificação de endereço, busca por proximidade)
+- ✅ Chat/Conversas entre usuários (REST, sem WebSocket/tempo real)
+- ✅ **139 casos de teste automatizados** (20 arquivos) cobrindo os endpoints principais
+- ✅ Logging revisado — Prisma não loga mais SQL com dados de usuário; app não loga payloads fora de ambiente de desenvolvimento
 - ✅ Docker Compose para desenvolvimento
 - ✅ CI/CD com GitHub Actions
 
@@ -686,46 +743,50 @@ Role: medico
 - ✅ **Seleção de tipo de usuário**: `TipoSelecaoScreen` no fluxo de cadastro
 - ✅ Telas `MinhasConsultasScreen` e `MeusPagamentosScreen` com dados reais
 - ✅ Logo real do projeto na `LoginScreen`
-- ✅ Dashboard de clínica e painel do médico com KPIs
+- ✅ Dashboard de clínica e painel do médico com KPIs, central de contatos, preço e disponibilidade (`MedicoDashboardScreen`, `MedicoContatosScreen`, `MedicoDisponibilidadeScreen`)
+- ✅ Telas de clínica: `ClinicaHomeScreen`, `ClinicaMedicosScreen`, `ClinicaPerfilScreen`
+- ✅ Telas de administração: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPerfilScreen`
+- ✅ Artigos de saúde: `ArtigosListaScreen`, `ArtigoDetalhesScreen`, `ArtigoCadastroScreen` (admin)
+- ✅ Chat: `ConversasListaScreen`, `ConversaDetalhesScreen`
+- ✅ Geolocalização: `LocationModal` + `expo-location` em `MedicoDetalhesScreen`
 - ✅ Sistema de avaliações com nota + comentário
 - ✅ Carousel de profissionais em destaque na Home
 - ✅ Filtro de localização (estado/município) na Home e na busca
 
 #### ⚠️ Em Desenvolvimento
 
+- 🔴 **Bug conhecido**: cancelamento de consulta — `MinhasConsultasScreen` chama `PATCH /agendamentos/:id/cancelar`, que não existe no backend (só há `GET`/`POST /agendamentos` e `GET /agendamentos/sugestoes-horario`); botão "Cancelar" falha em runtime
 - ⚠️ Notificações push remotas (requer development build — bloqueado pelo Expo Go SDK 53+)
 - ⚠️ E-mail real de recuperação de senha (backend Nodemailer)
 - ⚠️ E-mail de confirmação de agendamento e pagamento
 - ⚠️ Status de pagamento visível na lista de agendamentos
-- ⚠️ `MedicoDetalhesScreen` com dados reais (atualmente placeholder)
 - ⚠️ `ResultadosScreen` com busca real na API
 - ⚠️ `HistoricoAvaliacoesScreen` com dados reais
-- ⚠️ Cancelamento de agendamento pelo paciente (frontend)
 - ⚠️ Relatórios exportáveis
+- ⚠️ Proteção LGPD (anonimização, consentimento, auditoria de acesso)
 
 #### ❌ Não Implementado (Fase 1)
 
 - ❌ Telemedicina
 - ❌ Prontuário eletrônico
 - ❌ Integração com sistemas externos
-- ❌ Chat em tempo real
+- ❌ Chat em tempo real (WebSocket/push) — hoje o chat funciona via REST, sem atualização instantânea
 
 ### 8.2 Métricas de Qualidade
 
 #### Cobertura de Testes
-- **Total de casos**: **32 testes automatizados** — todos passando ✅
-- **Suítes de integração (backend)**:
-  - `health.test.ts` — 1 caso
-  - `auth_signup_signin.test.ts` — 5 casos: signup, login, erros
-  - `auth_notifications.test.ts` — 2 casos
-  - `contatos.test.ts` — 1 caso
-  - `medicos_agendamentos.test.ts` — 2 casos
-  - `agendamentos_criar.test.ts` — 5 casos: criar, sugestões, validações
-  - `avaliacoes.test.ts` — 6 casos: criar, média, erros
-  - `pagamentos.test.ts` — 8 casos: processar, cupom, listar
-  - `admin.test.ts` — 1 caso
-  - `professional.test.ts` — 1 caso
-- **Frontend**: Testes manuais (fluxo completo verificado)
+- **Total de casos**: **139 testes automatizados** (20 arquivos) — todos passando ✅
+- **Suítes de integração (backend)** — principais adições desde Abr/2026:
+  - `clinicas.test.ts` — 17 casos
+  - `artigos.test.ts` — 11 casos
+  - `destaques.test.ts` — 9 casos
+  - `conversas.test.ts` — 4 casos
+  - `users.test.ts` — 4 casos
+  - `conta-bancaria.test.ts` — 3 casos
+  - `professionals.test.ts` — 3 casos
+  - (mantidas as suítes de auth, agendamentos, avaliações e pagamentos já documentadas em v1.6.0)
+- **Suítes unitárias**: `auth.schema.unit`, `hash.unit`, `jwt.unit` — 37 casos
+- **Frontend**: Testes manuais (fluxo completo verificado); sem suíte automatizada própria
 - **Documento de testes**: [`uaimed-back/documents/TESTES.md`](./uaimed-back/documents/TESTES.md)
 
 #### Performance
@@ -735,9 +796,12 @@ Role: medico
 
 #### Segurança
 - ✅ Senhas criptografadas (bcrypt)
-- ✅ JWT com expiração
-- ✅ Validação de entrada (Zod)
+- ✅ JWT com expiração + refresh token
+- ✅ Rate limiting contra brute-force (login/cadastro)
+- ✅ Validação de entrada (Zod) — cobertura ampla
 - ✅ CORS configurado
+- ✅ Logging sem dados sensíveis (SQL/payload) fora de desenvolvimento
+- ⚠️ LGPD: sem anonimização, consentimento ou auditoria de acesso implementados
 
 ### 8.3 Histórico de Correções (v1.0 → v1.6)
 
@@ -763,6 +827,7 @@ Role: medico
 - `jsonwebtoken`: Autenticação
 - `zod`: Validação
 - `bcryptjs`: Criptografia
+- `express-rate-limit`: Rate limiting contra brute-force
 - `vitest` + `supertest`: Testes automatizados
 
 #### Frontend
@@ -896,9 +961,9 @@ GET /api/admin/analytics/location?granularity=city|state
 - Notificações de resultados
 
 #### 9.4.2 Geolocalização
-- Busca por proximidade
-- Navegação até clínica
-- Check-in geográfico
+- ✅ Busca por proximidade — **implementada em Ago/2026** (geocodificação de endereço + `expo-location`), antecipada em relação a este roadmap
+- Navegação até clínica (pendente)
+- Check-in geográfico (pendente)
 
 ---
 
@@ -1081,40 +1146,72 @@ GET /api/admin/analytics/location?granularity=city|state
 
 ---
 
-## 13. Conclusão
+## 13. Avaliação do Projeto e Conclusão
 
-### 13.1 Status Atual
+### 13.1 Percurso Realizado
+
+**Fase de planejamento (pré-repositório, a partir de Nov/2025):** levantamento de requisitos, definição da arquitetura (Node.js/Express/Prisma/PostgreSQL + React Native/Expo) e elaboração da documentação inicial do TCC, antes da criação do repositório Git.
+
+**Fase 1 — Fundamentação (Fev/2026):** criação do repositório, configuração de CI com GitHub Actions e Postgres de teste. O time começou com o frontend como submódulo Git separado e, já na primeira semana, decidiu migrar para um monorepo simples (commits "Inline uaimed-front as regular directory"), eliminando o overhead de sincronizar submódulos entre os desenvolvedores do time.
+
+**Fase 2 — Núcleo funcional (Mar–Abr/2026):** autenticação, fluxo de agendamento ponta-a-ponta (busca → calendário → confirmação → pagamento → avaliação), pagamento via boleto bancário, tela de perfil, suíte de 32 testes automatizados (Vitest) e automação de vínculo entre Pull Request e Issue (PRs #4 a #18).
+
+**Fase 3 — Expansão de funcionalidades (Mai–Jun/2026):** cadastro e configuração de clínicas, redesign das telas de login e agendamento, fluxo de reagendamento/cancelamento de consultas, edição de perfil com foto, criação de artigos de saúde e chat entre usuários (PRs #20 a #40).
+
+**Fase 4 — Maturidade e segurança (Ago–Set/2026):** geolocalização para busca de profissionais, cadastro completo de clínicas, refresh token com renovação automática, rate limiting contra brute-force nos endpoints de autenticação e validação Zod reforçada em todos os endpoints, após dois bugs de validação identificados em produção (PRs #43 a #61).
+
+**Fase 5 — Dashboards e administração (Out/2026):** central de contatos e painel de preço/disponibilidade do médico, redesign da Home do médico, tela de administração e correção de logging para evitar vazamento de payload sensível (PRs #62 e #63).
+
+Ao todo, o percurso soma **135 commits e 63 pull requests** revisados e mesclados entre fevereiro e outubro de 2026, conduzidos por uma equipe de três integrantes: Gustavo (full stack e infraestrutura), Igor (telas de clínicas, profissionais, artigos e administração) e Karllos Eduardo (levantamento de requisitos e documentação do projeto).
+
+### 13.2 Principais Decisões Técnicas
+
+| Decisão | Motivação |
+|---|---|
+| Monorepo (em vez de submódulos Git) | Reduzir fricção de sincronização entre os desenvolvedores trabalhando em paralelo no front e no back |
+| Prisma + PostgreSQL | Migrations versionadas e tipagem gerada automaticamente, reduzindo erros de schema |
+| Validação com Zod em toda a API | Padronizar validação de entrada; reforçada em Set/2026 após bugs em endpoints que só validavam manualmente |
+| JWT com refresh token | Evitar reautenticação forçada a cada 7 dias sem abrir mão da expiração do token original |
+| Rate limiting nos endpoints de autenticação | Mitigação proativa de brute-force, aplicada seletivamente (`skipSuccessfulRequest`) para não penalizar logins legítimos |
+| Expo managed workflow | Velocidade de desenvolvimento mobile multiplataforma — trade-off aceito: push notifications remotas ficam bloqueadas sob Expo Go SDK 53+ |
+| Vitest + Supertest para testes de integração | Integração nativa com TypeScript e execução rápida, viabilizando os 32+ casos de teste do backend |
+
+### 13.3 Desafios Enfrentados
+
+- **Integração frontend ↔ backend:** o ponto de maior fricção foi a comunicação entre o app Expo e a API local — divergências de endereço/host entre emulador e dispositivo físico geraram múltiplos incidentes de "Network Error", resolvidos padronizando a configuração de `BASE_URL` por ambiente.
+- **Divergência de contratos de dados:** nomes de campos distintos entre front e back (ex.: `medicoId` vs. `profissionalId`, `password` vs. `senha`) causaram falhas silenciosas; corrigidos no alinhamento de contratos da revisão v1.2.0 e reforçados com testes de regressão.
+- **Bugs críticos de estabilidade:** uma chamada a um método inexistente no `AuthContext` (`setToken`) travava o app; o endpoint de avaliações ficou temporariamente sem middleware de autenticação. Ambos identificados via revisão de código e testes, antes de afetar usuários reais.
+- **Performance:** a consulta de sugestão de horários sofria do problema clássico de N+1 queries, resolvido com uma única consulta otimizada.
+- **Validação e segurança reativas:** dois bugs de validação em pagamentos e agendamentos só foram percebidos em setembro/2026, motivando o reforço de Zod em todos os endpoints e a criação de testes específicos para os cenários que haviam falhado.
+- **Restrição de plataforma:** o Expo Go (SDK 53+) bloqueia notificações push remotas, forçando a entrega de apenas notificações locais nesta fase e o adiamento do recurso completo para um development build.
+- **Colaboração entre múltiplos integrantes em paralelo:** a automação de CI evoluiu em várias iterações (`branch-check`, `auto-link-pr`, `auto-pr`) para reduzir conflitos de integração e manter rastreabilidade entre PR e issue.
+
+### 13.4 Resultados Alcançados
+
+- Backend: API REST completa com autenticação JWT + refresh token, validação Zod em todos os endpoints, rate limiting contra brute-force, **32+ testes automatizados (100% passando)** e CI executando a cada push/PR.
+- Frontend: fluxo ponta-a-ponta de agendamento, telas de clínicas, profissionais, artigos de saúde, chat, geolocalização, recuperação de senha, central de ajuda e, mais recentemente, dashboard do médico (contatos, preço/disponibilidade) e tela de administração.
+- **63 pull requests** mesclados ao longo de ~8 meses de desenvolvimento ativo (Fev–Out/2026).
+- Postura de segurança evoluiu de forma incremental: de um MVP funcional (Abril) para um backend com rate limiting, refresh token e validação completa (Setembro–Outubro).
+
+### 13.5 Perspectivas Futuras
+
+- Algumas entregas que constavam como roadmap na Seção 9 (ex.: dashboards de médico, administração) já saíram do "futuro" e entraram em "realizado" em Outubro/2026 — recomenda-se uma atualização pontual da Seção 9 na próxima revisão deste documento.
+- Notificações push remotas via development build (bloqueadas atualmente pelo Expo Go).
+- Analytics avançado por especialidade e localização (detalhado na Seção 9).
+- Expansão da tela de administração e dos dashboards de clínica com métricas mais profundas.
+- Evolução do logging para um formato estruturado e com níveis, dando continuidade à correção de Outubro/2026 que reduziu a verbosidade e eliminou vazamento de payload sensível.
+
+### 13.6 Status Atual e Métricas de Sucesso
 
 O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 - ✅ Backend completo e funcional
 - ✅ Frontend mobile implementado e integrado
-- ✅ **32 testes automatizados** cobrindo todos os endpoints críticos — todos passando
+- ✅ **32 testes automatizados** cobrindo os endpoints críticos — todos passando
 - ✅ **Fluxo de agendamento ponta-a-ponta**: busca → calendário → horário → confirmação → pagamento → avaliação
-- ✅ **Novas telas de Auth**: `RecuperarSenhaScreen`, `EmailEnviadoScreen`, `TipoSelecaoScreen`
-- ✅ **Tela de Ajuda**: `HelpScreen` disponível no menu
 - ✅ CI/CD com GitHub Actions configurado
-- ✅ **Documento de testes criado**: `uaimed-back/documents/TESTES.md`
 - ✅ Banco de dados migrado e populado com dados reais
 
-### 13.2 Próximos Passos
-
-1. **Curto Prazo** (Sprint 2):
-   - E-mail real de recuperação de senha (Nodemailer)
-   - `MedicoDetalhesScreen` com dados reais da API
-   - Status de pagamento visível no card de agendamento
-
-2. **Médio Prazo** (Sprint 3-4):
-   - E-mail de confirmação de agendamento e pagamento
-   - Cancelamento de agendamento pelo paciente
-   - Development build para push notifications remotas
-
-3. **Longo Prazo** (Sprint 5 — entrega PFC):
-   - Polimento visual completo
-   - Machine Learning para recomendação de profissionais
-   - Documentação final e apresentação
-
-### 13.3 Métricas de Sucesso
-
+**Métricas de sucesso definidas para a fase de produto (pós-TCC):**
 - **Adoção**: 1000+ usuários ativos
 - **Engajamento**: 70%+ taxa de retorno
 - **Satisfação**: 4.5+ estrelas
@@ -1123,8 +1220,8 @@ O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 ---
 
 **Documento gerado em**: 12 de Novembro de 2025  
-**Última atualização**: 17 de Abril de 2026  
-**Versão**: 1.6.0  
+**Última atualização**: 13 de Outubro de 2026  
+**Versão**: 1.7.0  
 **Autor**: Equipe de Desenvolvimento UaiMED  
 **Classificação**: Documentação Técnica Profissional  
 **Kanban de melhorias**: ver [`KANBAN_MELHORIAS.md`](./KANBAN_MELHORIAS.md)  
@@ -1133,6 +1230,18 @@ O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 ---
 
 ## 14. Changelog
+
+### v1.7.0 — 13 de Outubro de 2026
+
+#### 🟢 Implementado
+
+**Documentação:**
+- `DOCUMENTACAO_PROJETO_UAIMED.md` — Seção 13 reescrita como "Avaliação do Projeto e Conclusão", com subseções dedicadas a Percurso Realizado, Principais Decisões Técnicas, Desafios Enfrentados, Resultados Alcançados e Perspectivas Futuras, com base no histórico real do Git (135 commits, 63 pull requests, Fev–Out/2026). Equipe corrigida para 3 integrantes (Gustavo, Igor e Karllos Eduardo)
+- Seções 3 (Requisitos), 7 (Dashboards) e 8 (Relatório Técnico) atualizadas para refletir o estado real do código em Out/2026: clínicas, artigos de saúde, geolocalização, chat/conversas, administração, refresh token, rate limiting, validação Zod ampliada, logging sem dados sensíveis e 139 testes automatizados (antes 32)
+- RF03.4 corrigido: cancelamento de consulta havia sido marcado como implementado com base em mensagem de commit, sem verificar a rota; confirmado por inspeção de código que `PATCH /agendamentos/:id/cancelar` não existe no backend — reclassificado como bug conhecido
+- Corrigido placeholder de licença no `README.md` e criado `LICENSE` (projeto proprietário — todos os direitos reservados)
+
+---
 
 ### v1.6.0 — 17 de Abril de 2026
 

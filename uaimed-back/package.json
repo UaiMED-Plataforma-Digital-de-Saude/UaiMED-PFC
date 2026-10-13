@@ -16,10 +16,11 @@
     "db:reset": "prisma migrate reset --force && ts-node src/prisma/seed.ts",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
+    "pretest": "prisma generate",
     "test": "vitest --run",
     "test:watch": "vitest",
     "test:setup": "cross-env DATABASE_URL=postgresql://docker:docker@localhost:5432/uaimed_test npx prisma db push --accept-data-loss",
-    "test:ci": "npm run test:setup && vitest --run"
+    "test:ci": "npm run test:setup && prisma generate && vitest --run"
   },
   "keywords": [
     "uaimed",
@@ -28,7 +29,7 @@
     "express"
   ],
   "author": "UaiMED",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "dependencies": {
     "@prisma/client": "^5.7.1",
     "bcryptjs": "^2.4.3",

@@ -1,410 +1,149 @@
-# 📖 Índice de Documentação - UaiMED
+# Índice de Documentação — UaiMED Frontend
 
-## 📚 Documentos Disponíveis
+## Documentos Disponíveis
 
-### 1. 🎉 **README.md** (COMECE AQUI!)
+### 1. README.md
 
-**Arquivo Principal - Resumo Visual da Organização**
+**Visão geral do frontend**
 
-- Visão geral do projeto
-- O que foi realizado
-- Estrutura de pastas
-- 8 Telas criadas/melhoradas
-- Sistema de design
-- Estatísticas finais
-- Como começar
+- Stack, estrutura de pastas, telas (40, em 5 stacks), como rodar localmente, URL da API por ambiente
 
-📍 **Localização**: `/README.md`  
-⏱️ **Tempo de Leitura**: 10 minutos  
-🎯 **Para Quem**: Todos (visão geral rápida)
+📍 **Localização**: `../README.md`
+🎯 **Para quem**: Todos (ponto de entrada)
 
 ---
 
-### 2. 📊 **SUMARIO_EXECUTIVO.md**
+### 2. ESTRUTURA_PROJETO.md
 
-**Relatório Executivo Detalhado**
-
-- Objetivo do projeto
-- Status: 100% completo
-- Métricas de qualidade
-- Arquitetura do projeto
-- Funcionalidades implementadas
-- Recomendações futuras
-- Tecnologias utilizadas
-
-📍 **Localização**: `/SUMARIO_EXECUTIVO.md`  
-⏱️ **Tempo de Leitura**: 15 minutos  
-🎯 **Para Quem**: Gerentes, Stakeholders, Leads
-
----
-
-### 3. ✅ **CHECKLIST_VERIFICACAO.md**
-
-**Lista Completa de Verificação**
+**Documentação de arquitetura**
 
 - Estrutura de pastas
-- Arquivos de configuração
-- Documentação
-- Telas implementadas
-- Sistema de design
-- Autenticação
-- Navegação
-- API Integration
-- Validações
-- Segurança
-- Performance
-- Pronto para produção
-
-📍 **Localização**: `/CHECKLIST_VERIFICACAO.md`  
-⏱️ **Tempo de Leitura**: 20 minutos  
-🎯 **Para Quem**: QA, Revisores, Desenvolvedores sênior
-
----
-
-### 4. 📈 **MELHORIAS_REALIZADAS.md**
-
-**Histórico Detalhado de Mudanças**
-
-- 12 Seções de correções
-- Arquivos corrigidos por arquivo
-- Antes e depois
-- Padrões aplicados
-- Dependências adicionadas
-- Notas importantes
-
-📍 **Localização**: `/MELHORIAS_REALIZADAS.md`  
-⏱️ **Tempo de Leitura**: 25 minutos  
-🎯 **Para Quem**: Desenvolvedores, Code Reviewers
-
----
-
-### 5. 🗂️ **ESTRUTURA_PROJETO.md**
-
-**Documentação de Arquitetura**
-
-- Estrutura visual de pastas
-- Fluxo de autenticação (diagrama)
-- Estrutura de dados
-- Sistema de design
-- Principais funcionalidades
-- Dependências
+- Fluxo de autenticação
+- Estrutura de dados e sistema de design
 - Convenções de código
-- Documentação de componentes
 
-📍 **Localização**: `/ESTRUTURA_PROJETO.md`  
-⏱️ **Tempo de Leitura**: 30 minutos  
-🎯 **Para Quem**: Novos desenvolvedores, Arquitetos
+📍 **Localização**: `../ESTRUTURA_PROJETO.md`
+🎯 **Para quem**: Novos desenvolvedores, arquitetos
 
 ---
 
-### 6. 🚀 **GUIA_RAPIDO.md**
+### 3. GUIA_RAPIDO.md
 
-**How-To Guide Prático**
+**Guia prático de uso**
 
-- Início rápido (3 passos)
-- Fluxos principais
-- Dados de teste
-- Configurações importantes
-- Estrutura de componentes
-- Como adicionar nova tela
-- Como usar estilos globais
-- Debugging
-- Recursos úteis
-- Dúvidas comuns
+- Início rápido (instalação e execução)
+- Fluxos principais e dados de teste
+- Como adicionar uma nova tela
+- Debugging e dúvidas comuns
 
-📍 **Localização**: `/GUIA_RAPIDO.md`  
-⏱️ **Tempo de Leitura**: 20 minutos  
-🎯 **Para Quem**: Desenvolvedores, Contribuidores
+📍 **Localização**: `../GUIA_RAPIDO.md`
+🎯 **Para quem**: Desenvolvedores, contribuidores
 
 ---
 
-### 7. 📝 **SISTEMA_AVALIACAO.md**
+### 4. BACKEND_SETUP_COMPLETO.md
 
-**Documentação do sistema de avaliação de consultas (front-end)**
+**Setup do backend para desenvolvimento do frontend**
 
-- Descrição das telas: AvaliacaoScreen, HistoricoAvaliacoesScreen, TipoSelecaoScreen
-- Tipos TypeScript (`Avaliacao`, `RespostaAvaliacao`, `EstatisticasAvaliacao`)
-- Hook custom `useAvaliacoes` e componente `CardAvaliacao`
+- Como rodar o `uaimed-back` localmente
+- Exemplos de cURL para testar a API manualmente (cadastro, login, contatos, cupons, avaliações)
+
+📍 **Localização**: `../BACKEND_SETUP_COMPLETO.md`
+🎯 **Para quem**: Desenvolvedores frontend
+
+---
+
+### 5. IMAGES_GUIDE.md
+
+**Guia de imagens de profissionais**
+
+- Onde colocar as imagens
+- Como referenciá-las no `FeaturedProfessionalsCarousel` e em outros componentes
+
+📍 **Localização**: `../IMAGES_GUIDE.md`
+🎯 **Para quem**: Desenvolvedores frontend
+
+---
+
+### 6. CONTACT_GUIDE.md
+
+**Sistema de contatos (paciente ↔ profissional/clínica)**
+
+- Tela `ContatoProfissionalScreen` e hook `useContatos`
+- Validações e tratamento de erros
+- Endpoint `POST /contatos`
+
+📍 **Localização**: `./CONTACT_GUIDE.md`
+🎯 **Para quem**: Desenvolvedores, backend engineers
+
+---
+
+### 7. PAYMENTS_GUIDE.md
+
+**Sistema de pagamentos**
+
+- Tela `PagamentoScreen` e hook `usePayments`
+- Métodos de pagamento, cupons e cobertura de plano de saúde
+- Endpoints `POST /pagamentos`, `POST /cupons/validar`
+
+📍 **Localização**: `./PAYMENTS_GUIDE.md`
+🎯 **Para quem**: Desenvolvedores, backend engineers
+
+---
+
+### 8. SISTEMA_AVALIACAO.md
+
+**Sistema de avaliação de consultas**
+
+- Telas `AvaliacaoScreen`, `HistoricoAvaliacoesScreen`
+- Hook `useAvaliacoes` e componente `CardAvaliacao`
 - Fluxo de avaliação e endpoints esperados
 
-📍 **Localização**: `/SISTEMA_AVALIACAO.md`  
-⏱️ **Tempo de Leitura**: 10-15 minutos  
-🎯 **Para Quem**: Desenvolvedores, QA, PMs
+📍 **Localização**: `./SISTEMA_AVALIACAO.md`
+🎯 **Para quem**: Desenvolvedores, QA
 
-### 8. 💬 **CONTACT_GUIDE.md**
+---
 
-**Documentação do sistema de contatos (paciente ↔ profissional/clínica)**
+## Mapa de Leitura Recomendado
 
-- Tela `ContatoProfissionalScreen` com formulário
-- Hook `useContatos` para envio de mensagens
-- Validações e tratamento de erros
-- Endpoint esperado: `POST /contatos`
-- Casos de uso e fluxo de integração
-- Próximos passos (notificações, histórico, chat)
-
-📍 **Localização**: `/CONTACT_GUIDE.md`  
-⏱️ **Tempo de Leitura**: 10 minutos  
-🎯 **Para Quem**: Desenvolvedores, Backend Engineers
-
-### 9. 💳 **PAYMENTS_GUIDE.md**
-
-**Documentação do sistema de pagamentos**
-
-- Tela `PagamentoScreen` com múltiplos métodos (Pix, Cartão, Dinheiro)
-- Hook `usePayments` para processamento e validação de cupons
-- Descontos: plano de saúde (15%), cupom promocional
-- Endpoints esperados: `POST /pagamentos`, `POST /cupons/validar`
-- Segurança PCI-DSS e recomendações de gateway
-- Integração com Stripe, Pagar.me, Gerencianet
-
-📍 **Localização**: `/PAYMENTS_GUIDE.md`  
-⏱️ **Tempo de Leitura**: 15-20 minutos  
-🎯 **Para Quem**: Desenvolvedores, Backend Engineers, Fintech
-
-## 🗺️ Mapa de Leitura Recomendado
-
-### Para Entender o Projeto (30 min)
+### Para entender o projeto
 
 ```
-1. README.md (10 min) ← COMECE AQUI
+1. GUIA_RAPIDO.md       ← como rodar
    ↓
-2. GUIA_RAPIDO.md (10 min) ← Como rodar
-   ↓
-3. ESTRUTURA_PROJETO.md (10 min) ← Como funciona
+2. ESTRUTURA_PROJETO.md ← como funciona
 ```
 
-### Para Contribuir (45 min)
+### Para contribuir com uma feature específica
 
 ```
-1. README.md (10 min)
+1. ESTRUTURA_PROJETO.md
    ↓
-2. ESTRUTURA_PROJETO.md (15 min)
-   ↓
-3. MELHORIAS_REALIZADAS.md (15 min)
-   ↓
-4. GUIA_RAPIDO.md (5 min)
-```
-
-### Para Code Review (1h)
-
-```
-1. CHECKLIST_VERIFICACAO.md (20 min)
-   ↓
-2. MELHORIAS_REALIZADAS.md (20 min)
-   ↓
-3. SUMARIO_EXECUTIVO.md (15 min)
-   ↓
-4. Revisar código no repositório (5 min)
-```
-
-### Para Planejamento (30 min)
-
-```
-1. README.md (10 min)
-   ↓
-2. SUMARIO_EXECUTIVO.md (15 min)
-   ↓
-3. ESTRUTURA_PROJETO.md - Próximos Passos (5 min)
+2. Guia da feature (CONTACT_GUIDE.md / PAYMENTS_GUIDE.md / SISTEMA_AVALIACAO.md)
 ```
 
 ---
 
-## 🎯 Por Tipo de Usuário
+## Buscar Informação Específica
 
-### 👨‍💻 Desenvolvedor Frontend
-
-**Ordem Recomendada:**
-
-1. `GUIA_RAPIDO.md` - Como começar
-2. `ESTRUTURA_PROJETO.md` - Arquitetura
-3. `README.md` - Visão geral
-4. Código na pasta `/src`
-
-### 🏗️ Arquiteto / Tech Lead
-
-**Ordem Recomendada:**
-
-1. `SUMARIO_EXECUTIVO.md` - Visão geral
-2. `ESTRUTURA_PROJETO.md` - Arquitetura
-3. `CHECKLIST_VERIFICACAO.md` - Qualidade
-4. `MELHORIAS_REALIZADAS.md` - Detalhes
-
-### 📊 Product Manager / Gerente
-
-**Ordem Recomendada:**
-
-1. `README.md` - O que foi feito
-2. `SUMARIO_EXECUTIVO.md` - Métricas
-3. `GUIA_RAPIDO.md` - Próximos passos
-
-### 🧪 QA / Tester
-
-**Ordem Recomendada:**
-
-1. `GUIA_RAPIDO.md` - Como rodar
-2. `CHECKLIST_VERIFICACAO.md` - O que testar
-3. `MELHORIAS_REALIZADAS.md` - Validações implementadas
-
-### 🤝 Novo Contribuidor
-
-**Ordem Recomendada:**
-
-1. `README.md` - Visão geral
-2. `GUIA_RAPIDO.md` - Setup inicial
-3. `ESTRUTURA_PROJETO.md` - Entender estrutura
-4. `MELHORIAS_REALIZADAS.md` - Padrões usados
+| Pergunta | Onde buscar |
+|---|---|
+| Como rodar o projeto? | `GUIA_RAPIDO.md` — "Início Rápido" |
+| Qual é a estrutura de pastas? | `ESTRUTURA_PROJETO.md` |
+| Como adicionar uma nova tela? | `GUIA_RAPIDO.md` — "Como Adicionar uma Nova Tela" |
+| Como funciona o fluxo de pagamento? | `PAYMENTS_GUIDE.md` |
+| Como funciona o fluxo de avaliação? | `SISTEMA_AVALIACAO.md` |
+| Como funciona o contato paciente↔profissional? | `CONTACT_GUIDE.md` |
+| Onde coloco imagens de profissionais? | `IMAGES_GUIDE.md` |
+| Como rodar o backend para desenvolver o front? | `BACKEND_SETUP_COMPLETO.md` |
 
 ---
 
-## 🔍 Buscar Informação Específica
+## Nota sobre esta revisão
 
-### "Como rodar o projeto?"
-
-👉 `GUIA_RAPIDO.md` - Seção "Início Rápido"
-
-### "Qual é a estrutura de pastas?"
-
-👉 `ESTRUTURA_PROJETO.md` - Seção "Estrutura do Projeto"
-
-### "Quais são as cores da marca?"
-
-👉 `ESTRUTURA_PROJETO.md` - Seção "Sistema de Design"
-
-### "Como adicionar uma nova tela?"
-
-👉 `GUIA_RAPIDO.md` - Seção "Como Adicionar uma Nova Tela"
-
-### "Quais arquivos foram corrigidos?"
-
-👉 `MELHORIAS_REALIZADAS.md` - Seções "Correções Realizadas"
-
-### "Qual é o status do projeto?"
-
-👉 `SUMARIO_EXECUTIVO.md` - Seção "Status: 100% COMPLETO"
-
-### "Como funciona a autenticação?"
-
-👉 `ESTRUTURA_PROJETO.md` - Seção "Fluxo de Autenticação"
-
-### "Qual é a API esperada?"
-
-👉 `GUIA_RAPIDO.md` - Seção "API Endpoints"
-
-### "Como usar o contexto de autenticação?"
-
-👉 `GUIA_RAPIDO.md` - Seção "Dúvidas Comuns"
-
-### "Quais são as telas implementadas?"
-
-👉 `README.md` - Seção "TELAS CRIADAS/MELHORADAS (8 TELAS)"
+Esta versão do índice remove as referências a `SUMARIO_EXECUTIVO.md`, `CHECKLIST_VERIFICACAO.md` e `MELHORIAS_REALIZADAS.md` — documentos de log de uma sessão de organização passada, não documentação de produto, e que estão fora do escopo final do projeto. Também corrige os caminhos (`📍 Localização`), que apontavam para `/` quando a maioria dos arquivos está em `documents/` ou na raiz do `uaimed-front`.
 
 ---
 
-## 📋 Checklist de Leitura
-
-### Todos Devem Ler
-
-- [ ] README.md (visão geral)
-- [ ] GUIA_RAPIDO.md (como começar)
-
-### Desenvolvedores Devem Ler
-
-- [ ] ESTRUTURA_PROJETO.md (arquitetura)
-- [ ] MELHORIAS_REALIZADAS.md (padrões)
-
-### Líderes Devem Ler
-
-- [ ] SUMARIO_EXECUTIVO.md (métricas)
-- [ ] CHECKLIST_VERIFICACAO.md (qualidade)
-
-### QA/Tester Devem Ler
-
-- [ ] CHECKLIST_VERIFICACAO.md (o que testar)
-- [ ] GUIA_RAPIDO.md (dados de teste)
-
----
-
-## 📞 Dúvidas Frequentes
-
-**P: Por onde começo?**  
-R: Leia `README.md` e depois `GUIA_RAPIDO.md`
-
-**P: Onde posso encontrar informações sobre [X]?**  
-R: Veja a seção "Buscar Informação Específica" acima
-
-**P: Como adiciono uma nova funcionalidade?**  
-R: Leia `GUIA_RAPIDO.md` e `ESTRUTURA_PROJETO.md`
-
-**P: Qual é o estado atual do projeto?**  
-R: Leia `SUMARIO_EXECUTIVO.md` e `CHECKLIST_VERIFICACAO.md`
-
----
-
-## 📊 Estatísticas dos Documentos
-
-| Documento                | Tamanho   | Tempo     | Público |
-| ------------------------ | --------- | --------- | ------- |
-| README.md                | ~5KB      | 10 min    | Todos   |
-| SUMARIO_EXECUTIVO.md     | ~8KB      | 15 min    | Líderes |
-| CHECKLIST_VERIFICACAO.md | ~10KB     | 20 min    | Técnico |
-| MELHORIAS_REALIZADAS.md  | ~12KB     | 25 min    | Dev     |
-| ESTRUTURA_PROJETO.md     | ~15KB     | 30 min    | Dev     |
-| GUIA_RAPIDO.md           | ~10KB     | 20 min    | Dev     |
-| SISTEMA_AVALIACAO.md     | ~8KB      | 12 min    | Dev     |
-| CONTACT_GUIDE.md         | ~6KB      | 10 min    | Dev     |
-| PAYMENTS_GUIDE.md        | ~10KB     | 18 min    | Dev     |
-| **TOTAL**                | **~84KB** | **~2.5h** | Todos   |
-
----
-
-## 🎯 Objetivo dos Documentos
-
-Cada documento foi criado com um propósito específico:
-
-1. **README** - Impressão rápida do projeto
-2. **SUMARIO** - Relatório para stakeholders
-3. **CHECKLIST** - Validação de qualidade
-4. **MELHORIAS** - Histórico e padrões
-5. **ESTRUTURA** - Referência técnica
-6. **GUIA** - Instruções práticas
-
----
-
-## 🚀 Próximo Documento?
-
-Quando as próximas fases forem implementadas, adicione:
-
-- [ ] `TELAS_AGENDAMENTO.md` - Documentação das telas de agendamento
-- [ ] `API_ENDPOINTS.md` - Especificação da API
-- [ ] `TESTES.md` - Guia de testes
-- [ ] `DEPLOYMENT.md` - Como fazer deploy
-- [ ] `TROUBLESHOOTING.md` - Resolvendo problemas
-
----
-
-## 📖 Versão dos Documentos
-
-```
-Versão: 1.0.0
-Data: 11 de Novembro de 2025
-Status: ✅ Completo e Revisado
-Próxima Atualização: Após novas funcionalidades
-```
-
----
-
-## 🙏 Obrigado!
-
-Estes documentos foram criados para **facilitar seu desenvolvimento** e **manter a qualidade do projeto**.
-
-Se encontrar algo confuso ou faltando, por favor:
-
-1. Verifique este índice
-2. Leia o documento recomendado
-3. Busque a seção específica
-
-**Boa codificação! 🎉**
-
----
-
-_Índice atualizado em: 11 de Novembro de 2025_
+**Versão**: 2.0.0
+**Última atualização**: 13 de Outubro de 2026

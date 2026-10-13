@@ -1,9 +1,11 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.8.0  
-**Data**: 10 de Abril de 2026  
+**Versão**: 1.9.0  
+**Data**: 13 de Outubro de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
+
+> Este documento ficou sem atualização entre 10/Abr/2026 (v1.8.0) e 13/Out/2026. A seção "CONCLUÍDO — Mai–Out/2026" consolida, de forma verificada no código real (não apenas em mensagens de commit), o que foi entregue nesse intervalo.
 
 ---
 
@@ -31,9 +33,9 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
 
 ---
 
-## 🟢 CONCLUÍDO — Sprint Atual (01/04/2026 → 10/04/2026)
+## 🟢 CONCLUÍDO — Sprints Anteriores (01/04/2026 → 10/04/2026)
 
-> Itens finalizados nesta sessão de desenvolvimento.
+> Itens finalizados nesta sessão de desenvolvimento (histórico, v1.8.0).
 
 ---
 
@@ -233,21 +235,96 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
 
 ---
 
-## 🔵 A FAZER — Próxima Sprint
+## 🟢 CONCLUÍDO — Mai–Out/2026 (consolidado)
 
-> Itens refinados e prontos para desenvolvimento.
+> Entregas de ~6 meses de desenvolvimento, verificadas por inspeção direta do código (rotas, schema, telas e suíte de testes) em 13/Out/2026 — não apenas por mensagem de commit.
 
 ---
 
-### 🎯 [FEATURE] `MedicoDetalhesScreen` — exibir dados reais do profissional
-- **Área**: Frontend + Backend
-- **Prioridade**: 🟠 Alto
-- **Esforço**: 5
-- **Descrição**: A tela exibe apenas `ID: {medicoId}` como placeholder. Deve buscar e exibir nome, especialidade, CRM, endereço, avaliação média, próximos horários disponíveis e foto.
-- **Critério de aceite**:
-  - [ ] `GET /medicos/:id` retorna dados completos do profissional
-  - [ ] Tela exibe foto (avatar), nome, especialidade e avaliação média em estrelas
-  - [ ] Botão "Escolher Horário" passa `amount` (valor da consulta) para o próximo step
+### ✅ [FEATURE] Clínicas — vínculo com médicos, recomendações, solicitações
+**Área**: Frontend + Backend | **Esforço**: 8 — `clinicas.routes.ts`, telas `ClinicaHomeScreen`/`ClinicaMedicosScreen`/`ClinicaPerfilScreen`, 17 casos de teste (`clinicas.test.ts`).
+
+---
+
+### ✅ [FEATURE] Artigos de saúde — leitura pública + CRUD administrativo
+**Área**: Frontend + Backend | **Esforço**: 5 — `artigos.routes.ts` (restrito a `admin@uaimed.com`), telas `ArtigosListaScreen`/`ArtigoDetalhesScreen`/`ArtigoCadastroScreen`, 17 casos de teste (`artigos.test.ts`).
+
+---
+
+### ✅ [FEATURE] Chat/Conversas entre paciente e médico
+**Área**: Frontend + Backend | **Esforço**: 5 — `conversas.routes.ts`, telas `ConversasListaScreen`/`ConversaDetalhesScreen`. REST, sem WebSocket (não é "tempo real").
+
+---
+
+### ✅ [FEATURE] Geolocalização — endereço geocodificado e busca por proximidade
+**Área**: Frontend + Backend | **Esforço**: 5 — `geocoding.service.ts`, `expo-location` em `MedicoDetalhesScreen`. Antecipa item que estava no roadmap da Fase 5.
+
+---
+
+### ✅ [FEATURE] Tela de Administração + destaques da Home
+**Área**: Frontend + Backend | **Esforço**: 5 — `admin.routes.ts` (`/admin/destaques`), telas `AdminHomeScreen`/`AdminArtigosScreen`/`AdminDestaquesScreen`/`AdminPerfilScreen`, 9 casos de teste (`destaques.test.ts`).
+
+---
+
+### ✅ [FEATURE] Painel do médico completo — contatos, preço, disponibilidade
+**Área**: Frontend + Backend | **Esforço**: 5 — endpoints `professionals/me/{preco,disponibilidade,agenda,avaliacoes}`, telas `MedicoDashboardScreen`/`MedicoContatosScreen`/`MedicoDisponibilidadeScreen`. Resolve o item "Painel do Médico completo" que estava no Backlog.
+
+---
+
+### ✅ [FEATURE] `GET /medicos/:id` — detalhes completos do profissional
+**Área**: Backend | **Esforço**: 2 — confirmado por leitura do controller: retorna `notaMedia`, `precoConsulta`, avaliações recentes, contagens. Resolve o item do Backlog com o mesmo nome.
+
+---
+
+### ✅ [FEATURE] Campo `precoConsulta` no modelo `Profissional`
+**Área**: Backend + Banco | **Esforço**: 3 — `precoConsulta Float @default(150.00)` no schema real. Resolve o item do Backlog "Campo valor no modelo Profissional".
+
+---
+
+### ✅ [SECURITY] Refresh token
+**Área**: Backend + Frontend | **Esforço**: 8 — `POST /api/sessions/refresh` implementado e funcional. Resolve o item de Backlog "Refresh token e expiração de sessão".
+
+---
+
+### ✅ [SECURITY] Rate limiting contra brute-force
+**Área**: Backend | **Esforço**: 2 — `express-rate-limit`, 10 tentativas/IP/min em `/sessions` e `/usuarios` (`skipSuccessfulRequests` no login). Resolve o item de Backlog com o mesmo nome.
+
+---
+
+### ✅ [IMPROVEMENT] Validação Zod ampliada
+**Área**: Backend | **Esforço**: 3 — cobertura via `validateBody` ampliada para praticamente todas as rotas de escrita, incluindo `/agendamentos` e `/pagamentos`. Resolve o item de Backlog "Validação com Zod nos novos endpoints".
+
+---
+
+### ✅ [IMPROVEMENT] Testes automatizados — cobertura ampliada
+**Área**: Backend | **Esforço**: 5 — suíte cresceu de 32 para **139 casos em 20 arquivos** (ver [`uaimed-back/documents/TESTES.md`](./uaimed-back/documents/TESTES.md)), incluindo `agendamentos_criar.test.ts` e `pagamentos.test.ts`. Resolve a maior parte do item de Backlog com o mesmo nome — segue faltando teste para `GET /avaliacoes/minhas` (endpoint ainda não existe, ver Backlog).
+
+---
+
+### ✅ [FIX] Logging — remoção de dados sensíveis
+**Área**: Backend + Frontend | **Esforço**: 2 — Prisma parou de logar SQL com dados de usuário (`query`/`info`); app não loga payloads de rede fora de ambiente de desenvolvimento. Item novo, não estava neste kanban antes.
+
+---
+
+## 🔴 BUG CONHECIDO — Encontrado em 13/10/2026
+
+---
+
+### 🔴 [BUG] Cancelamento de consulta — endpoint inexistente no backend
+**Área**: Frontend + Backend | **Prioridade**: 🔴 Crítico | **Esforço**: 2
+
+**Descrição**: `MinhasConsultasScreen.tsx` chama `PATCH /agendamentos/:id/cancelar` ao tocar em "Cancelar", mas `agendamentos.routes.ts` só define `GET /agendamentos/sugestoes-horario`, `POST /agendamentos` e `GET /agendamentos`. Não existe rota de cancelamento nem método `cancelar()` no `AgendamentosController`. O botão "Cancelar" falha em runtime (a tela já tem toda a lógica de UI — confirmação, regra de 24h de antecedência — só falta o endpoint).
+
+**Critério de aceite**:
+- [ ] `PATCH /agendamentos/:id/cancelar` implementado, protegido por `authMiddleware`, validando que o usuário é o dono do agendamento
+- [ ] Atualiza `status` do agendamento para `cancelado`
+- [ ] Teste de integração cobrindo sucesso, 403 (não é o dono) e 404 (agendamento inexistente)
+
+---
+
+## 🔵 A FAZER — Próxima Sprint
+
+> Itens refinados e prontos para desenvolvimento.
 
 ---
 
@@ -314,22 +391,6 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
 
 ---
 
-### ✅ [FEATURE] Filtro de Localização Regional (Estado + Município) na busca
-- **Área**: Frontend + Backend
-- **Prioridade**: 🟠 Alto
-- **Esforço**: 3
-- **Descrição**: O usuário não conseguia filtrar profissionais por localização geográfica.
-- **Resolução**:
-  - **Backend**: `MedicosController.listar()` e `recomendados()` agora filtram por `?estado=MG&cidade=Uberlândia` (case-insensitive, `contains`)
-  - **Componente**: Criado `LocationModal.tsx` reutilizável — bottom sheet com lista dos 27 estados brasileiros + busca + campo de município
-  - **SearchScreen**: Barra de localização abaixo do campo de busca; ao confirmar, `estado` e `cidade` são incluídos nos params de `Resultados`
-  - **ResultadosScreen**: Lê `cidade` e `estado` dos params, passa para a API e exibe badge de localização ativa + estado vazio amigável
-  - **HomeScreen**: Badge `📍 Cidade, UF` no topo do header (persistido via AsyncStorage); ao confirmar, filtra o `FeaturedProfessionalsCarousel`
-  - **FeaturedProfessionalsCarousel**: Agora aceita props opcionais `estado` e `cidade` que são passadas para `GET /medicos/recomendados`
-  - **types.ts**: `cidade?: string` e `estado?: string` adicionados a `AgendamentoStackParamList.Resultados`
-
----
-
 ### 🎯 [FEATURE] `SearchScreen` — busca real com filtros funcionais
 - **Área**: Frontend
 - **Prioridade**: 🟡 Médio
@@ -351,18 +412,6 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
   - [ ] Lista real de avaliações do usuário logado
   - [ ] Exibe nome do médico, data, nota e comentário
   - [ ] Estado vazio com mensagem amigável
-
----
-
-### 🎯 [ENDPOINT] `GET /medicos/:id` — detalhes completos do profissional
-- **Área**: Backend
-- **Prioridade**: 🟠 Alto
-- **Esforço**: 2
-- **Descrição**: Endpoint retorna dados básicos mas não inclui `notaMedia`, próximos horários livres e valor da consulta.
-- **Critério de aceite**:
-  - [ ] Retorna `notaMedia` calculada das avaliações
-  - [ ] Retorna próximos 3 horários disponíveis
-  - [ ] Retorna valor da consulta (campo a ser adicionado ao modelo `Profissional`)
 
 ---
 
@@ -403,42 +452,6 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
 
 ---
 
-### 📌 [FEATURE] Campo `valor` no modelo `Profissional`
-- **Área**: Backend + Banco
-- **Prioridade**: 🟠 Alto
-- **Esforço**: 3
-- **Descrição**: O schema Prisma não possui campo `valor` (preço da consulta) no modelo `Profissional`. O `amount` no fluxo de pagamento está sendo passado como `0` ou hardcoded.
-- **Critério de aceite**:
-  - [ ] Migration adicionando `valorConsulta Float?` ao modelo `Profissional`
-  - [ ] Seed atualizado com valores realistas por especialidade
-  - [ ] `GET /medicos/:id` retorna `valorConsulta`
-
----
-
-### 📌 [FEATURE] Cancelamento de agendamento pelo paciente
-- **Área**: Frontend + Backend
-- **Prioridade**: 🟡 Médio
-- **Esforço**: 5
-- **Descrição**: Paciente não consegue cancelar um agendamento pelo app. Deve haver botão "Cancelar" em agendamentos futuros com status `agendado` ou `confirmado`.
-- **Critério de aceite**:
-  - [ ] `PATCH /agendamentos/:id/cancelar` protegido — só o dono do agendamento pode cancelar
-  - [ ] Regra: cancelamento só permitido com mais de 24h de antecedência
-  - [ ] Card exibe botão "Cancelar" somente em agendamentos futuros canceláveis
-
----
-
-### 📌 [FEATURE] Painel do Médico (`MedicoAgendaScreen`) completo
-- **Área**: Frontend + Backend
-- **Prioridade**: 🟡 Médio
-- **Esforço**: 5
-- **Descrição**: `MedicoAgendaScreen` consome `GET /professionals/me/summary` que retorna KPIs. Mas os KPIs `totalToday`, `ratingAvg` e `revenueThisMonth` precisam ser calculados corretamente no backend.
-- **Critério de aceite**:
-  - [ ] `GET /professionals/me/summary` retorna os 3 KPIs corretos
-  - [ ] Lista de próximos agendamentos com nome do paciente e horário
-  - [ ] Médico consegue marcar agendamento como `concluido`
-
----
-
 ### 📌 [FEATURE] Sistema de cupons — painel admin para criar/gerenciar cupons
 - **Área**: Frontend (Admin) + Backend
 - **Prioridade**: 🟢 Baixo
@@ -447,23 +460,14 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
 
 ---
 
-### 📌 [IMPROVEMENT] Testes automatizados — cobertura dos novos endpoints
-- **Área**: Backend
-- **Prioridade**: 🟠 Alto
-- **Esforço**: 5
-- **Descrição**: `POST /agendamentos` criado nesta sprint não possui teste automatizado. Testes de `auth_notifications`, `contatos` e `medicos_agendamentos` existem mas podem estar desatualizados.
-- **Critério de aceite**:
-  - [ ] Teste para `POST /agendamentos` (criação, conflito de horário, profissional inexistente)
-  - [ ] Teste para `POST /pagamentos` (fluxo completo com cupom)
-  - [ ] Cobertura mínima de 80% nas rotas críticas
-
----
-
-### 📌 [IMPROVEMENT] Validação com Zod nos novos endpoints
+### 📌 [IMPROVEMENT] Testes automatizados — cobertura residual
 - **Área**: Backend
 - **Prioridade**: 🟡 Médio
-- **Esforço**: 3
-- **Descrição**: `POST /agendamentos` e `POST /pagamentos` fazem validação manual de campos. Devem usar schemas Zod como os demais endpoints.
+- **Esforço**: 2
+- **Descrição**: `POST /agendamentos` e `POST /pagamentos` já têm teste (7 e 10 casos, respectivamente — ver `TESTES.md`). O que falta: cobertura mínima de 80% ainda não foi medida formalmente (sem `--coverage` configurado), e `GET /avaliacoes/minhas` não tem teste porque o endpoint não existe (ver item correspondente em "A Fazer").
+- **Critério de aceite**:
+  - [ ] Rodar `npx vitest run --coverage` e registrar o número real
+  - [ ] Teste para `GET /avaliacoes/minhas` quando o endpoint for implementado
 
 ---
 
@@ -498,36 +502,15 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
 
 ---
 
-### 📌 [SECURITY] Refresh token e expiração de sessão
-- **Área**: Backend + Frontend
-- **Prioridade**: 🟠 Alto
-- **Esforço**: 8
-- **Descrição**: O sistema usa JWT mas não implementa refresh token. Quando o token expira, o usuário recebe 401 e é deslogado sem aviso prévio claro.
-- **Critério de aceite**:
-  - [ ] Endpoint `POST /sessions/refresh` para renovar o token
-  - [ ] Interceptor no `uaiMedApi` tenta refresh automático antes de deslogar
-
----
-
-### 📌 [SECURITY] Rate limiting nos endpoints de autenticação
+### 📌 [SECURITY] Proteção LGPD
 - **Área**: Backend
 - **Prioridade**: 🟠 Alto
-- **Esforço**: 2
-- **Descrição**: Endpoints `POST /sessions` e `POST /usuarios` não possuem rate limiting, ficando vulneráveis a brute force.
+- **Esforço**: 8
+- **Descrição**: Sem anonimização, consentimento ou auditoria de acesso a dados sensíveis (confirmado por busca no código — nenhuma menção a LGPD/anonimização/consentimento). Relevante por ser uma plataforma de saúde.
 - **Critério de aceite**:
-  - [ ] Máximo 10 tentativas por IP por minuto em `/sessions`
-  - [ ] Usando `express-rate-limit`
-
----
-
-### 📌 [DEVOPS] CI/CD — pipeline de testes automáticos no push
-- **Área**: DevOps
-- **Prioridade**: 🟡 Médio
-- **Esforço**: 3
-- **Descrição**: `.github/workflows` existe mas pode estar desatualizado após as mudanças de estrutura.
-- **Critério de aceite**:
-  - [ ] Workflow roda `npm test` no backend a cada PR
-  - [ ] Falha de teste bloqueia merge
+  - [ ] Política de consentimento no cadastro
+  - [ ] Log de auditoria de acesso a dados de pacientes
+  - [ ] Anonimização em exports/relatórios
 
 ---
 
@@ -557,28 +540,33 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
 
 | Coluna | Quantidade |
 |---|---|
-| 🟢 Concluído (esta sessão) | 19 itens |
-| 🔵 A Fazer (próxima sprint) | 11 itens |
-| 🗃️ Backlog | 12 itens |
+| 🟢 Concluído — Sprints Anteriores (até 10/04/2026) | 19 itens |
+| 🟢 Concluído — Mai–Out/2026 (consolidado) | 13 itens |
+| 🔴 Bug Conhecido | 1 item |
+| 🔵 A Fazer (próxima sprint) | 9 itens |
+| 🗃️ Backlog | 7 itens |
 | ⏸️ Bloqueado | 2 itens |
-| **Total** | **44 itens** |
+| **Total** | **51 itens** |
 
 ---
 
 ## 🏃 Cadência Ágil Sugerida
 
 ```
-Sprint 1 (atual) ──────────────────── CONCLUÍDA
-Sprint 2 (próxima, ~1 semana)
-  Foco: MedicoDetalhesScreen + ResultadosScreen + AgendamentosScreen dados reais
+Sprints Fev–Out/2026 ──────────────── CONCLUÍDAS (ver seções Concluído acima)
 
-Sprint 3 (~1 semana)
-  Foco: Testes automatizados + Validação Zod + Rate limiting
+Sprint atual (próxima, ~1 semana)
+  Foco: 🔴 corrigir bug de cancelamento (endpoint ausente) — prioridade máxima,
+        é uma regressão em funcionalidade que a tela já expõe ao usuário
 
-Sprint 4 (~1 semana)
-  Foco: Development Build + Notificações + Refresh Token
+Sprint seguinte (~1 semana)
+  Foco: ResultadosScreen + SearchScreen busca real, GET /avaliacoes/minhas,
+        HistoricoAvaliacoesScreen, Status de pagamento visível
 
-Sprint 5 (entrega PFC)
+Sprint seguinte (~1 semana)
+  Foco: E-mail de confirmação de agendamento/pagamento, Proteção LGPD
+
+Sprint entrega PFC
   Foco: Polimento visual, documentação final, apresentação
 ```
 
@@ -594,6 +582,7 @@ Sprint 5 (entrega PFC)
 | 06/04/2026 | 1.6.0 | Feature implementada e movida para Concluído — LocationModal, SearchScreen, ResultadosScreen, HomeScreen, FeaturedProfessionalsCarousel e backend atualizados |
 | 09/04/2026 | 1.7.0 | SelecaoHorarioScreen reescrita com calendário mensal + grade de horários; backend suporta filtro por `?data=YYYY-MM-DD` |
 | 10/04/2026 | 1.8.0 | Telas MinhasConsultas e MeusPagamentos; bug fix campo `data` vs `dataHora`; Boleto bancário; UX HomeScreen e PerfilScreen; fix Maximum update depth; fix expo-notifications Expo Go |
+| 13/10/2026 | 1.9.0 | Consolidação de ~6 meses sem atualização (Mai–Out/2026): 13 entregas movidas para Concluído (clínicas, artigos, chat, geolocalização, admin, refresh token, rate limiting, Zod, testes, logging), todas verificadas por inspeção de código. Removidos 7 itens resolvidos do Backlog/A Fazer. **Encontrado e documentado 1 bug crítico**: cancelamento de consulta chama endpoint inexistente no backend (`PATCH /agendamentos/:id/cancelar`). Adicionado item de Proteção LGPD ao Backlog. |
 
 ---
 
