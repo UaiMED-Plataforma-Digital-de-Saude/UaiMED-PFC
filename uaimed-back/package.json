@@ -29,7 +29,7 @@
     "express"
   ],
   "author": "UaiMED",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "dependencies": {
     "@prisma/client": "^5.7.1",
     "bcryptjs": "^2.4.3",

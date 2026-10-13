@@ -1,6 +1,7 @@
 {
   "name": "uaimed",
   "version": "1.0.0",
+  "license": "UNLICENSED",
   "main": "index.ts",
   "scripts": {
     "dev": "bash start.sh",

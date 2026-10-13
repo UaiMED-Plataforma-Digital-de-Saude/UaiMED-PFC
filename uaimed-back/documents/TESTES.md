@@ -1,7 +1,7 @@
 # 🧪 Estratégia e Documentação de Testes — UaiMED Backend
 
-**Versão**: 1.1.0  
-**Data**: 17 de Abril de 2026  
+**Versão**: 1.2.0  
+**Data**: 13 de Outubro de 2026  
 **Framework**: Vitest 1.4 + Supertest 6.3  
 **Banco de Teste**: PostgreSQL (`uaimed_test`) — isolado do banco de desenvolvimento
 
@@ -29,7 +29,7 @@ O UaiMED adota uma estratégia de testes em camadas, priorizando **testes de int
 - **Isolamento**: cada suíte cria e limpa seus próprios dados por ID
 - **Repetibilidade**: UUIDs únicos garantem que testes paralelos não colidam
 - **Confiabilidade**: banco de teste isolado (`uaimed_test`) com schema migrado automaticamente via `globalSetup`
-- **Velocidade**: 66 casos (unitários + integração) rodam em menos de 4 segundos no total
+- **Velocidade**: 139 casos (unitários + integração), em 20 arquivos, rodam em menos de 7 segundos no total (`Duration 6.93s` na última execução)
 
 ---
 
@@ -43,13 +43,13 @@ O UaiMED adota uma estratégia de testes em camadas, priorizando **testes de int
         └──────────────────┬──────────────────┘
                            │
         ┌──────────────────▼──────────────────┐
-        │      Integração (API)               │  ← Principal camada automatizada (32 casos)
+        │      Integração (API)               │  ← Principal camada automatizada (102 casos, 17 arquivos)
         │      Vitest + Supertest             │    Testa controllers, services e banco real
         └──────────────────┬──────────────────┘
                            │
         ┌──────────────────▼──────────────────┐
-        │          Unitários                  │  ← Lógica isolada: utils, schemas, helpers
-        │       Vitest (sem DB)               │    (candidatos documentados na seção 4)
+        │          Unitários                  │  ← Lógica isolada: utils, schemas (37 casos, 3 arquivos)
+        │       Vitest (sem DB)               │
         └─────────────────────────────────────┘
 ```
 
@@ -100,6 +100,8 @@ Os testes de integração são a **camada principal** de validação automatizad
 | # | Caso de Teste | Endpoint | Resultado Esperado |
 |---|---------------|----------|--------------------|
 | 1 | Cria contato e lista corretamente | `POST /api/contatos` + `GET /api/contatos` | 201 + 200 lista não vazia |
+| 2 | Permite ao médico destinatário marcar o contato como lido | `PATCH /api/contatos/:id` | 200 `{ lido: true }` |
+| 3 | Rejeita marcação de lido por quem não é o destinatário | `PATCH /api/contatos/:id` | 403 Forbidden |
 
 ---
 
@@ -123,6 +125,8 @@ Os testes de integração são a **camada principal** de validação automatizad
 | 3 | Rejeita sem `medicoId` | `POST /api/agendamentos` | 400 Bad Request |
 | 4 | Retorna sugestões de horário para um médico | `GET /api/agendamentos/sugestoes-horario?medicoId=` | 200 array de horários |
 | 5 | Rejeita sugestões sem `medicoId` | `GET /api/agendamentos/sugestoes-horario` | 400 Bad Request |
+| 6 | Rejeita agendamento com `dataHora` inválida | `POST /api/agendamentos` | 400 Bad Request |
+| 7 | Não sugere horários em dias marcados como indisponíveis pelo médico | `GET /api/agendamentos/sugestoes-horario` | 200 array sem os horários bloqueados |
 
 ---
 
@@ -150,9 +154,12 @@ Os testes de integração são a **camada principal** de validação automatizad
 | 3 | Lista pagamentos do usuário | `GET /api/pagamentos` | 200 array não vazio |
 | 4 | Rejeita sem campos obrigatórios | `POST /api/pagamentos` | 400 Bad Request |
 | 5 | Rejeita listagem sem autenticação | `GET /api/pagamentos` | 401 Unauthorized |
-| 6 | Valida cupom válido | `POST /api/cupons/validar` | 200 `{ valido: true }` |
-| 7 | Rejeita cupom inexistente | `POST /api/cupons/validar` | 400 `{ valido: false }` |
-| 8 | Rejeita validação sem código | `POST /api/cupons/validar` | 400 Bad Request |
+| 5 | Rejeita pagamento com valor negativo | `POST /api/pagamentos` | 400 Bad Request |
+| 6 | Rejeita `insuranceCoveragePercent` fora de 0–100 | `POST /api/pagamentos` | 400 Bad Request |
+| 7 | Rejeita listagem sem autenticação | `GET /api/pagamentos` | 401 Unauthorized |
+| 8 | Valida cupom válido | `POST /api/cupons/validar` | 200 `{ valido: true }` |
+| 9 | Rejeita cupom inexistente | `POST /api/cupons/validar` | 400 `{ valido: false }` |
+| 10 | Rejeita validação sem código | `POST /api/cupons/validar` | 400 Bad Request |
 
 ---
 
@@ -171,6 +178,126 @@ Os testes de integração são a **camada principal** de validação automatizad
 | # | Caso de Teste | Endpoint | Resultado Esperado |
 |---|---------------|----------|--------------------|
 | 1 | Retorna summary para médico autenticado | `GET /api/professionals/me/summary` | 200 `{ totalToday, nextAppointments, revenueThisMonth }` |
+| 2 | Retorna séries semanal e mensal incluindo o agendamento seed | `GET /api/professionals/me/summary` | 200 inclui `weeklySeries`/`monthlySeries` |
+| 3 | Atualiza o preço da consulta do médico autenticado | `PUT /api/professionals/me/preco` | 200 preço atualizado |
+| 4 | Rejeita preço não positivo | `PUT /api/professionals/me/preco` | 400 Bad Request |
+| 5 | Retorna template padrão de disponibilidade quando o médico nunca configurou | `GET /api/professionals/me/disponibilidade` | 200 template default |
+| 6 | Substitui a disponibilidade semanal e reflete no GET seguinte | `PUT` + `GET /api/professionals/me/disponibilidade` | 200 disponibilidade atualizada |
+| 7 | Rejeita payload de disponibilidade com menos de 7 dias ou intervalo inválido | `PUT /api/professionals/me/disponibilidade` | 400 Bad Request |
+| 8 | Rejeita endpoints de preço/disponibilidade para usuários que não são médico | `PUT /api/professionals/me/preco` ou `/disponibilidade` | 403 Forbidden |
+
+---
+
+### 3.11 `professionals.test.ts`
+**Localização**: `src/__tests__/professionals.test.ts`
+
+| # | Caso de Teste | Endpoint | Resultado Esperado |
+|---|---------------|----------|--------------------|
+| 1 | Rejeita atualização sem endereço, cidade ou estado | `PUT /professionals/me/endereco` | 400 Bad Request |
+| 2 | Rejeita atualização sem autenticação | `PUT /professionals/me/endereco` | 401 Unauthorized |
+| 3 | Rejeita atualização para usuário que não é médico | `PUT /professionals/me/endereco` | 403 Forbidden |
+
+---
+
+### 3.12 `clinicas.test.ts`
+**Localização**: `src/__tests__/clinicas.test.ts`
+
+| # | Caso de Teste | Endpoint | Resultado Esperado |
+|---|---------------|----------|--------------------|
+| 1 | Cria uma clínica com cidade e estado | `POST /api/usuarios` | 201 clínica criada |
+| 2 | Rejeita cadastro de clínica com e-mail duplicado | `POST /api/usuarios` | 409 Conflict |
+| 3 | Envia uma solicitação sem vincular o médico imediatamente | `POST /api/clinicas/.../solicitar` | 200/201 solicitação pendente |
+| 4 | Pesquisa médico somente pelo CPF ou CRM completo | `GET /api/clinicas/.../buscar-medico` | 200 resultado exato |
+| 5 | Permite que o médico aceite a solicitação pelo perfil | `POST /api/clinicas/.../aceitar` | 200 vínculo criado |
+| 6 | Desvincula o médico da clínica | `DELETE /api/clinicas/.../medicos/:id` | 200 vínculo removido |
+| 7 | Retorna lista de clínicas ativas | `GET /api/clinicas` | 200 array de clínicas ativas |
+| 8 | Não retorna clínicas inativas | `GET /api/clinicas` | 200 array sem inativas |
+| 9 | Não retorna usuários que não são clínicas | `GET /api/clinicas` | 200 array filtrado por tipo |
+| 10 | Retorna clínicas sem filtro | `GET /api/clinicas/recomendadas` | 200 array completo |
+| 11 | Filtra clínicas por estado | `GET /api/clinicas/recomendadas?estado=` | 200 array filtrado |
+| 12 | Filtra clínicas por cidade | `GET /api/clinicas/recomendadas?cidade=` | 200 array filtrado |
+| 13 | Filtra clínicas por cidade e estado combinados | `GET /api/clinicas/recomendadas` | 200 array filtrado |
+| 14 | Retorna array vazio para filtro sem resultados | `GET /api/clinicas/recomendadas` | 200 `[]` |
+| 15 | Não retorna clínicas inativas nas recomendadas | `GET /api/clinicas/recomendadas` | 200 array sem inativas |
+| 16 | Retorna campo `localizacao` formatado corretamente | `GET /api/clinicas/recomendadas` | 200 `localizacao: "Cidade/UF"` |
+| 17 | Retorna apenas clínicas selecionadas para destaque | `GET /api/clinicas/recomendadas` | 200 array filtrado por destaque |
+
+---
+
+### 3.13 `artigos.test.ts`
+**Localização**: `src/__tests__/artigos.test.ts`
+
+| # | Caso de Teste | Endpoint | Resultado Esperado |
+|---|---------------|----------|--------------------|
+| 1 | Permite ao admin cadastrar artigo e define a autoria pela sessão | `POST /api/artigos` | 201 artigo criado |
+| 2 | Permite ao admin editar artigos existentes de outros autores | `PUT /api/artigos/:id` | 200 artigo atualizado |
+| 3 | Permite ao admin acessar o painel de artigos | `GET /api/artigos/admin` | 200 lista administrativa |
+| 4 | Bloqueia escrita e painel para conta do tipo paciente | `POST`/`GET /api/artigos/admin` | 403 Forbidden |
+| 5 | Bloqueia escrita e painel para conta do tipo médico | `POST`/`GET /api/artigos/admin` | 403 Forbidden |
+| 6 | Bloqueia escrita e painel para conta do tipo clínica | `POST`/`GET /api/artigos/admin` | 403 Forbidden |
+| 7 | Bloqueia escrita e painel para conta do tipo admin não autorizada | `POST`/`GET /api/artigos/admin` | 403 Forbidden |
+| 8 | Confere o usuário no banco mesmo quando o token declara o e-mail do admin | `POST /api/artigos` | 403 Forbidden (token adulterado) |
+| 9 | Bloqueia uma conta administrativa inativa mesmo com token válido | `POST /api/artigos` | 403 Forbidden |
+| 10 | Bloqueia tokens de contas que não existem mais | `POST /api/artigos` | 401/403 |
+| 11 | Mantém listagem e detalhes disponíveis sem autenticação | `GET /api/artigos` | 200 acesso público |
+| 12 | Mantém leitura para usuários comuns autenticados | `GET /api/artigos/:id` | 200 OK |
+| 13 | Rejeita criação e edição com campos obrigatórios vazios | `POST`/`PUT /api/artigos` | 400 Bad Request |
+| 14 | Rejeita banner em formato inválido | `POST /api/artigos` | 400 Bad Request |
+| 15 | Rejeita escrita e acesso ao painel sem autenticação | `POST`/`GET /api/artigos/admin` | 401 Unauthorized |
+| 16 | Reserva `admin@uaimed.com` contra cadastro público | `POST /api/usuarios` | 409/403 |
+| 17 | Reserva `ADMIN@UAIMED.COM` contra cadastro público (case-insensitive) | `POST /api/usuarios` | 409/403 |
+
+---
+
+### 3.14 `conversas.test.ts`
+**Localização**: `src/__tests__/conversas.test.ts`
+
+| # | Caso de Teste | Endpoint | Resultado Esperado |
+|---|---------------|----------|--------------------|
+| 1 | Permite ao paciente iniciar uma conversa com o médico | `POST /api/conversas` | 201 conversa criada |
+| 2 | Entrega a mensagem do paciente ao médico e marca como lida ao abrir | `POST` + `GET /api/conversas/:id/mensagens` | 200/201 |
+| 3 | Permite ao médico responder e entrega a resposta ao paciente | `POST /api/conversas/:id/mensagens` | 201 mensagem entregue |
+| 4 | Não permite que o médico crie uma conversa como se fosse paciente | `POST /api/conversas` | 403 Forbidden |
+
+---
+
+### 3.15 `destaques.test.ts`
+**Localização**: `src/__tests__/destaques.test.ts`
+
+| # | Caso de Teste | Endpoint | Resultado Esperado |
+|---|---------------|----------|--------------------|
+| 1 | Lista opções ativas sem incluir a conta administrativa ou a clínica inativa | `GET /api/admin/destaques` | 200 lista filtrada |
+| 2 | Novos cadastros não aparecem automaticamente em destaque | `GET /api/admin/destaques` | 200 sem o novo cadastro |
+| 3 | Salva a seleção e a home retorna somente os escolhidos | `PUT /api/admin/destaques` | 200 + Home reflete a seleção |
+| 4 | Mantém o filtro de localização mesmo para os selecionados | `GET /api/clinicas/recomendadas` | 200 respeita filtro |
+| 5 | Não altera a seleção quando há IDs inexistentes, inativos ou de outro tipo | `PUT /api/admin/destaques` | 400/200 ignora IDs inválidos |
+| 6 | Valida o corpo e impede IDs duplicados | `PUT /api/admin/destaques` | 400 Bad Request |
+| 7 | Não exibe um profissional selecionado que ficou inativo | `GET /api/admin/destaques` | 200 oculta inativo |
+| 8 | Retira todos os destaques ao salvar arrays vazios, sem voltar à seleção automática | `PUT /api/admin/destaques` | 200 lista vazia |
+| 9 | Rejeita acesso sem autenticação e de outras contas, inclusive outro admin | `GET`/`PUT /api/admin/destaques` | 401/403 |
+
+---
+
+### 3.16 `conta-bancaria.test.ts`
+**Localização**: `src/__tests__/conta-bancaria.test.ts`
+
+| # | Caso de Teste | Endpoint | Resultado Esperado |
+|---|---------------|----------|--------------------|
+| 1 | Atualiza dados bancários com dados válidos | `PUT /api/usuarios/me/conta-bancaria` | 200 dados atualizados |
+| 2 | Rejeita `tipoConta` inválido | `PUT /api/usuarios/me/conta-bancaria` | 400 Bad Request |
+| 3 | Rejeita atualização sem autenticação | `PUT /api/usuarios/me/conta-bancaria` | 401 Unauthorized |
+
+---
+
+### 3.17 `users.test.ts`
+**Localização**: `src/__tests__/users.test.ts`
+
+| # | Caso de Teste | Endpoint | Resultado Esperado |
+|---|---------------|----------|--------------------|
+| 1 | Atualiza nome e telefone com dados válidos | `PUT /api/users/me` | 200 perfil atualizado |
+| 2 | Rejeita atualização sem autenticação | `PUT /api/users/me` | 401 Unauthorized |
+| 3 | Atualiza avatar com base64 válido | `PUT /api/users/me/avatar` | 200 avatar atualizado |
+| 4 | Rejeita avatar em formato inválido | `PUT /api/users/me/avatar` | 400 Bad Request |
 
 ---
 
@@ -235,6 +362,9 @@ Os testes unitários validam lógica isolada **sem necessidade de banco de dados
 | 16 | `signupSchemaValidated` | Rejeita médico com especialidade mas sem CRM | `success: false` |
 | 17 | `signupSchemaValidated` | Aceita médico com especialidade e CRM | `success: true` |
 | 18 | `signupSchemaValidated` | Aceita paciente sem especialidade e CRM | `success: true` |
+| 19 | `signupSchemaValidated` | Rejeita especialidade digitada fora do catálogo oficial | `success: false` |
+| 20 | `signupSchemaValidated` | Aceita clínica com CNPJ e sem CPF | `success: true` |
+| 21 | `signupSchemaValidated` | Rejeita clínica sem CNPJ | `success: false` |
 
 ---
 
@@ -350,14 +480,21 @@ npx vitest run --coverage
 | `health.test.ts` | 1 | Integração | ✅ Passando |
 | `auth_signup_signin.test.ts` | 5 | Integração | ✅ Passando |
 | `auth_notifications.test.ts` | 2 | Integração | ✅ Passando |
-| `contatos.test.ts` | 1 | Integração | ✅ Passando |
+| `contatos.test.ts` | 3 | Integração | ✅ Passando |
 | `medicos_agendamentos.test.ts` | 2 | Integração | ✅ Passando |
-| `agendamentos_criar.test.ts` | 5 | Integração | ✅ Passando |
+| `agendamentos_criar.test.ts` | 7 | Integração | ✅ Passando |
 | `avaliacoes.test.ts` | 6 | Integração | ✅ Passando |
-| `pagamentos.test.ts` | 8 | Integração | ✅ Passando |
+| `pagamentos.test.ts` | 10 | Integração | ✅ Passando |
 | `admin.test.ts` | 1 | Integração | ✅ Passando |
-| `professional.test.ts` | 1 | Integração | ✅ Passando |
-| **Subtotal** | **32** | | **✅ 32/32** |
+| `professional.test.ts` | 8 | Integração | ✅ Passando |
+| `professionals.test.ts` | 3 | Integração | ✅ Passando |
+| `clinicas.test.ts` | 17 | Integração | ✅ Passando |
+| `artigos.test.ts` | 17 | Integração | ✅ Passando |
+| `conversas.test.ts` | 4 | Integração | ✅ Passando |
+| `destaques.test.ts` | 9 | Integração | ✅ Passando |
+| `conta-bancaria.test.ts` | 3 | Integração | ✅ Passando |
+| `users.test.ts` | 4 | Integração | ✅ Passando |
+| **Subtotal** | **102** | | **✅ 102/102** |
 
 #### Testes Unitários
 
@@ -365,17 +502,17 @@ npx vitest run --coverage
 |-------|-------|------|--------|
 | `unit/jwt.unit.test.ts` | 8 | Unitário | ✅ Passando |
 | `unit/hash.unit.test.ts` | 8 | Unitário | ✅ Passando |
-| `unit/auth.schema.unit.test.ts` | 18 | Unitário | ✅ Passando |
-| **Subtotal** | **34** | | **✅ 34/34** |
+| `unit/auth.schema.unit.test.ts` | 21 | Unitário | ✅ Passando |
+| **Subtotal** | **37** | | **✅ 37/37** |
 
 #### Total Geral
 
 | Tipo | Casos | Status |
 |------|-------|--------|
-| Integração (API) | 32 | ✅ |
-| Unitários | 34 | ✅ |
+| Integração (API) | 102 | ✅ |
+| Unitários | 37 | ✅ |
 | E2E automatizado | 0 | ⚠️ Planejado |
-| **Total** | **66** | **✅ 66/66** |
+| **Total** | **139** | **✅ 139/139** (executado em 13/10/2026, `Duration 6.93s`) |
 
 ### Endpoints Cobertos
 
@@ -385,8 +522,14 @@ npx vitest run --coverage
 | `/api/usuarios` | POST | ✅ |
 | `/api/sessions` | POST | ✅ |
 | `/api/auth/change-password` | POST | ✅ |
+| `/api/users/me` | PUT | ✅ |
+| `/api/users/me/avatar` | PUT | ✅ |
 | `/api/users/me/notifications` | POST | ✅ |
+| `/api/usuarios/me/conta-bancaria` | PUT | ✅ |
 | `/api/contatos` | POST + GET | ✅ |
+| `/api/contatos/:id` | PATCH | ✅ |
+| `/api/conversas` | POST | ✅ |
+| `/api/conversas/:id/mensagens` | POST + GET | ✅ |
 | `/api/medicos` | GET | ✅ |
 | `/api/agendamentos` | GET + POST | ✅ |
 | `/api/agendamentos/sugestoes-horario` | GET | ✅ |
@@ -395,7 +538,16 @@ npx vitest run --coverage
 | `/api/pagamentos` | GET + POST | ✅ |
 | `/api/cupons/validar` | POST | ✅ |
 | `/api/admin/summary` | GET | ✅ |
+| `/api/admin/destaques` | GET + PUT | ✅ |
+| `/api/artigos` | GET + POST + PUT | ✅ |
+| `/api/artigos/admin` | GET | ✅ |
+| `/api/clinicas` | GET | ✅ |
+| `/api/clinicas/recomendadas` | GET | ✅ |
+| `/api/clinicas/.../solicitar`, `.../aceitar`, `.../buscar-medico` | POST + GET | ✅ |
 | `/api/professionals/me/summary` | GET | ✅ |
+| `/api/professionals/me/endereco` | PUT | ✅ |
+| `/api/professionals/me/preco` | GET + PUT | ✅ |
+| `/api/professionals/me/disponibilidade` | GET + PUT | ✅ |
 
 ---
 
@@ -455,6 +607,7 @@ hookTimeout: 30000,  // 30s para beforeAll/afterAll
 ---
 
 **Documento criado em**: 17 de Abril de 2026  
+**Última atualização**: 13 de Outubro de 2026 (32 → 139 casos, 10 → 20 arquivos)  
 **Autor**: Equipe de Desenvolvimento UaiMED  
 **Referência**: [`vitest.config.ts`](../vitest.config.ts) · [`src/__tests__/`](../src/__tests__/) · [`DOCUMENTACAO_PROJETO_UAIMED.md`](../../DOCUMENTACAO_PROJETO_UAIMED.md)
 
