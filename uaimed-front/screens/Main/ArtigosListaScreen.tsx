@@ -98,7 +98,7 @@ const ArtigosListaScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.centered}>
             <Ionicons name="newspaper-outline" size={56} color="#DDD" />
             <Text style={styles.emptyTitle}>Nenhum artigo publicado</Text>
-            <Text style={styles.emptySubtitle}>Seja o primeiro a compartilhar conhecimento!</Text>
+            <Text style={styles.emptySubtitle}>Em breve, novos conteúdos de saúde estarão disponíveis.</Text>
           </View>
         }
         renderItem={({ item }) => {
@@ -135,14 +135,6 @@ const ArtigosListaScreen: React.FC<Props> = ({ navigation }) => {
           );
         }}
       />
-
-      <TouchableOpacity
-        style={styles.fab}
-        activeOpacity={0.9}
-        onPress={() => navigation.navigate('ArtigoCadastro')}
-      >
-        <Ionicons name="add" size={30} color="#FFF" />
-      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -182,16 +174,6 @@ const styles = StyleSheet.create({
   meta: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   metaText: { fontSize: 11, color: '#AAA' },
 
-  fab: {
-    position: 'absolute', right: 20, bottom: 20,
-    width: 60, height: 60, borderRadius: 30,
-    backgroundColor: '#4CAF50',
-    justifyContent: 'center', alignItems: 'center',
-    elevation: 6,
-    shadowColor: '#4CAF50',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.35, shadowRadius: 5,
-  },
 });
 
 export default ArtigosListaScreen;

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -34,7 +35,7 @@ const FeaturedProfessionalsCarousel: React.FC<Props> = ({ estado, cidade, onPres
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     let mounted = true;
     const fetch = async () => {
       setLoading(true);
@@ -55,7 +56,7 @@ const FeaturedProfessionalsCarousel: React.FC<Props> = ({ estado, cidade, onPres
 
     fetch();
     return () => { mounted = false; };
-  }, [estado, cidade]);
+  }, [estado, cidade]));
 
   if (loading) {
     return (
@@ -69,7 +70,7 @@ const FeaturedProfessionalsCarousel: React.FC<Props> = ({ estado, cidade, onPres
     return (
       <View style={styles.emptyContainer}>
         <Ionicons name="person-outline" size={32} color="#CCC" />
-        <Text style={styles.emptyText}>Nenhum profissional encontrado</Text>
+        <Text style={styles.emptyText}>{estado || cidade ? 'Nenhum profissional em destaque nesta região' : 'Nenhum profissional em destaque no momento'}</Text>
       </View>
     );
   }

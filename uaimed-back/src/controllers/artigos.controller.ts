@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../config/database';
 import logger from '../utils/logger';
-import { TipoUsuario } from '@prisma/client';
 
 class ArtigosController {
   // GET /api/artigos
@@ -48,7 +47,7 @@ class ArtigosController {
   // POST /api/artigos
   async criar(req: Request, res: Response) {
     try {
-      const autorId = (req as any).user?.id;
+      const autorId = req.user?.id;
       if (!autorId) return res.status(401).json({ error: 'Usuário não autenticado' });
 
       const { titulo, resumo, categoria, corpo, banner } = req.body as {
@@ -83,15 +82,11 @@ class ArtigosController {
   // PUT /api/artigos/:id
   async atualizar(req: Request, res: Response) {
     try {
-      const usuario = (req as any).user as { id?: string; tipo?: TipoUsuario } | undefined;
+      const usuario = req.user;
       if (!usuario?.id) return res.status(401).json({ error: 'Usuário não autenticado' });
 
       const artigoAtual = await prisma.artigo.findUnique({ where: { id: req.params.id } });
       if (!artigoAtual) return res.status(404).json({ error: 'Artigo não encontrado' });
-
-      if (artigoAtual.autorId !== usuario.id && usuario.tipo !== TipoUsuario.admin) {
-        return res.status(403).json({ error: 'Você não tem permissão para editar este artigo' });
-      }
 
       const { titulo, resumo, categoria, corpo, banner } = req.body as {
         titulo: string;

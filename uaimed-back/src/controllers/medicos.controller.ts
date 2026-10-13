@@ -1,17 +1,23 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/database";
 import logger from "../utils/logger";
+import { Prisma, TipoUsuario } from '@prisma/client';
+import { ARTICLE_ADMIN_EMAIL } from '../constants/articleAdmin';
 
 class MedicosController {
   async recomendados(req: Request, res: Response) {
     try {
       const { cidade, estado } = req.query as { cidade?: string; estado?: string };
-      const where: any = {};
+      const where: Prisma.ProfissionalWhereInput = {
+        destaque: true,
+        usuario: { ativo: true, tipo: TipoUsuario.medico, email: { not: ARTICLE_ADMIN_EMAIL } },
+      };
       if (estado) where.estado = { contains: estado, mode: 'insensitive' };
       if (cidade)  where.cidade = { contains: cidade,  mode: 'insensitive' };
 
       const profs = await prisma.profissional.findMany({
         where,
+        orderBy: { usuario: { nome: 'asc' } },
         include: { usuario: true, _count: { select: { agendamentos: true } } },
       });
 
@@ -30,9 +36,7 @@ class MedicosController {
           tipoConta: p.tipoConta || null,
           precoConsulta: p.precoConsulta,
           totalAgendamentos: p._count?.agendamentos ?? 0,
-        }))
-        .sort((a, b) => b.totalAgendamentos - a.totalAgendamentos)
-        .slice(0, 10);
+        }));
 
       return res.json(top);
     } catch (err) {

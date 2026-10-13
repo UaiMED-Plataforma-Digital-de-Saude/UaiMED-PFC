@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  ActivityIndicator, Image, TouchableOpacity,
+  ActivityIndicator, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,8 +9,6 @@ import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
 import { MainTabParamList } from '../../navigation/types';
 import uaiMedApi from '../../api/uaiMedApi';
-import { useAuth } from '../../hooks/useAuth';
-import { TipoUsuario } from '../../types/usuario';
 
 type Props = BottomTabScreenProps<MainTabParamList, 'ArtigoDetalhes'>;
 
@@ -47,9 +45,8 @@ function formatarData(iso: string) {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
-const ArtigoDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
+const ArtigoDetalhesScreen: React.FC<Props> = ({ route }) => {
   const { artigoId } = route.params;
-  const { user } = useAuth();
   const [artigo, setArtigo]   = useState<ArtigoDetalhe | null>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro]       = useState(false);
@@ -97,7 +94,6 @@ const ArtigoDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
   }
 
   const cfg = getCfg(artigo.categoria);
-  const podeEditar = user?.id === artigo.autorId || user?.tipo === TipoUsuario.ADMIN;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -125,17 +121,6 @@ const ArtigoDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
               {artigo.autor.nome} · {formatarData(artigo.criado_em)}
             </Text>
           </View>
-
-          {podeEditar && (
-            <TouchableOpacity
-              style={styles.editButton}
-              activeOpacity={0.8}
-              onPress={() => navigation.navigate('ArtigoCadastro', { artigoId: artigo.id })}
-            >
-              <Ionicons name="pencil-outline" size={18} color="#FFF" />
-              <Text style={styles.editButtonText}>Editar artigo</Text>
-            </TouchableOpacity>
-          )}
 
           <View style={styles.divider} />
 
@@ -170,12 +155,6 @@ const styles = StyleSheet.create({
   titulo: { fontSize: 24, fontWeight: '800', color: '#111', lineHeight: 31, marginBottom: 12 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 20 },
   metaText: { fontSize: 13, color: '#AAA' },
-  editButton: {
-    alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7,
-    backgroundColor: '#4CAF50', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 10, marginBottom: 20,
-  },
-  editButtonText: { color: '#FFF', fontSize: 14, fontWeight: '700' },
   divider: { height: 1, backgroundColor: '#F0F0F0', marginBottom: 20 },
   corpo: { fontSize: 16, color: '#444', lineHeight: 27, textAlign: 'justify' },
 });

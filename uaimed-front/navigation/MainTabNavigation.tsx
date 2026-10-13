@@ -15,7 +15,8 @@ import ClinicDashboard from '../screens/Admin/ClinicDashboard';
 import HelpScreen from '../screens/Main/HelpScreen';
 import ArtigosListaScreen from '../screens/Main/ArtigosListaScreen';
 import ArtigoDetalhesScreen from '../screens/Main/ArtigoDetalhesScreen';
-import ArtigoCadastroScreen from '../screens/Main/ArtigoCadastroScreen';
+import { isArticleAdmin } from '../utils/articleAdmin';
+import AdminTabNavigator from './AdminTabNavigation';
 import ConversasStack from './ConversasStack';
 import MedicoHomeScreen from '../screens/Main/MedicoHomeScreen';
 import MedicoAvaliacoesScreen from '../screens/Main/MedicoAvaliacoesScreen';
@@ -38,6 +39,8 @@ const hiddenTab = { display: 'none' as const, width: 0, height: 0, overflow: 'hi
  */
 const MainTabNavigator: React.FC = () => {
   const { user } = useAuth();
+
+  if (isArticleAdmin(user)) return <AdminTabNavigator />;
 
   const isPaciente = user?.tipo === TipoUsuario.PACIENTE;
   const isMedico   = user?.tipo === TipoUsuario.MEDICO;
@@ -349,22 +352,6 @@ const MainTabNavigator: React.FC = () => {
         })}
       />
 
-      <Tab.Screen
-        name="ArtigoCadastro"
-        component={ArtigoCadastroScreen}
-        options={({ navigation }) => ({
-          title: 'Novo Artigo',
-          tabBarItemStyle: hiddenTab,
-          headerLeft: () => (
-            <TouchableOpacity
-              style={{ marginLeft: 16 }}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="arrow-back" size={24} color="#333" />
-            </TouchableOpacity>
-          ),
-        })}
-      />
     </Tab.Navigator>
   );
 };
