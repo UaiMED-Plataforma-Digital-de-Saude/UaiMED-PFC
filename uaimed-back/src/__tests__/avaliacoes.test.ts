@@ -109,5 +109,22 @@ describe('Avaliações endpoints', () => {
       .send({ profissionalId: profissional.id, nota: 4 });
     expect(res.status).toBe(401);
   });
+
+  it('lista as avaliações feitas pelo paciente autenticado em GET /avaliacoes/minhas', async () => {
+    const res = await request(app)
+      .get('/api/avaliacoes/minhas')
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBeGreaterThanOrEqual(1);
+    expect(res.body[0]).toHaveProperty('nota');
+    expect(res.body[0].profissional).toMatchObject({ id: profissional.id, especialidade: 'Clínica Geral' });
+    expect(res.body[0].profissional.usuario.nome).toBe('Dr Avalia');
+  });
+
+  it('rejeita GET /avaliacoes/minhas sem autenticação', async () => {
+    const res = await request(app).get('/api/avaliacoes/minhas');
+    expect(res.status).toBe(401);
+  });
 });
 

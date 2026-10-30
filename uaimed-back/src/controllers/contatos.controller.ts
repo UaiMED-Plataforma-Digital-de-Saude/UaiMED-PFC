@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/database";
+import AuditoriaService from "../services/auditoria.service";
 import logger from "../utils/logger";
 
 class ContatosController {
@@ -38,6 +39,21 @@ class ContatosController {
         include: { usuario: { select: { id: true, nome: true, telefone: true } } },
         orderBy: { criado_em: "desc" },
       });
+
+      if (profissional) {
+        const recebidos = contatos.filter((c) => c.profissionalId === profissional.id && c.usuarioId !== usuarioId);
+        if (recebidos.length > 0) {
+          const pacientesPorId = new Map(recebidos.map((c) => [c.usuario.id, { id: c.usuario.id, nome: c.usuario.nome }]));
+          await AuditoriaService.registrarAcesso({
+            ator: { id: usuarioId, tipo: (req as any).user?.tipo },
+            acao: "LISTAR_CONTATOS_PACIENTES",
+            recurso: "Contato",
+            pacientes: Array.from(pacientesPorId.values()),
+            ip: req.ip,
+          });
+        }
+      }
+
       return res.json(contatos);
     } catch (err) {
       logger.error("Erro ao listar contatos", err);

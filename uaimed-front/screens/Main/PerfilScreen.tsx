@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, TextInput, Switch, Platform, Image, Linking,
+  ActivityIndicator, TextInput, Switch, Platform, Image, Linking, Modal,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
@@ -108,6 +108,12 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   const [solicitacoesClinica, setSolicitacoesClinica] = React.useState<SolicitacaoVinculoClinica[]>([]);
   const [solicitacoesLoading, setSolicitacoesLoading] = React.useState(false);
   const [respondendoClinicaId, setRespondendoClinicaId] = React.useState<string | null>(null);
+
+  // ── LGPD: exportar / excluir meus dados ─────────────────────────
+  const [exportLoading, setExportLoading] = React.useState(false);
+  const [deleteLoading, setDeleteLoading] = React.useState(false);
+  const [showDadosModal, setShowDadosModal] = React.useState(false);
+  const [dadosExportados, setDadosExportados] = React.useState('');
 
   const { modal, showModal, hideModal } = useModal();
 
@@ -306,6 +312,46 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
         { text: 'Sim, Sair', style: 'destructive', onPress: () => signOut() },
       ],
     });
+  };
+
+  // ── LGPD: exportar meus dados ────────────────────────────────────
+  const handleExportarDados = async () => {
+    setExportLoading(true);
+    try {
+      const res = await uaiMedApi.get('/users/me/dados');
+      setDadosExportados(JSON.stringify(res.data, null, 2));
+      setShowDadosModal(true);
+    } catch {
+      showModal('Erro', 'Não foi possível exportar seus dados. Tente novamente.', { type: 'error' });
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  // ── LGPD: excluir minha conta ─────────────────────────────────────
+  const excluirContaConfirmado = async () => {
+    setDeleteLoading(true);
+    try {
+      await uaiMedApi.delete('/users/me');
+      await signOut();
+    } catch {
+      showModal('Erro', 'Não foi possível excluir sua conta. Tente novamente.', { type: 'error' });
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleExcluirConta = () => {
+    showModal(
+      'Excluir minha conta',
+      'Seus dados pessoais (nome, CPF, telefone, endereço, dados bancários) serão anonimizados e você não poderá mais entrar com esta conta. Essa ação não pode ser desfeita. Deseja continuar?',
+      {
+        type: 'confirm',
+        buttons: [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Sim, excluir', style: 'destructive', onPress: excluirContaConfirmado },
+        ],
+      },
+    );
   };
 
   if (!user) {
@@ -853,6 +899,29 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
           )}
         </View>
 
+        {/* ── 4b. Privacidade e Dados (LGPD) ── */}
+        <View style={s.card}>
+          <Text style={s.cardTitle}>Privacidade e Dados (LGPD)</Text>
+          <ActionRow
+            icon="download-outline"
+            iconColor="#1E88E5"
+            label="Exportar meus dados"
+            sublabel="Veja todos os dados pessoais que guardamos sobre você"
+            onPress={exportLoading ? () => {} : handleExportarDados}
+          />
+          <ActionRow
+            icon="trash-outline"
+            iconColor="#D9534F"
+            label="Excluir minha conta"
+            sublabel="Anonimiza seus dados pessoais e encerra sua conta"
+            onPress={deleteLoading ? () => {} : handleExcluirConta}
+            last
+          />
+          {(exportLoading || deleteLoading) && (
+            <ActivityIndicator size="small" color="#4CAF50" style={{ marginTop: 10 }} />
+          )}
+        </View>
+
         {/* ── 5. Sair ── */}
         <TouchableOpacity style={s.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
           <Ionicons name="log-out-outline" size={18} color="#FFF" />
@@ -863,6 +932,25 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
       </ScrollView>
 
       <AppModal {...modal} onClose={hideModal} />
+
+      <Modal
+        visible={showDadosModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDadosModal(false)}
+      >
+        <View style={s.dadosOverlay}>
+          <View style={s.dadosCard}>
+            <Text style={s.dadosTitulo}>Seus dados pessoais</Text>
+            <ScrollView style={s.dadosScroll}>
+              <Text style={s.dadosTexto}>{dadosExportados}</Text>
+            </ScrollView>
+            <TouchableOpacity style={s.dadosFechar} onPress={() => setShowDadosModal(false)}>
+              <Text style={s.dadosFecharTexto}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -1036,6 +1124,15 @@ const s = StyleSheet.create({
     elevation: 2, shadowColor: '#D9534F', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4,
   },
   logoutTxt: { color: '#FFF', fontSize: 15, fontWeight: '700' },
+
+  // Modal — exportar meus dados
+  dadosOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+  dadosCard: { backgroundColor: '#FFF', borderRadius: 12, padding: 20, maxHeight: '80%' },
+  dadosTitulo: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 12 },
+  dadosScroll: { marginBottom: 16 },
+  dadosTexto: { fontSize: 12, color: '#444', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+  dadosFechar: { backgroundColor: '#4CAF50', paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+  dadosFecharTexto: { color: '#FFF', fontWeight: 'bold', fontSize: 15 },
 });
 
 export default PerfilScreen;

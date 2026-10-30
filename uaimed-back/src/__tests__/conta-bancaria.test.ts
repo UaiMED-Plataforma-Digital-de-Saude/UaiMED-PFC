@@ -28,6 +28,7 @@ describe('Conta bancária — atualizar', () => {
   });
 
   afterAll(async () => {
+    await prisma.logAuditoria.deleteMany({ where: { pacienteId: clinica.id } }).catch(() => {});
     await prisma.usuario.deleteMany({ where: { id: clinica.id } }).catch(() => {});
     await prisma.$disconnect();
   });
@@ -38,6 +39,9 @@ describe('Conta bancária — atualizar', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ pixKey: 'chave@pix.com', banco: '001', agencia: '1234', conta: '56789', tipoConta: 'corrente' });
     expect(res.status).toBe(200);
+
+    const log = await prisma.logAuditoria.findFirst({ where: { acao: 'ATUALIZAR_DADOS_BANCARIOS', pacienteId: clinica.id } });
+    expect(log).not.toBeNull();
   });
 
   it('rejeita tipoConta inválido', async () => {

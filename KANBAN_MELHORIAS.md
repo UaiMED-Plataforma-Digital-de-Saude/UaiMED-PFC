@@ -1,7 +1,7 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.9.0  
-**Data**: 13 de Outubro de 2026  
+**Versão**: 1.12.0  
+**Data**: 30 de Outubro de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
 
@@ -297,12 +297,72 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
 ---
 
 ### ✅ [IMPROVEMENT] Testes automatizados — cobertura ampliada
-**Área**: Backend | **Esforço**: 5 — suíte cresceu de 32 para **139 casos em 20 arquivos** (ver [`uaimed-back/documents/TESTES.md`](./uaimed-back/documents/TESTES.md)), incluindo `agendamentos_criar.test.ts` e `pagamentos.test.ts`. Resolve a maior parte do item de Backlog com o mesmo nome — segue faltando teste para `GET /avaliacoes/minhas` (endpoint ainda não existe, ver Backlog).
+**Área**: Backend | **Esforço**: 5 — suíte cresceu de 32 para **139 casos em 20 arquivos** (ver [`uaimed-back/documents/TESTES.md`](./uaimed-back/documents/TESTES.md)), incluindo `agendamentos_criar.test.ts` e `pagamentos.test.ts`. Resolve a maior parte do item de Backlog com o mesmo nome — na época (13/10) ainda faltava teste para `GET /avaliacoes/minhas`, porque o endpoint não existia; implementado e testado em 30/10 (ver Concluído — 30/10/2026).
 
 ---
 
 ### ✅ [FIX] Logging — remoção de dados sensíveis
 **Área**: Backend + Frontend | **Esforço**: 2 — Prisma parou de logar SQL com dados de usuário (`query`/`info`); app não loga payloads de rede fora de ambiente de desenvolvimento. Item novo, não estava neste kanban antes.
+
+---
+
+## 🟢 CONCLUÍDO — 30/10/2026
+
+---
+
+### ✅ [SECURITY] Proteção LGPD
+**Área**: Backend + Frontend | **Esforço**: 8 — resolve o item de Backlog com o mesmo nome.
+
+- [x] Política de consentimento no cadastro — `consentimentoLgpd` obrigatório (`true`) em `POST /api/usuarios`; versão e data do aceite gravadas no `Usuario`; checkbox + modal com o texto da política em `CadastroScreen.tsx`
+- [x] Log de auditoria de acesso a dados de pacientes — model `LogAuditoria` (sem FK, sobrevive à exclusão do ator/paciente); gravado em `professional.controller`, `contatos.controller` e `conversas.controller` sempre que um médico/clínica acessa dados de outro usuário; consultável via `GET /admin/logs-auditoria`
+- [x] Anonimização em exports/relatórios — `GET /admin/relatorios/pacientes` exporta CSV com CPF/telefone/e-mail mascarados (`src/utils/anonimizacao.ts`); a própria exportação também é auditada
+
+Detalhes em [`uaimed-back/documents/API.md`](./uaimed-back/documents/API.md#lgpd--consentimento-auditoria-e-anonimização). Suíte do backend em 145/145 testes (6 novos casos cobrindo consentimento, auditoria e anonimização).
+
+---
+
+### ✅ [SECURITY] Auditoria de operações críticas
+**Área**: Backend | **Esforço**: 5 — fecha os requisitos *"permitir auditoria de operações realizadas"* e *"o sistema deve permitir auditoria de acessos e operações críticas"*, e resolve o item de Backlog com o mesmo nome. Lista de operações definida junto com o time (ver histórico de alterações).
+
+- [x] Toda mensagem enviada (`POST /conversas/:id/mensagens`) gera um registro em `LogAuditoria` (`acao: 'ENVIAR_MENSAGEM'`), nos dois sentidos — fecha também o requisito específico *"Mensagens trocadas entre usuários devem permanecer registradas para auditoria"* (confirmado por inspeção: não existe rota de exclusão de conversa/mensagem, então já ficam retidas por padrão)
+- [x] Criar agendamento (`POST /agendamentos` → `CRIAR_AGENDAMENTO`)
+- [x] Processar pagamento (`POST /pagamentos` → `PROCESSAR_PAGAMENTO`)
+- [x] Aceitar/recusar vínculo clínica-médico (`PATCH /clinicas/solicitacoes/:clinicaId` → `ACEITAR_VINCULO_CLINICA`/`RECUSAR_VINCULO_CLINICA`) — crítico porque esse vínculo é a base do escopo usado pela própria auditoria/relatório LGPD
+- [x] Trocar senha (`POST /auth/change-password` → `TROCAR_SENHA`) e atualizar dados bancários (`PUT /conta-bancaria` → `ATUALIZAR_DADOS_BANCARIOS`)
+
+7 novos casos de teste (um por operação, como asserções adicionadas aos specs de cada endpoint). Detalhes: [`uaimed-back/documents/API.md`](./uaimed-back/documents/API.md#auditoria-de-operações-críticas).
+
+**Ainda não é 100% das operações do sistema** — é o conjunto definido como crítico para o escopo do PFC (saúde, financeiro, segurança de conta). Outras escritas (ex.: atualizar perfil, avaliações, artigos) seguem sem auditoria; decisão consciente de escopo, não esquecimento.
+
+---
+
+### ✅ [ENDPOINT] `GET /avaliacoes/minhas` — avaliações do paciente logado
+**Área**: Backend | **Esforço**: 2 — protegido por `authMiddleware`, retorna avaliações do `usuarioId` do token com dados do profissional (`especialidade`, `nome`, `avatar`) incluídos. Resolve o item de "A Fazer" com o mesmo nome; desbloqueia `HistoricoAvaliacoesScreen` (segue pendente no front).
+
+---
+
+### ✅ [SECURITY] Reconsentimento LGPD para usuários existentes
+**Área**: Backend + Frontend | **Esforço**: 3 — resolve o item de Backlog com o mesmo nome. Achado real ao implementar: **40/40 usuários do banco de dev** (incluindo as contas seed) estavam com `consentimentoLgpd = false`, porque o fluxo anterior só cobria cadastro novo.
+
+- [x] `POST /api/sessions` retorna `user.precisaConsentimentoLgpd` sem bloquear o login
+- [x] `POST /api/users/me/consentimento-lgpd` registra o aceite pós-login (audita a própria operação)
+- [x] `LgpdConsentGateScreen` no front — bloqueia a navegação para o app até o aceite, reaproveitando o texto da política (extraído para `constants/lgpdPolicy.ts`, compartilhado com `CadastroScreen`)
+
+Verificado via driver headless (`run-uaimed-front`): login com conta sem consentimento → tela de bloqueio → aceitar → libera o app.
+
+---
+
+### ✅ [SECURITY] Direitos do titular — exportar/excluir meus dados
+**Área**: Backend + Frontend | **Esforço**: 5 — resolve o item de Backlog com o mesmo nome (arts. 17-22 da LGPD).
+
+- [x] `GET /users/me/dados` — exporta os dados pessoais do usuário autenticado (nunca inclui senha)
+- [x] `DELETE /users/me` — **anonimiza** a conta em vez de excluir fisicamente (agendamentos/pagamentos/avaliações são registros legítimos de terceiros com `onDelete: Cascade` — apagar fisicamente apagaria esse histórico junto); senha trocada por hash aleatório, conta marcada `ativo: false`, login passa a falhar
+- [x] Tela de Perfil com as duas opções: "Exportar meus dados" (modal com o JSON) e "Excluir minha conta" (confirmação + anonimização)
+
+---
+
+### ✅ [SECURITY] Política de retenção para o log de auditoria
+**Área**: Backend | **Esforço**: 2 — resolve o item de Backlog com o mesmo nome. `AuditoriaService.purgarAntigos(retencaoEmMeses = 6)` + script `npm run logs:purgar` (sem agendador de jobs no backend — chamado por cron externo).
 
 ---
 
@@ -407,22 +467,11 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
 - **Área**: Frontend
 - **Prioridade**: 🟡 Médio
 - **Esforço**: 3
-- **Descrição**: Tela usa dados simulados hardcoded. Deve chamar `GET /avaliacoes/minhas` para listar avaliações do paciente autenticado.
+- **Descrição**: Tela usa dados simulados hardcoded. Deve chamar `GET /avaliacoes/minhas` para listar avaliações do paciente autenticado. **O endpoint já existe** (ver Concluído — 30/10/2026) — falta só o consumo no front.
 - **Critério de aceite**:
   - [ ] Lista real de avaliações do usuário logado
   - [ ] Exibe nome do médico, data, nota e comentário
   - [ ] Estado vazio com mensagem amigável
-
----
-
-### 🎯 [ENDPOINT] `GET /avaliacoes/minhas` — avaliações do paciente logado
-- **Área**: Backend
-- **Prioridade**: 🟡 Médio
-- **Esforço**: 2
-- **Descrição**: Não existe endpoint para listar avaliações feitas pelo paciente autenticado.
-- **Critério de aceite**:
-  - [ ] Protegido por `authMiddleware`
-  - [ ] Retorna avaliações do `usuarioId` do token com dados do profissional incluídos
 
 ---
 
@@ -464,10 +513,9 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
 - **Área**: Backend
 - **Prioridade**: 🟡 Médio
 - **Esforço**: 2
-- **Descrição**: `POST /agendamentos` e `POST /pagamentos` já têm teste (7 e 10 casos, respectivamente — ver `TESTES.md`). O que falta: cobertura mínima de 80% ainda não foi medida formalmente (sem `--coverage` configurado), e `GET /avaliacoes/minhas` não tem teste porque o endpoint não existe (ver item correspondente em "A Fazer").
+- **Descrição**: `POST /agendamentos` e `POST /pagamentos` já têm teste (7 e 10 casos, respectivamente — ver `TESTES.md`). O que falta: cobertura mínima de 80% ainda não foi medida formalmente (sem `--coverage` configurado).
 - **Critério de aceite**:
   - [ ] Rodar `npx vitest run --coverage` e registrar o número real
-  - [ ] Teste para `GET /avaliacoes/minhas` quando o endpoint for implementado
 
 ---
 
@@ -502,18 +550,6 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
 
 ---
 
-### 📌 [SECURITY] Proteção LGPD
-- **Área**: Backend
-- **Prioridade**: 🟠 Alto
-- **Esforço**: 8
-- **Descrição**: Sem anonimização, consentimento ou auditoria de acesso a dados sensíveis (confirmado por busca no código — nenhuma menção a LGPD/anonimização/consentimento). Relevante por ser uma plataforma de saúde.
-- **Critério de aceite**:
-  - [ ] Política de consentimento no cadastro
-  - [ ] Log de auditoria de acesso a dados de pacientes
-  - [ ] Anonimização em exports/relatórios
-
----
-
 ## ⏸️ BLOQUEADO
 
 > Itens que não podem avançar por dependência externa.
@@ -542,11 +578,12 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
 |---|---|
 | 🟢 Concluído — Sprints Anteriores (até 10/04/2026) | 19 itens |
 | 🟢 Concluído — Mai–Out/2026 (consolidado) | 13 itens |
+| 🟢 Concluído — 30/10/2026 | 6 itens |
 | 🔴 Bug Conhecido | 1 item |
-| 🔵 A Fazer (próxima sprint) | 9 itens |
-| 🗃️ Backlog | 7 itens |
+| 🔵 A Fazer (próxima sprint) | 8 itens |
+| 🗃️ Backlog | 6 itens |
 | ⏸️ Bloqueado | 2 itens |
-| **Total** | **51 itens** |
+| **Total** | **55 itens** |
 
 ---
 
@@ -560,11 +597,12 @@ Sprint atual (próxima, ~1 semana)
         é uma regressão em funcionalidade que a tela já expõe ao usuário
 
 Sprint seguinte (~1 semana)
-  Foco: ResultadosScreen + SearchScreen busca real, GET /avaliacoes/minhas,
-        HistoricoAvaliacoesScreen, Status de pagamento visível
+  Foco: ResultadosScreen + SearchScreen busca real, HistoricoAvaliacoesScreen
+        (consumir GET /avaliacoes/minhas, já pronto no backend), Status de
+        pagamento visível
 
 Sprint seguinte (~1 semana)
-  Foco: E-mail de confirmação de agendamento/pagamento, Proteção LGPD
+  Foco: E-mail de confirmação de agendamento/pagamento
 
 Sprint entrega PFC
   Foco: Polimento visual, documentação final, apresentação
@@ -583,6 +621,9 @@ Sprint entrega PFC
 | 09/04/2026 | 1.7.0 | SelecaoHorarioScreen reescrita com calendário mensal + grade de horários; backend suporta filtro por `?data=YYYY-MM-DD` |
 | 10/04/2026 | 1.8.0 | Telas MinhasConsultas e MeusPagamentos; bug fix campo `data` vs `dataHora`; Boleto bancário; UX HomeScreen e PerfilScreen; fix Maximum update depth; fix expo-notifications Expo Go |
 | 13/10/2026 | 1.9.0 | Consolidação de ~6 meses sem atualização (Mai–Out/2026): 13 entregas movidas para Concluído (clínicas, artigos, chat, geolocalização, admin, refresh token, rate limiting, Zod, testes, logging), todas verificadas por inspeção de código. Removidos 7 itens resolvidos do Backlog/A Fazer. **Encontrado e documentado 1 bug crítico**: cancelamento de consulta chama endpoint inexistente no backend (`PATCH /agendamentos/:id/cancelar`). Adicionado item de Proteção LGPD ao Backlog. |
+| 30/10/2026 | 1.10.0 | Item "[SECURITY] Proteção LGPD" movido do Backlog para Concluído: consentimento obrigatório no cadastro, log de auditoria de acesso a dados de pacientes (`GET /admin/logs-auditoria`) e relatório de pacientes anonimizado (`GET /admin/relatorios/pacientes`). Removido também do Foco da sprint "E-mail de confirmação... / Proteção LGPD". |
+| 30/10/2026 | 1.11.0 | Auditoria também passa a cobrir envio de mensagens (`ENVIAR_MENSAGEM`, nos dois sentidos), fechando o requisito "mensagens trocadas devem permanecer registradas para auditoria". `GET /avaliacoes/minhas` implementado e testado, movido de "A Fazer" para Concluído. **Gaps levantados e documentados como novos itens de Backlog** (não implementados ainda): auditoria não cobre operações críticas de escrita (agendar, pagar, trocar senha, vínculo clínica-médico); 40/40 usuários existentes no banco não têm consentimento LGPD registrado (fluxo só cobre cadastro novo); política de privacidade promete direito de acesso/eliminação de dados sem endpoint correspondente; log de auditoria não tem política de retenção própria. |
+| 30/10/2026 | 1.12.0 | Fechados os 4 gaps levantados na v1.11.0: auditoria estendida para 9 operações críticas de escrita (agendar, pagar, vínculo clínica-médico, trocar senha, dados bancários, consentimento, exportar/excluir dados); reconsentimento pós-login para as 40 contas existentes sem consentimento (`precisaConsentimentoLgpd` + `LgpdConsentGateScreen`); direitos do titular via `GET`/`DELETE /users/me` (exportar dados, excluir conta por anonimização) + tela de Perfil; expurgo de retenção do log de auditoria (`npm run logs:purgar`). Verificado com o driver headless `run-uaimed-front` — achado e corrigido no processo um bug real: telas fora do `NavigationContainer` (como o novo gate) quebravam por falta de `<SafeAreaProvider>` no app (nunca existiu; funcionava só dentro do Navigator, que injeta um). |
 
 ---
 

@@ -2,7 +2,13 @@ import { Request, Response } from "express";
 import { prisma } from "../config/database";
 import { geocodeEndereco } from "../services/geocoding.service";
 import { getWeeklySeries, getMonthlySeries } from "../services/dashboard.service";
+import AuditoriaService from "../services/auditoria.service";
 import logger from "../utils/logger";
+
+function pacientesUnicos(itens: Array<{ usuario: { id: string; nome: string } }>) {
+  const porId = new Map(itens.map((item) => [item.usuario.id, { id: item.usuario.id, nome: item.usuario.nome }]));
+  return Array.from(porId.values());
+}
 
 const DIAS_SEMANA = [0, 1, 2, 3, 4, 5, 6];
 
@@ -69,6 +75,14 @@ class ProfessionalController {
         orderBy: { dataHora: 'asc' },
       });
 
+      await AuditoriaService.registrarAcesso({
+        ator: { id: userId, tipo: req.user?.tipo },
+        acao: 'LISTAR_AGENDAMENTOS_PACIENTES',
+        recurso: 'Agendamento',
+        pacientes: pacientesUnicos(agendamentos),
+        ip: req.ip,
+      });
+
       return res.json(agendamentos);
     } catch (err) {
       logger.error('Erro ao listar agendamentos do profissional', err);
@@ -103,6 +117,16 @@ class ProfessionalController {
         orderBy: { dataHora: 'asc' },
         take: 10,
       });
+
+      if (nextAppointments.length > 0) {
+        await AuditoriaService.registrarAcesso({
+          ator: { id: userId, tipo: req.user?.tipo },
+          acao: 'VISUALIZAR_RESUMO_PACIENTES',
+          recurso: 'Agendamento',
+          pacientes: pacientesUnicos(nextAppointments),
+          ip: req.ip,
+        });
+      }
 
       // Média de avaliação
       const ratingAgg = await prisma.avaliacao.aggregate({ where: { profissionalId: profissional.id }, _avg: { nota: true } });

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/database";
+import AuditoriaService from "../services/auditoria.service";
 import logger from "../utils/logger";
 
 class PagamentosController {
@@ -76,8 +77,21 @@ class PagamentosController {
 
       const valorFinal = valor - desconto - planDiscount;
 
-      const pagamento = await prisma.pagamento.create({ data: { usuarioId, agendamentoId, valor, desconto, valorFinal, metodo, cupom, status: "concluido" } });
+      const pagamento = await prisma.pagamento.create({
+        data: { usuarioId, agendamentoId, valor, desconto, valorFinal, metodo, cupom, status: "concluido" },
+        include: { usuario: { select: { nome: true } } },
+      });
       logger.success(`Pagamento processado: ${pagamento.id}`);
+
+      await AuditoriaService.registrarAcesso({
+        ator: { id: usuarioId, tipo: req.user?.tipo },
+        acao: "PROCESSAR_PAGAMENTO",
+        recurso: "Pagamento",
+        recursoId: pagamento.id,
+        pacientes: [{ id: usuarioId, nome: pagamento.usuario.nome }],
+        detalhes: { metodo, valorFinal },
+        ip: req.ip,
+      });
 
       return res.status(201).json({ id: pagamento.id, status: pagamento.status, valor: pagamento.valor, desconto: pagamento.desconto, valorFinal: pagamento.valorFinal, dataProcessamento: pagamento.criado_em });
     } catch (err) {

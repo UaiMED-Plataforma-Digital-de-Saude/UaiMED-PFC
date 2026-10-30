@@ -57,6 +57,7 @@ describe('Conversas — paciente e médico', () => {
   });
 
   afterAll(async () => {
+    if (paciente?.id) await prisma.logAuditoria.deleteMany({ where: { pacienteId: paciente.id } }).catch(() => {});
     if (conversaId) await prisma.conversa.deleteMany({ where: { id: conversaId } }).catch(() => {});
     if (profissional?.id) await prisma.profissional.deleteMany({ where: { id: profissional.id } }).catch(() => {});
     if (medico?.id) await prisma.usuario.deleteMany({ where: { id: medico.id } }).catch(() => {});
@@ -119,6 +120,16 @@ describe('Conversas — paciente e médico', () => {
       remetenteId: medico.id,
       lida: true,
     }));
+  });
+
+  it('registra em auditoria cada mensagem enviada, nos dois sentidos', async () => {
+    const logs = await prisma.logAuditoria.findMany({
+      where: { acao: 'ENVIAR_MENSAGEM', pacienteId: paciente.id },
+      orderBy: { criado_em: 'asc' },
+    });
+    expect(logs).toHaveLength(2);
+    expect(logs[0].atorId).toBe(paciente.id);
+    expect(logs[1].atorId).toBe(medico.id);
   });
 
   it('não permite que o médico crie uma conversa como se fosse paciente', async () => {

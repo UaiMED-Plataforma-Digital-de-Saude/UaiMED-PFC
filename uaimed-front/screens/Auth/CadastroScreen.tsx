@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackScreenProps } from '@react-navigation/stack';
@@ -19,6 +20,7 @@ import AppModal from '../../components/AppModal';
 import { useModal } from '../../hooks/useModal';
 import { TipoCadastro, TipoUsuario } from '../../types/usuario';
 import EspecialidadeDropdown from '../../components/EspecialidadeDropdown';
+import { LGPD_POLICY_TEXT } from '../../constants/lgpdPolicy';
 
 type CadastroScreenProps = StackScreenProps<AuthStackParamList, 'Cadastro'>;
 
@@ -41,6 +43,8 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [aceitaLgpd, setAceitaLgpd] = useState(false);
+  const [showPoliticaModal, setShowPoliticaModal] = useState(false);
 
   // Campos específicos
   const [especialidade, setEspecialidade] = useState('');
@@ -103,6 +107,15 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
       return;
     }
 
+    if (!aceitaLgpd) {
+      showModal(
+        'Consentimento necessário',
+        'É necessário aceitar a Política de Privacidade (LGPD) para continuar.',
+        { type: 'warning' },
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       const payload: any = {
@@ -111,6 +124,7 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
         telefone: telefone.replace(/\D/g, ''),
         senha,
         tipo,
+        consentimentoLgpd: true,
       };
 
       if (tipo === TipoUsuario.CLINICA) {
@@ -281,6 +295,28 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
               </TouchableOpacity>
             </View>
 
+            <View style={styles.lgpdRow}>
+              <TouchableOpacity
+                style={styles.checkbox}
+                onPress={() => setAceitaLgpd((v) => !v)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: aceitaLgpd }}
+              >
+                <Ionicons
+                  name={aceitaLgpd ? 'checkbox' : 'square-outline'}
+                  size={22}
+                  color={aceitaLgpd ? '#4CAF50' : '#999'}
+                />
+              </TouchableOpacity>
+              <Text style={styles.lgpdText}>
+                Li e aceito a{' '}
+                <Text style={styles.lgpdLink} onPress={() => setShowPoliticaModal(true)}>
+                  Política de Privacidade (LGPD)
+                </Text>
+                {' *'}
+              </Text>
+            </View>
+
             <TouchableOpacity
               style={[styles.btnPrimary, loading && { opacity: 0.7 }]}
               onPress={handleCadastro}
@@ -293,6 +329,25 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
         </ScrollView>
       </KeyboardAvoidingView>
       <AppModal {...modal} onClose={hideModal} />
+
+      <Modal
+        visible={showPoliticaModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPoliticaModal(false)}
+      >
+        <View style={styles.politicaOverlay}>
+          <View style={styles.politicaCard}>
+            <Text style={styles.politicaTitulo}>Política de Privacidade (LGPD)</Text>
+            <ScrollView style={styles.politicaScroll}>
+              <Text style={styles.politicaTexto}>{LGPD_POLICY_TEXT}</Text>
+            </ScrollView>
+            <TouchableOpacity style={styles.politicaFechar} onPress={() => setShowPoliticaModal(false)}>
+              <Text style={styles.politicaFecharTexto}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -320,6 +375,17 @@ const styles = StyleSheet.create({
   passwordInput: { flex: 1, paddingVertical: 8, fontSize: 16 },
   btnPrimary: { backgroundColor: '#4CAF50', paddingVertical: 15, borderRadius: 10, alignItems: 'center', marginTop: 40 },
   btnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
+  lgpdRow: { flexDirection: 'row', alignItems: 'center', marginTop: 24, gap: 10 },
+  checkbox: { padding: 2 },
+  lgpdText: { flex: 1, fontSize: 13, color: '#444', lineHeight: 18 },
+  lgpdLink: { color: '#4CAF50', fontWeight: '700', textDecorationLine: 'underline' },
+  politicaOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+  politicaCard: { backgroundColor: '#FFF', borderRadius: 12, padding: 20, maxHeight: '80%' },
+  politicaTitulo: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 12 },
+  politicaScroll: { marginBottom: 16 },
+  politicaTexto: { fontSize: 14, color: '#444', lineHeight: 20 },
+  politicaFechar: { backgroundColor: '#4CAF50', paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+  politicaFecharTexto: { color: '#FFF', fontWeight: 'bold', fontSize: 15 },
 });
 
 export default CadastroScreen;

@@ -6,6 +6,7 @@ import logger from "../utils/logger";
 import { TipoUsuario } from "@prisma/client";
 import { especialidadeMedicaValida } from "../constants/especialidades";
 import { ARTICLE_ADMIN_EMAIL } from '../constants/articleAdmin';
+import { LGPD_POLICY_VERSION } from '../constants/lgpd';
 
 export interface SignUpData {
   nome: string;
@@ -15,6 +16,7 @@ export interface SignUpData {
   telefone: string;
   senha: string;
   tipo?: TipoUsuario;
+  consentimentoLgpd: boolean;
   // campos opcionais para profissionais
   especialidade?: string;
   crm?: string;
@@ -52,6 +54,10 @@ class AuthService {
     }
     const existing = await prisma.usuario.findUnique({ where: { email: data.email } });
     if (existing) throw new Error("Email já cadastrado");
+
+    if (data.consentimentoLgpd !== true) {
+      throw new Error('É necessário aceitar a Política de Privacidade (LGPD) para se cadastrar');
+    }
 
     const senhaHash = await hashPassword(data.senha);
     const tipo = data.tipo || TipoUsuario.paciente;
@@ -115,6 +121,9 @@ class AuthService {
           telefone: data.telefone,
           senha: senhaHash,
           tipo,
+          consentimentoLgpd: true,
+          consentimentoLgpdVersao: LGPD_POLICY_VERSION,
+          consentimentoLgpdEm: new Date(),
           // Para clínicas, salva localização diretamente no usuário
           endereco: tipo === TipoUsuario.clinica ? (data.endereco?.trim() || null) : undefined,
           cidade: tipo === TipoUsuario.clinica ? (data.cidade || null) : undefined,
@@ -189,6 +198,10 @@ class AuthService {
         estado: usuario.estado,
         cep: usuario.cep,
         profissional,
+        // Usuários criados antes do fluxo de consentimento (ou que aceitaram
+        // uma versão antiga da política) precisam reconsentir após o login —
+        // o fluxo de cadastro só cobre contas novas.
+        precisaConsentimentoLgpd: usuario.consentimentoLgpd !== true || usuario.consentimentoLgpdVersao !== LGPD_POLICY_VERSION,
       },
       token,
       refreshToken,

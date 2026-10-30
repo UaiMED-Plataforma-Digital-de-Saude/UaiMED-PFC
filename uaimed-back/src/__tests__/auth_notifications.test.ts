@@ -20,6 +20,7 @@ describe('Auth / Notifications endpoints', () => {
 
   afterAll(async () => {
     // Limpeza específica por ID
+    if (user?.id) await prisma.logAuditoria.deleteMany({ where: { pacienteId: user.id } }).catch(() => {});
     if (user?.id) await prisma.contato.deleteMany({ where: { usuarioId: user.id } }).catch(() => {});
     if (user?.id) await prisma.usuario.deleteMany({ where: { id: user.id } }).catch(() => {});
     await prisma.$disconnect();
@@ -38,6 +39,9 @@ describe('Auth / Notifications endpoints', () => {
     const updated = await prisma.usuario.findUnique({ where: { id: user.id } });
     const match = await bcrypt.compare('newpass123', updated!.senha);
     expect(match).toBe(true);
+
+    const log = await prisma.logAuditoria.findFirst({ where: { acao: 'TROCAR_SENHA', pacienteId: user.id } });
+    expect(log).not.toBeNull();
   });
 
   it('saves notification preferences', async () => {

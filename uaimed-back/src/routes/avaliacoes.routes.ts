@@ -9,6 +9,9 @@ const router = Router();
 // POST /api/avaliacoes (protegido — requer autenticação)
 router.post("/avaliacoes", authMiddleware, validateBody(criarAvaliacaoSchema), (req: Request, res: Response) => AvaliacoesController.criar(req, res));
 
+// GET /api/avaliacoes/minhas (protegido — requer autenticação)
+router.get("/avaliacoes/minhas", authMiddleware, (req: Request, res: Response) => AvaliacoesController.minhas(req, res));
+
 // GET /api/avaliacoes/medico/:id/media
 router.get("/avaliacoes/medico/:id/media", (req: Request, res: Response) => AvaliacoesController.obterMedia(req, res));
 

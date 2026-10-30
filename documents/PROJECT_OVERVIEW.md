@@ -16,6 +16,7 @@ Principais componentes
   - Validação: Zod
   - Autenticação: JWT + middleware de roles
   - Segurança: bcrypt para hashing de senhas
+  - LGPD: consentimento obrigatório no cadastro, log de auditoria de acesso a dados de pacientes e anonimização em relatórios/exports (veja `uaimed-back/documents/API.md`)
   - Testes: Vitest + Supertest
 
 - Infra local: Docker Compose com Postgres (recomendado para testes locais e CI)

@@ -72,6 +72,7 @@ describe('Pagamentos endpoints', () => {
   });
 
   afterAll(async () => {
+    if (user?.id) await prisma.logAuditoria.deleteMany({ where: { pacienteId: user.id } }).catch(() => {});
     if (user?.id) await prisma.pagamento.deleteMany({ where: { usuarioId: user.id } }).catch(() => {});
     if (user?.id) await prisma.agendamento.deleteMany({ where: { usuarioId: user.id } }).catch(() => {});
     if (profissional?.id) await prisma.profissional.deleteMany({ where: { id: profissional.id } }).catch(() => {});
@@ -90,6 +91,10 @@ describe('Pagamentos endpoints', () => {
     expect(res.body).toHaveProperty('id');
     expect(res.body.status).toBe('concluido');
     expect(res.body.valorFinal).toBe(200);
+
+    const log = await prisma.logAuditoria.findFirst({ where: { acao: 'PROCESSAR_PAGAMENTO', recursoId: res.body.id } });
+    expect(log).not.toBeNull();
+    expect(log?.atorId).toBe(user.id);
   });
 
   it('processa pagamento com cupom de desconto (10%)', async () => {

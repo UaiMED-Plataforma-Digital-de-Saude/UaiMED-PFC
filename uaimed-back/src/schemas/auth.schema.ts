@@ -24,6 +24,9 @@ export const signupSchema = z.object({
   cidade: z.string().optional(),
   estado: z.string().optional(),
   cep: z.string().optional(),
+  consentimentoLgpd: z.boolean().refine((v) => v === true, {
+    message: "É necessário aceitar a Política de Privacidade (LGPD) para se cadastrar",
+  }),
 });
 
 export const signupSchemaValidated = signupSchema.superRefine((data, ctx) => {

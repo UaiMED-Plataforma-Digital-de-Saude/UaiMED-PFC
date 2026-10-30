@@ -12,6 +12,7 @@
     "prisma:migrate:dev": "prisma migrate dev --name init",
     "prisma:studio": "prisma studio",
     "db:seed": "ts-node src/prisma/seed.ts",
+    "logs:purgar": "ts-node src/scripts/purgar-logs-auditoria.ts",
     "db:setup": "prisma migrate deploy && ts-node src/prisma/seed.ts",
     "db:reset": "prisma migrate reset --force && ts-node src/prisma/seed.ts",
     "docker:up": "docker-compose up -d",

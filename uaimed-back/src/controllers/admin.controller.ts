@@ -93,6 +93,43 @@ class AdminController {
       return res.status(500).json({ error: 'Erro ao gerar resumo' });
     }
   }
+
+  // GET /admin/logs-auditoria — trilha de acesso aos dados dos pacientes
+  // atendidos pela clínica (LGPD).
+  async logsAuditoria(req: Request, res: Response) {
+    try {
+      const clinicaId = req.user?.id;
+      if (!clinicaId) return res.status(401).json({ error: 'Usuário não autenticado' });
+
+      const vinculos = await prisma.clinicaProfissional.findMany({
+        where: { clinicaId, status: StatusVinculoClinica.aceito },
+        select: { profissionalId: true },
+      });
+      const profissionalIds = vinculos.map((item) => item.profissionalId);
+
+      const pacientes = await prisma.agendamento.findMany({
+        where: { profissionalId: { in: profissionalIds } },
+        select: { usuarioId: true },
+        distinct: ['usuarioId'],
+      });
+      const pacienteIds = pacientes.map((p) => p.usuarioId);
+
+      const skip = Number(req.query.skip) || 0;
+      const take = Math.min(Number(req.query.take) || 50, 200);
+
+      const logs = await prisma.logAuditoria.findMany({
+        where: { pacienteId: { in: pacienteIds } },
+        orderBy: { criado_em: 'desc' },
+        skip,
+        take,
+      });
+
+      return res.json(logs);
+    } catch (err) {
+      logger.error('Erro ao listar logs de auditoria', err);
+      return res.status(500).json({ error: 'Erro ao listar logs de auditoria' });
+    }
+  }
 }
 
 export default new AdminController();

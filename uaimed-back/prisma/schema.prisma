@@ -41,6 +41,9 @@ model Usuario {
   tipoConta      String?
   ativo          Boolean               @default(true)
   destaque       Boolean               @default(false)
+  consentimentoLgpd       Boolean      @default(false)
+  consentimentoLgpdVersao String?
+  consentimentoLgpdEm     DateTime?
   criado_em      DateTime              @default(now())
   atualizado_em  DateTime              @updatedAt
   agendamentos   Agendamento[]
@@ -240,4 +243,27 @@ model Mensagem {
   remetente   Usuario  @relation(fields: [remetenteId], references: [id], onDelete: Cascade)
 
   @@map("mensagens")
+}
+
+// Trilha de auditoria de acesso a dados de pacientes (LGPD). Sem relations/FK
+// de propósito: o log precisa sobreviver mesmo que o ator ou o paciente
+// referenciado sejam removidos.
+model LogAuditoria {
+  id           String   @id @default(uuid())
+  atorId       String?
+  atorNome     String?
+  atorTipo     String?
+  acao         String
+  recurso      String
+  recursoId    String?
+  pacienteId   String?
+  pacienteNome String?
+  detalhes     Json?
+  ip           String?
+  criado_em    DateTime @default(now())
+
+  @@index([pacienteId])
+  @@index([atorId])
+  @@index([criado_em])
+  @@map("logs_auditoria")
 }
