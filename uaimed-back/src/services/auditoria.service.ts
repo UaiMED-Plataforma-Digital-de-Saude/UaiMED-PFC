@@ -68,6 +68,20 @@ class AuditoriaService {
       take: filtros.take ?? 50,
     });
   }
+
+  // Expurgo de retenção: o próprio log de auditoria guarda dado pessoal
+  // (pacienteNome) e não pode ficar retido indefinidamente. Chamado pelo
+  // script `src/scripts/purgar-logs-auditoria.ts` (ver npm run logs:purgar).
+  async purgarAntigos(retencaoEmMeses = 6): Promise<number> {
+    const limite = new Date();
+    limite.setMonth(limite.getMonth() - retencaoEmMeses);
+
+    const resultado = await prisma.logAuditoria.deleteMany({
+      where: { criado_em: { lt: limite } },
+    });
+    logger.info(`Expurgo de auditoria: ${resultado.count} registro(s) anteriores a ${limite.toISOString()} removidos`);
+    return resultado.count;
+  }
 }
 
 export default new AuditoriaService();

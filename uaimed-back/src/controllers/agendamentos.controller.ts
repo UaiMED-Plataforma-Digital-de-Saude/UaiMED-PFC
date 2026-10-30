@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/database";
+import AuditoriaService from "../services/auditoria.service";
 import logger from "../utils/logger";
 
 interface JanelaDia {
@@ -64,6 +65,16 @@ class AgendamentosController {
       });
 
       logger.success(`Agendamento criado: ${agendamento.id}`);
+
+      await AuditoriaService.registrarAcesso({
+        ator: { id: usuarioId, tipo: req.user?.tipo },
+        acao: "CRIAR_AGENDAMENTO",
+        recurso: "Agendamento",
+        recursoId: agendamento.id,
+        pacientes: [{ id: usuarioId, nome: usuarioExiste.nome }],
+        ip: req.ip,
+      });
+
       return res.status(201).json({
         id: agendamento.id,
         status: agendamento.status,

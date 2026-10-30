@@ -2,6 +2,7 @@ import request from 'supertest';
 import app from '../app';
 import { prisma } from '../config/database';
 import { generateToken } from '../utils/jwt';
+import AuditoriaService from '../services/auditoria.service';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -81,5 +82,25 @@ describe('Log de auditoria de acesso a dados de pacientes', () => {
     });
     expect(log).not.toBeNull();
     expect(log?.recurso).toBe('Agendamento');
+  });
+
+  it('purgarAntigos remove só os logs mais velhos que a retenção configurada', async () => {
+    const seteMesesAtras = new Date();
+    seteMesesAtras.setMonth(seteMesesAtras.getMonth() - 7);
+
+    const antigo = await prisma.logAuditoria.create({
+      data: { acao: 'LOG_ANTIGO_TESTE', recurso: 'Teste', pacienteId: patientUser.id, criado_em: seteMesesAtras },
+    });
+    const recente = await prisma.logAuditoria.create({
+      data: { acao: 'LOG_RECENTE_TESTE', recurso: 'Teste', pacienteId: patientUser.id },
+    });
+
+    const removidos = await AuditoriaService.purgarAntigos(6);
+    expect(removidos).toBeGreaterThanOrEqual(1);
+
+    const aindaExisteAntigo = await prisma.logAuditoria.findUnique({ where: { id: antigo.id } });
+    const aindaExisteRecente = await prisma.logAuditoria.findUnique({ where: { id: recente.id } });
+    expect(aindaExisteAntigo).toBeNull();
+    expect(aindaExisteRecente).not.toBeNull();
   });
 });

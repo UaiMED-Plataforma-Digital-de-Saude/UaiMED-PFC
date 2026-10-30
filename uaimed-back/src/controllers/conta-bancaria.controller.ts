@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../config/database';
+import AuditoriaService from '../services/auditoria.service';
 import logger from '../utils/logger';
 import { TipoUsuario } from '@prisma/client';
 
@@ -52,7 +53,7 @@ class ContaBancariaController {
 
       const usuario = await prisma.usuario.findUnique({
         where: { id: usuarioId },
-        select: { tipo: true, profissional: { select: { id: true } } },
+        select: { nome: true, tipo: true, profissional: { select: { id: true } } },
       });
 
       if (!usuario) return res.status(404).json({ error: 'Usuário não encontrado' });
@@ -74,6 +75,16 @@ class ContaBancariaController {
       }
 
       logger.success(`Conta bancária atualizada: usuário ${usuarioId}`);
+
+      await AuditoriaService.registrarAcesso({
+        ator: { id: usuarioId, tipo: (req as any).user?.tipo },
+        acao: 'ATUALIZAR_DADOS_BANCARIOS',
+        recurso: usuario.tipo === TipoUsuario.medico ? 'Profissional' : 'Usuario',
+        recursoId: usuario.tipo === TipoUsuario.medico ? usuario.profissional?.id : usuarioId,
+        pacientes: [{ id: usuarioId, nome: usuario.nome }],
+        ip: req.ip,
+      });
+
       return res.json({ message: 'Dados bancários atualizados com sucesso.' });
     } catch (err) {
       logger.error('Erro ao atualizar conta bancária', err);

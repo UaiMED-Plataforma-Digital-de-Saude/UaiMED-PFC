@@ -20,6 +20,7 @@ import AppModal from '../../components/AppModal';
 import { useModal } from '../../hooks/useModal';
 import { TipoCadastro, TipoUsuario } from '../../types/usuario';
 import EspecialidadeDropdown from '../../components/EspecialidadeDropdown';
+import { LGPD_POLICY_TEXT } from '../../constants/lgpdPolicy';
 
 type CadastroScreenProps = StackScreenProps<AuthStackParamList, 'Cadastro'>;
 
@@ -339,33 +340,7 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
           <View style={styles.politicaCard}>
             <Text style={styles.politicaTitulo}>Política de Privacidade (LGPD)</Text>
             <ScrollView style={styles.politicaScroll}>
-              <Text style={styles.politicaTexto}>
-                A UaiMED coleta e trata seus dados pessoais (nome, CPF/CNPJ, e-mail, telefone e,
-                quando aplicável, dados relacionados aos seus agendamentos e consultas) com as
-                seguintes finalidades: viabilizar o seu cadastro, o agendamento de consultas, a
-                comunicação entre pacientes e profissionais de saúde, e a geração de relatórios
-                de gestão para clínicas parceiras.{'\n\n'}
-
-                O tratamento desses dados tem como base o seu consentimento (art. 7º, I, da Lei
-                nº 13.709/2018 — LGPD) e, quando aplicável, o cumprimento de obrigações legais e
-                regulatórias.{'\n\n'}
-
-                Seus dados de saúde e de contato só são acessados por profissionais e clínicas
-                diretamente vinculados ao seu atendimento. Todo acesso de um profissional ou
-                clínica aos seus dados é registrado em um log de auditoria interno.{'\n\n'}
-
-                Relatórios e exportações de dados agregados, usados para gestão das clínicas,
-                são anonimizados: CPF, telefone e e-mail são mascarados, exibindo apenas os
-                últimos dígitos necessários para conferência.{'\n\n'}
-
-                Você pode, a qualquer momento, solicitar a confirmação da existência de
-                tratamento, acesso, correção, anonimização, portabilidade ou eliminação dos seus
-                dados, conforme os arts. 17 a 22 da LGPD, pelos canais de contato da plataforma.
-                {'\n\n'}
-
-                Ao marcar a opção de aceite no cadastro, você declara estar de acordo com esta
-                política (versão 1.0).
-              </Text>
+              <Text style={styles.politicaTexto}>{LGPD_POLICY_TEXT}</Text>
             </ScrollView>
             <TouchableOpacity style={styles.politicaFechar} onPress={() => setShowPoliticaModal(false)}>
               <Text style={styles.politicaFecharTexto}>Fechar</Text>

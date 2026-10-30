@@ -94,6 +94,9 @@ describe('Clínicas — listagem e recomendadas', () => {
   });
 
   afterAll(async () => {
+    if (medicoUsuario?.id) {
+      await prisma.logAuditoria.deleteMany({ where: { pacienteId: medicoUsuario.id } }).catch(() => {});
+    }
     if (profissional?.id) {
       await prisma.clinicaProfissional.deleteMany({ where: { profissionalId: profissional.id } }).catch(() => {});
       await prisma.profissional.deleteMany({ where: { id: profissional.id } }).catch(() => {});
@@ -209,6 +212,10 @@ describe('Clínicas — listagem e recomendadas', () => {
 
       expect(resposta.status).toBe(200);
       expect(resposta.body.status).toBe('aceito');
+
+      const log = await prisma.logAuditoria.findFirst({ where: { acao: 'ACEITAR_VINCULO_CLINICA', atorId: medicoUsuario.id } });
+      expect(log).not.toBeNull();
+      expect(log?.pacienteId).toBe(medicoUsuario.id);
 
       const area = await request(app)
         .get('/api/clinicas/me')

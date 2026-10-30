@@ -18,6 +18,37 @@ class AvaliacoesController {
     }
   }
 
+  // GET /avaliacoes/minhas — avaliações feitas pelo paciente autenticado
+  async minhas(req: Request, res: Response) {
+    try {
+      const usuarioId = (req as any).user?.id;
+      if (!usuarioId) return res.status(401).json({ error: "Usuário não autenticado" });
+
+      const avaliacoes = await prisma.avaliacao.findMany({
+        where: { usuarioId },
+        select: {
+          id: true,
+          nota: true,
+          comentario: true,
+          criado_em: true,
+          profissional: {
+            select: {
+              id: true,
+              especialidade: true,
+              usuario: { select: { nome: true, avatar: true } },
+            },
+          },
+        },
+        orderBy: { criado_em: "desc" },
+      });
+
+      return res.json(avaliacoes);
+    } catch (err) {
+      logger.error("Erro ao listar avaliações do paciente", err);
+      return res.status(500).json({ error: "Erro ao listar avaliações" });
+    }
+  }
+
   async obterMedia(req: Request, res: Response) {
     try {
       const { id } = req.params;

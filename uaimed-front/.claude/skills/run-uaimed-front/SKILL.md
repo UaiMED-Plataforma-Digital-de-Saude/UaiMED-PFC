@@ -198,3 +198,30 @@ real vitest suite — see its own docs.
 - **App loads but every screen shows a network-error state** — the
   backend isn't up. `curl -sf http://localhost:3333/api/health` — if
   that fails, `cd ../uaimed-back && docker compose up -d`.
+- **A screen renders blank white, but `console-errors` reports nothing** —
+  check `page.on('pageerror', ...)` separately (the driver only surfaces
+  `console.error`; uncaught render exceptions fire `pageerror` instead, not
+  `console`). The driver doesn't expose this yet — for a one-off diagnosis,
+  write a throwaway script next to the driver with both listeners, run it,
+  delete it after. Hit this once: a screen rendered outside
+  `NavigationContainer` used `<SafeAreaView>` from
+  `react-native-safe-area-context`, which throws "No safe area value
+  available" without a `<SafeAreaProvider>` ancestor — screens *inside* the
+  stack navigator get one for free (react-navigation injects it), screens
+  rendered as a sibling/early-return in `navigation/index.tsx` don't.
+- **After editing source, the app keeps showing old behavior / an error
+  whose stack trace references line numbers from a version you already
+  fixed** — Metro's web bundle cache went stale (seen after many edits in
+  one long dev-server session; plain reloads kept serving the same
+  bundle). Kill the dev server and restart with `--clear`:
+  `npx expo start --web --port 8099 --clear`. Don't waste time
+  re-diagnosing "my fix isn't working" without ruling this out first.
+- **Backend (`docker compose up -d`) running but new backend code isn't
+  reflected in API responses** — the container's `ts-node-dev --respawn`
+  watcher occasionally misses a specific edit (seen once on a file that
+  had reloaded fine for *other* edits earlier in the same session).
+  `docker logs uaimed_backend --tail 20` to check whether a "Restarting:
+  ... has been modified" line exists for the file you just changed; if
+  not, `docker compose restart backend` (from `uaimed-back/`) forces a
+  clean process — also re-runs `db:seed`, resetting the dev DB's demo
+  accounts.

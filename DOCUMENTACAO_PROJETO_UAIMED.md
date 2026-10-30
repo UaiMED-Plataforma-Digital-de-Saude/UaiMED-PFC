@@ -1,6 +1,6 @@
 # 📘 Documentação Completa do Projeto UaiMED
 
-**Versão**: 1.8.0  
+**Versão**: 1.9.0  
 **Data**: 30 de Outubro de 2026  
 **Classificação**: Documentação Técnica de Engenharia de Software  
 **Status**: Projeto em Desenvolvimento Avançado — Seção de Avaliação do Projeto (percurso, decisões técnicas, desafios, resultados e perspectivas) revisada com base no histórico real do Git (135 commits, 63 PRs, Fev–Out/2026)
@@ -219,7 +219,7 @@ Plataforma mobile-first que:
 #### RNF02 - Segurança
 - **RNF02.1**: Senhas criptografadas (bcrypt) ✅
 - **RNF02.2**: JWT com expiração (7 dias) ✅
-- **RNF02.3**: Proteção LGPD ✅ (consentimento obrigatório no cadastro, log de auditoria de acesso a dados de pacientes, relatório de pacientes anonimizado)
+- **RNF02.3**: Proteção LGPD ✅ (consentimento + reconsentimento de contas antigas, auditoria de acesso a dados de pacientes e de 9 operações críticas de escrita, relatório de pacientes anonimizado, exportação/exclusão dos próprios dados, retenção do log de auditoria)
 - **RNF02.4**: Validação de entrada (Zod) ✅ (cobertura ampla via `validateBody` em praticamente todas as rotas de escrita)
 - **RNF02.5**: Refresh automático de token ✅ (`POST /api/sessions/refresh` implementado e funcional desde Set/2026)
 - **RNF02.6**: Rate limiting contra brute-force em login/cadastro ✅ (`express-rate-limit`, 10 tentativas/IP/min)
@@ -730,7 +730,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ Chat/Conversas entre usuários (REST, sem WebSocket/tempo real)
 - ✅ **139 casos de teste automatizados** (20 arquivos) cobrindo os endpoints principais
 - ✅ Logging revisado — Prisma não loga mais SQL com dados de usuário; app não loga payloads fora de ambiente de desenvolvimento
-- ✅ Proteção LGPD — consentimento obrigatório no cadastro, log de auditoria (`GET /admin/logs-auditoria`) de acesso a dados de pacientes, relatório de pacientes anonimizado (`GET /admin/relatorios/pacientes`)
+- ✅ Proteção LGPD — consentimento (+ reconsentimento de contas antigas), auditoria de acesso a dados de pacientes e de operações críticas (`GET /admin/logs-auditoria`), relatório de pacientes anonimizado (`GET /admin/relatorios/pacientes`), exportar/excluir meus dados (`GET`/`DELETE /users/me`), retenção do log de auditoria
 - ✅ Docker Compose para desenvolvimento
 - ✅ CI/CD com GitHub Actions
 
@@ -801,7 +801,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ Validação de entrada (Zod) — cobertura ampla
 - ✅ CORS configurado
 - ✅ Logging sem dados sensíveis (SQL/payload) fora de desenvolvimento
-- ✅ LGPD: consentimento obrigatório no cadastro, log de auditoria de acesso a dados de pacientes, relatório de pacientes anonimizado
+- ✅ LGPD: consentimento + reconsentimento, log de auditoria de acesso a dados de pacientes e de operações críticas, relatório de pacientes anonimizado, direitos do titular (exportar/excluir), retenção do log
 
 ### 8.3 Histórico de Correções (v1.0 → v1.6)
 
@@ -1033,9 +1033,11 @@ GET /api/admin/analytics/location?granularity=city|state
 ### 10.4 Governança de Dados
 
 #### 10.4.1 Privacidade (LGPD)
-- **Anonimização**: CPF/telefone/e-mail mascarados no relatório de pacientes (`GET /admin/relatorios/pacientes`)
-- **Consentimento**: Aceite obrigatório da Política de Privacidade no cadastro (`consentimentoLgpd`), com versão e data gravadas no `Usuario`
-- **Auditoria**: Log de acessos de médico/clínica a dados de outros usuários (model `LogAuditoria`), consultável em `GET /admin/logs-auditoria`
+- **Anonimização**: CPF/telefone/e-mail mascarados no relatório de pacientes (`GET /admin/relatorios/pacientes`); `DELETE /users/me` anonimiza a própria conta em vez de excluir fisicamente (preserva histórico de terceiros — agendamentos/pagamentos têm `onDelete: Cascade`)
+- **Consentimento**: Aceite obrigatório no cadastro (`consentimentoLgpd`, versão e data gravadas no `Usuario`) + reconsentimento pós-login para contas anteriores ao fluxo (`precisaConsentimentoLgpd` no login, `POST /users/me/consentimento-lgpd`)
+- **Auditoria**: Log de acessos de médico/clínica a dados de outros usuários + 9 operações críticas de escrita (agendar, pagar, enviar mensagem, vínculo clínica-médico, trocar senha, dados bancários, consentimento, exportar/excluir dados) — model `LogAuditoria`, consultável em `GET /admin/logs-auditoria`
+- **Direitos do titular**: `GET /users/me/dados` exporta os dados pessoais; `DELETE /users/me` anonimiza a conta (arts. 17-22 da LGPD)
+- **Retenção**: `AuditoriaService.purgarAntigos()` expurga `LogAuditoria` com mais de 6 meses (`npm run logs:purgar`) — o próprio log de auditoria guarda dado pessoal e não pode ficar retido indefinidamente
 
 Detalhes de implementação: [`uaimed-back/documents/API.md`](./uaimed-back/documents/API.md#lgpd--consentimento-auditoria-e-anonimização).
 
@@ -1232,6 +1234,34 @@ O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 ---
 
 ## 14. Changelog
+
+### v1.9.0 — 30 de Outubro de 2026
+
+#### 🟢 Implementado
+
+**Backend — Auditoria de operações críticas:**
+- `AuditoriaService.registrarAcesso` passa a cobrir 9 operações de escrita além de leitura de dados de paciente: criar agendamento, processar pagamento, enviar mensagem (nos dois sentidos), aceitar/recusar vínculo clínica-médico, trocar senha, atualizar dados bancários, registrar consentimento, exportar e excluir os próprios dados
+- 7 novos casos de teste cobrindo cada operação (via asserções adicionadas aos specs já existentes de cada endpoint)
+
+**Backend — Reconsentimento LGPD:**
+- `POST /api/sessions` retorna `user.precisaConsentimentoLgpd` (não bloqueia o login); novo `POST /api/users/me/consentimento-lgpd` registra o aceite pós-login. Motivado por achado real: 40/40 usuários já existentes no banco de dev não tinham consentimento registrado (o fluxo de cadastro só cobre contas novas)
+
+**Backend — Direitos do titular (arts. 17-22 LGPD):**
+- `GET /api/users/me/dados` — exporta os dados pessoais do usuário autenticado (nunca inclui senha)
+- `DELETE /api/users/me` — anonimiza a conta (nome, e-mail, CPF/CNPJ, telefone, endereço, dados bancários mascarados/zerados; senha trocada por hash aleatório; `ativo: false`). Não exclui fisicamente: agendamentos/pagamentos/avaliações são registros legítimos de terceiros com `onDelete: Cascade`
+
+**Backend — Retenção do log de auditoria:**
+- `AuditoriaService.purgarAntigos()` + script `npm run logs:purgar` (sem agendador de jobs no backend — pensado para cron externo)
+
+**Backend — `GET /avaliacoes/minhas`:**
+- Endpoint que faltava para o paciente autenticado listar as próprias avaliações (desbloqueia `HistoricoAvaliacoesScreen`, que segue pendente no front)
+
+**Frontend:**
+- `LgpdConsentGateScreen` — bloqueia o app pós-login para contas que precisam reconsentir, reaproveitando o texto da política (extraído para `constants/lgpdPolicy.ts`, compartilhado com `CadastroScreen`)
+- `PerfilScreen` — novo card "Privacidade e Dados (LGPD)" com "Exportar meus dados" (modal com o JSON) e "Excluir minha conta" (confirmação + anonimização)
+- Corrigido bug real encontrado durante a verificação: telas renderizadas fora do `NavigationContainer` (como o novo gate) quebravam com `<SafeAreaView>` de `react-native-safe-area-context` por falta de `<SafeAreaProvider>` — o app inteiro nunca teve um, e funcionava só porque o React Navigation injeta um por baixo dos panos para telas dentro do Navigator
+
+---
 
 ### v1.8.0 — 30 de Outubro de 2026
 

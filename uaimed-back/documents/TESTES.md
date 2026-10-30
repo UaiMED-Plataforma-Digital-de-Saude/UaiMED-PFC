@@ -1,7 +1,7 @@
 # 🧪 Estratégia e Documentação de Testes — UaiMED Backend
 
-**Versão**: 1.2.0  
-**Data**: 13 de Outubro de 2026  
+**Versão**: 1.3.0  
+**Data**: 30 de Outubro de 2026  
 **Framework**: Vitest 1.4 + Supertest 6.3  
 **Banco de Teste**: PostgreSQL (`uaimed_test`) — isolado do banco de desenvolvimento
 
@@ -29,7 +29,7 @@ O UaiMED adota uma estratégia de testes em camadas, priorizando **testes de int
 - **Isolamento**: cada suíte cria e limpa seus próprios dados por ID
 - **Repetibilidade**: UUIDs únicos garantem que testes paralelos não colidam
 - **Confiabilidade**: banco de teste isolado (`uaimed_test`) com schema migrado automaticamente via `globalSetup`
-- **Velocidade**: 139 casos (unitários + integração), em 20 arquivos, rodam em menos de 7 segundos no total (`Duration 6.93s` na última execução)
+- **Velocidade**: 155 casos (unitários + integração), em 23 arquivos, rodam em menos de 8 segundos no total (`Duration 7.75s` na última execução)
 
 ---
 
@@ -43,12 +43,12 @@ O UaiMED adota uma estratégia de testes em camadas, priorizando **testes de int
         └──────────────────┬──────────────────┘
                            │
         ┌──────────────────▼──────────────────┐
-        │      Integração (API)               │  ← Principal camada automatizada (102 casos, 17 arquivos)
+        │      Integração (API)               │  ← Principal camada automatizada (116 casos, 20 arquivos)
         │      Vitest + Supertest             │    Testa controllers, services e banco real
         └──────────────────┬──────────────────┘
                            │
         ┌──────────────────▼──────────────────┐
-        │          Unitários                  │  ← Lógica isolada: utils, schemas (37 casos, 3 arquivos)
+        │          Unitários                  │  ← Lógica isolada: utils, schemas (39 casos, 3 arquivos)
         │       Vitest (sem DB)               │
         └─────────────────────────────────────┘
 ```
@@ -78,9 +78,12 @@ Os testes de integração são a **camada principal** de validação automatizad
 |---|---------------|----------|--------------------|
 | 1 | Cria usuário com dados válidos | `POST /api/usuarios` | 201 `{ user, token }` |
 | 2 | Rejeita e-mail duplicado | `POST /api/usuarios` | 409 Conflict |
-| 3 | Faz login com credenciais corretas | `POST /api/sessions` | 200 `{ user, token }` |
-| 4 | Rejeita login com senha errada | `POST /api/sessions` | 401 Unauthorized |
-| 5 | Rejeita login de usuário inexistente | `POST /api/sessions` | 401 Unauthorized |
+| 3 | Rejeita cadastro sem aceitar a Política de Privacidade (LGPD) | `POST /api/usuarios` | 400 Bad Request |
+| 4 | Faz login com credenciais corretas (`precisaConsentimentoLgpd: false`) | `POST /api/sessions` | 200 `{ user, token }` |
+| 5 | Rejeita login com senha errada | `POST /api/sessions` | 401 Unauthorized |
+| 6 | Rejeita login de usuário inexistente | `POST /api/sessions` | 401 Unauthorized |
+| 7 | Login de usuário sem `consentimentoLgpd` retorna `precisaConsentimentoLgpd: true` e ainda libera o token | `POST /api/sessions` | 200, login não bloqueado |
+| 8 | `POST /users/me/consentimento-lgpd` registra o aceite e audita a operação | `POST /api/users/me/consentimento-lgpd` | 200, `LogAuditoria` criado |
 
 ---
 
@@ -141,6 +144,8 @@ Os testes de integração são a **camada principal** de validação automatizad
 | 4 | Retorna média calculada das avaliações | `GET /api/avaliacoes/medico/:id/media` | 200 `{ notaMedia, totalAvaliacoes }` |
 | 5 | Retorna notaMedia 0 para profissional sem avaliações | `GET /api/avaliacoes/medico/:id/media` | 200 `{ notaMedia: 0 }` |
 | 6 | Rejeita criação sem autenticação | `POST /api/avaliacoes` | 401 Unauthorized |
+| 7 | Lista as avaliações feitas pelo paciente autenticado | `GET /api/avaliacoes/minhas` | 200 array com dados do profissional |
+| 8 | Rejeita listagem de avaliações próprias sem autenticação | `GET /api/avaliacoes/minhas` | 401 Unauthorized |
 
 ---
 
@@ -257,7 +262,8 @@ Os testes de integração são a **camada principal** de validação automatizad
 | 1 | Permite ao paciente iniciar uma conversa com o médico | `POST /api/conversas` | 201 conversa criada |
 | 2 | Entrega a mensagem do paciente ao médico e marca como lida ao abrir | `POST` + `GET /api/conversas/:id/mensagens` | 200/201 |
 | 3 | Permite ao médico responder e entrega a resposta ao paciente | `POST /api/conversas/:id/mensagens` | 201 mensagem entregue |
-| 4 | Não permite que o médico crie uma conversa como se fosse paciente | `POST /api/conversas` | 403 Forbidden |
+| 4 | Registra em auditoria cada mensagem enviada, nos dois sentidos | `POST /api/conversas/:id/mensagens` | `LogAuditoria` (`ENVIAR_MENSAGEM`) por envio |
+| 5 | Não permite que o médico crie uma conversa como se fosse paciente | `POST /api/conversas` | 403 Forbidden |
 
 ---
 
@@ -298,6 +304,38 @@ Os testes de integração são a **camada principal** de validação automatizad
 | 2 | Rejeita atualização sem autenticação | `PUT /api/users/me` | 401 Unauthorized |
 | 3 | Atualiza avatar com base64 válido | `PUT /api/users/me/avatar` | 200 avatar atualizado |
 | 4 | Rejeita avatar em formato inválido | `PUT /api/users/me/avatar` | 400 Bad Request |
+
+---
+
+### 3.18 `auditoria.test.ts`
+**Localização**: `src/tests/auditoria.test.ts`
+
+| # | Caso de Teste | Endpoint | Resultado Esperado |
+|---|---------------|----------|--------------------|
+| 1 | Registra um log de auditoria quando o médico lista os agendamentos dos pacientes | `GET /api/professionals/me/agendamentos` | `LogAuditoria` (`LISTAR_AGENDAMENTOS_PACIENTES`) criado |
+| 2 | `purgarAntigos` remove só os logs mais velhos que a retenção configurada | `AuditoriaService.purgarAntigos(6)` (chamada direta) | log antigo removido, log recente preservado |
+
+---
+
+### 3.19 `relatorios.test.ts`
+**Localização**: `src/tests/relatorios.test.ts`
+
+| # | Caso de Teste | Endpoint | Resultado Esperado |
+|---|---------------|----------|--------------------|
+| 1 | Exporta o CSV com nome em claro mas CPF/telefone mascarados, e audita a exportação | `GET /api/admin/relatorios/pacientes` | 200 CSV anonimizado + `LogAuditoria` (`EXPORTAR_RELATORIO_PACIENTES`) |
+| 2 | Nega acesso ao relatório para usuários que não são clínica | `GET /api/admin/relatorios/pacientes` | 403 Forbidden |
+
+---
+
+### 3.20 `users_lgpd.test.ts`
+**Localização**: `src/__tests__/users_lgpd.test.ts`
+
+| # | Caso de Teste | Endpoint | Resultado Esperado |
+|---|---------------|----------|--------------------|
+| 1 | Exporta os dados pessoais e audita a exportação | `GET /api/users/me/dados` | 200 `{ dadosPessoais, resumoAtividade }`, sem senha |
+| 2 | Rejeita exportação sem autenticação | `GET /api/users/me/dados` | 401 Unauthorized |
+| 3 | Anonimiza a conta, impede login futuro e audita a operação | `DELETE /api/users/me` | 200, dados mascarados, login seguinte 401 |
+| 4 | Rejeita exclusão sem autenticação | `DELETE /api/users/me` | 401 Unauthorized |
 
 ---
 
@@ -358,13 +396,15 @@ Os testes unitários validam lógica isolada **sem necessidade de banco de dados
 | 12 | `signupSchema` | Rejeita CPF com menos de 11 chars | `success: false` |
 | 13 | `signupSchema` | Rejeita telefone com menos de 8 chars | `success: false` |
 | 14 | `signupSchema` | Rejeita senha com menos de 6 chars | `success: false` |
-| 15 | `signupSchemaValidated` | Rejeita médico sem especialidade e CRM | `success: false` |
-| 16 | `signupSchemaValidated` | Rejeita médico com especialidade mas sem CRM | `success: false` |
-| 17 | `signupSchemaValidated` | Aceita médico com especialidade e CRM | `success: true` |
-| 18 | `signupSchemaValidated` | Aceita paciente sem especialidade e CRM | `success: true` |
-| 19 | `signupSchemaValidated` | Rejeita especialidade digitada fora do catálogo oficial | `success: false` |
-| 20 | `signupSchemaValidated` | Aceita clínica com CNPJ e sem CPF | `success: true` |
-| 21 | `signupSchemaValidated` | Rejeita clínica sem CNPJ | `success: false` |
+| 15 | `signupSchema` | Rejeita cadastro sem aceitar a Política de Privacidade (LGPD) | `success: false` |
+| 16 | `signupSchema` | Rejeita cadastro quando o campo `consentimentoLgpd` está ausente | `success: false` |
+| 17 | `signupSchemaValidated` | Rejeita médico sem especialidade e CRM | `success: false` |
+| 18 | `signupSchemaValidated` | Rejeita médico com especialidade mas sem CRM | `success: false` |
+| 19 | `signupSchemaValidated` | Aceita médico com especialidade e CRM | `success: true` |
+| 20 | `signupSchemaValidated` | Aceita paciente sem especialidade e CRM | `success: true` |
+| 21 | `signupSchemaValidated` | Rejeita especialidade digitada fora do catálogo oficial | `success: false` |
+| 22 | `signupSchemaValidated` | Aceita clínica com CNPJ e sem CPF | `success: true` |
+| 23 | `signupSchemaValidated` | Rejeita clínica sem CNPJ | `success: false` |
 
 ---
 
@@ -478,23 +518,26 @@ npx vitest run --coverage
 | Suíte | Casos | Tipo | Status |
 |-------|-------|------|--------|
 | `health.test.ts` | 1 | Integração | ✅ Passando |
-| `auth_signup_signin.test.ts` | 5 | Integração | ✅ Passando |
+| `auth_signup_signin.test.ts` | 8 | Integração | ✅ Passando |
 | `auth_notifications.test.ts` | 2 | Integração | ✅ Passando |
 | `contatos.test.ts` | 3 | Integração | ✅ Passando |
 | `medicos_agendamentos.test.ts` | 2 | Integração | ✅ Passando |
 | `agendamentos_criar.test.ts` | 7 | Integração | ✅ Passando |
-| `avaliacoes.test.ts` | 6 | Integração | ✅ Passando |
+| `avaliacoes.test.ts` | 8 | Integração | ✅ Passando |
 | `pagamentos.test.ts` | 10 | Integração | ✅ Passando |
 | `admin.test.ts` | 1 | Integração | ✅ Passando |
 | `professional.test.ts` | 8 | Integração | ✅ Passando |
 | `professionals.test.ts` | 3 | Integração | ✅ Passando |
 | `clinicas.test.ts` | 17 | Integração | ✅ Passando |
 | `artigos.test.ts` | 17 | Integração | ✅ Passando |
-| `conversas.test.ts` | 4 | Integração | ✅ Passando |
+| `conversas.test.ts` | 5 | Integração | ✅ Passando |
 | `destaques.test.ts` | 9 | Integração | ✅ Passando |
 | `conta-bancaria.test.ts` | 3 | Integração | ✅ Passando |
 | `users.test.ts` | 4 | Integração | ✅ Passando |
-| **Subtotal** | **102** | | **✅ 102/102** |
+| `auditoria.test.ts` | 2 | Integração | ✅ Passando |
+| `relatorios.test.ts` | 2 | Integração | ✅ Passando |
+| `users_lgpd.test.ts` | 4 | Integração | ✅ Passando |
+| **Subtotal** | **116** | | **✅ 116/116** |
 
 #### Testes Unitários
 
@@ -502,17 +545,17 @@ npx vitest run --coverage
 |-------|-------|------|--------|
 | `unit/jwt.unit.test.ts` | 8 | Unitário | ✅ Passando |
 | `unit/hash.unit.test.ts` | 8 | Unitário | ✅ Passando |
-| `unit/auth.schema.unit.test.ts` | 21 | Unitário | ✅ Passando |
-| **Subtotal** | **37** | | **✅ 37/37** |
+| `unit/auth.schema.unit.test.ts` | 23 | Unitário | ✅ Passando |
+| **Subtotal** | **39** | | **✅ 39/39** |
 
 #### Total Geral
 
 | Tipo | Casos | Status |
 |------|-------|--------|
-| Integração (API) | 102 | ✅ |
-| Unitários | 37 | ✅ |
+| Integração (API) | 116 | ✅ |
+| Unitários | 39 | ✅ |
 | E2E automatizado | 0 | ⚠️ Planejado |
-| **Total** | **139** | **✅ 139/139** (executado em 13/10/2026, `Duration 6.93s`) |
+| **Total** | **155** | **✅ 155/155** (executado em 30/10/2026, `Duration 7.75s`) |
 
 ### Endpoints Cobertos
 
@@ -548,6 +591,12 @@ npx vitest run --coverage
 | `/api/professionals/me/endereco` | PUT | ✅ |
 | `/api/professionals/me/preco` | GET + PUT | ✅ |
 | `/api/professionals/me/disponibilidade` | GET + PUT | ✅ |
+| `/api/avaliacoes/minhas` | GET | ✅ |
+| `/api/users/me/consentimento-lgpd` | POST | ✅ |
+| `/api/users/me/dados` | GET | ✅ |
+| `/api/users/me` | DELETE | ✅ |
+| `/api/admin/relatorios/pacientes` | GET | ✅ |
+| `/api/admin/logs-auditoria` | GET | ⚠️ Sem teste dedicado (coberto indiretamente — ver `auditoria.test.ts`) |
 
 ---
 
@@ -607,7 +656,7 @@ hookTimeout: 30000,  // 30s para beforeAll/afterAll
 ---
 
 **Documento criado em**: 17 de Abril de 2026  
-**Última atualização**: 13 de Outubro de 2026 (32 → 139 casos, 10 → 20 arquivos)  
+**Última atualização**: 30 de Outubro de 2026 (139 → 155 casos, 20 → 23 arquivos — testes de LGPD/auditoria: consentimento, reconsentimento, auditoria de operações críticas, relatório anonimizado, direitos do titular e retenção do log)  
 **Autor**: Equipe de Desenvolvimento UaiMED  
 **Referência**: [`vitest.config.ts`](../vitest.config.ts) · [`src/__tests__/`](../src/__tests__/) · [`DOCUMENTACAO_PROJETO_UAIMED.md`](../../DOCUMENTACAO_PROJETO_UAIMED.md)
 

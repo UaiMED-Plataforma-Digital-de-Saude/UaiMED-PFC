@@ -52,6 +52,7 @@ describe('Agendamentos — criar e sugestões de horário', () => {
   });
 
   afterAll(async () => {
+    if (user?.id) await prisma.logAuditoria.deleteMany({ where: { pacienteId: user.id } }).catch(() => {});
     if (user?.id) await prisma.agendamento.deleteMany({ where: { usuarioId: user.id } }).catch(() => {});
     if (profissional?.id) await prisma.profissional.deleteMany({ where: { id: profissional.id } }).catch(() => {});
     if (profUsuario?.id) await prisma.usuario.deleteMany({ where: { id: profUsuario.id } }).catch(() => {});
@@ -68,6 +69,10 @@ describe('Agendamentos — criar e sugestões de horário', () => {
     expect(res.status).toBe(201);
     expect(res.body).toHaveProperty('id');
     expect(res.body.profissionalId).toBe(profissional.id);
+
+    const log = await prisma.logAuditoria.findFirst({ where: { acao: 'CRIAR_AGENDAMENTO', recursoId: res.body.id } });
+    expect(log).not.toBeNull();
+    expect(log?.atorId).toBe(user.id);
   });
 
   it('rejeita criação de agendamento sem autenticação', async () => {

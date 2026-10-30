@@ -7,6 +7,7 @@ import { createAuthRateLimit } from "../middleware/rateLimit";
 import { prisma } from "../config/database";
 import bcrypt from "bcryptjs";
 import ENV from "../config/env";
+import AuditoriaService from "../services/auditoria.service";
 import logger from "../utils/logger";
 
 const router = Router();
@@ -42,6 +43,16 @@ router.post("/auth/change-password", authMiddleware, async (req: Request, res: R
     await prisma.usuario.update({ where: { id: user.id }, data: { senha: hashed } });
 
     logger.info(`Senha alterada para usuário: ${user.email}`);
+
+    await AuditoriaService.registrarAcesso({
+      ator: { id: user.id, tipo: (req as any).user?.tipo },
+      acao: "TROCAR_SENHA",
+      recurso: "Usuario",
+      recursoId: user.id,
+      pacientes: [{ id: user.id, nome: user.nome }],
+      ip: req.ip,
+    });
+
     return res.json({ message: "Senha alterada com sucesso" });
   } catch (err) {
     logger.error("Erro ao alterar senha", err);

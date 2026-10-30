@@ -24,6 +24,9 @@ export interface User {
   estado?: string | null;
   cep?: string | null;
   tipo: TipoUsuario;
+  // true para contas criadas antes do fluxo de consentimento LGPD (ou que
+  // aceitaram uma versão antiga da política) — ver LgpdConsentGateScreen.
+  precisaConsentimentoLgpd?: boolean;
   profissional?: {
     id: string;
     especialidade?: string;

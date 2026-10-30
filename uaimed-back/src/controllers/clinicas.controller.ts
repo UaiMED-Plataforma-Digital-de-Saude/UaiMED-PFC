@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { StatusVinculoClinica, TipoUsuario } from '@prisma/client';
 import { prisma } from '../config/database';
+import AuditoriaService from '../services/auditoria.service';
 import logger from '../utils/logger';
 import { ARTICLE_ADMIN_EMAIL } from '../constants/articleAdmin';
 
@@ -369,7 +370,7 @@ class ClinicasController {
 
       const profissional = await prisma.profissional.findUnique({
         where: { usuarioId },
-        select: { id: true },
+        select: { id: true, usuario: { select: { nome: true } } },
       });
       if (!profissional) return res.status(404).json({ error: 'Perfil médico não encontrado' });
 
@@ -389,6 +390,19 @@ class ClinicasController {
       }
 
       logger.success(`Solicitação da clínica ${clinicaId} ${status} pelo médico ${profissional.id}`);
+
+      // Vínculo aceito muda quem passa a enxergar os pacientes deste médico
+      // (escopo usado pela auditoria/relatório LGPD da clínica) — operação crítica.
+      await AuditoriaService.registrarAcesso({
+        ator: { id: usuarioId, tipo: req.user?.tipo },
+        acao: acao === 'aceitar' ? 'ACEITAR_VINCULO_CLINICA' : 'RECUSAR_VINCULO_CLINICA',
+        recurso: 'ClinicaProfissional',
+        recursoId: profissional.id,
+        pacientes: [{ id: usuarioId, nome: profissional.usuario.nome }],
+        detalhes: { clinicaId, status },
+        ip: req.ip,
+      });
+
       return res.json({ clinicaId, status });
     } catch (error) {
       logger.error('Erro ao responder solicitação de vínculo', error);

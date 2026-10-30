@@ -198,6 +198,10 @@ class AuthService {
         estado: usuario.estado,
         cep: usuario.cep,
         profissional,
+        // Usuários criados antes do fluxo de consentimento (ou que aceitaram
+        // uma versão antiga da política) precisam reconsentir após o login —
+        // o fluxo de cadastro só cobre contas novas.
+        precisaConsentimentoLgpd: usuario.consentimentoLgpd !== true || usuario.consentimentoLgpdVersao !== LGPD_POLICY_VERSION,
       },
       token,
       refreshToken,
