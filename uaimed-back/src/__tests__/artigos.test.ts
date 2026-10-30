@@ -135,7 +135,7 @@ describe('Artigos — administração exclusiva e leitura pública', () => {
   });
 
   it.each([ARTICLE_ADMIN_EMAIL, 'ADMIN@UAIMED.COM'])('reserva %s contra cadastro público', async (email) => {
-    const res = await request(app).post('/api/usuarios').send({ nome: 'Tentativa Admin', email, cpf: '98765432100', telefone: '11922222222', senha: 'pass123' });
+    const res = await request(app).post('/api/usuarios').send({ nome: 'Tentativa Admin', email, cpf: '98765432100', telefone: '11922222222', senha: 'pass123', consentimentoLgpd: true });
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('Este e-mail é reservado à administração');
   });

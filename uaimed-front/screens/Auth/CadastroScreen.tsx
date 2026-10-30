@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackScreenProps } from '@react-navigation/stack';
@@ -41,6 +42,8 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [aceitaLgpd, setAceitaLgpd] = useState(false);
+  const [showPoliticaModal, setShowPoliticaModal] = useState(false);
 
   // Campos específicos
   const [especialidade, setEspecialidade] = useState('');
@@ -103,6 +106,15 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
       return;
     }
 
+    if (!aceitaLgpd) {
+      showModal(
+        'Consentimento necessário',
+        'É necessário aceitar a Política de Privacidade (LGPD) para continuar.',
+        { type: 'warning' },
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       const payload: any = {
@@ -111,6 +123,7 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
         telefone: telefone.replace(/\D/g, ''),
         senha,
         tipo,
+        consentimentoLgpd: true,
       };
 
       if (tipo === TipoUsuario.CLINICA) {
@@ -281,6 +294,28 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
               </TouchableOpacity>
             </View>
 
+            <View style={styles.lgpdRow}>
+              <TouchableOpacity
+                style={styles.checkbox}
+                onPress={() => setAceitaLgpd((v) => !v)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: aceitaLgpd }}
+              >
+                <Ionicons
+                  name={aceitaLgpd ? 'checkbox' : 'square-outline'}
+                  size={22}
+                  color={aceitaLgpd ? '#4CAF50' : '#999'}
+                />
+              </TouchableOpacity>
+              <Text style={styles.lgpdText}>
+                Li e aceito a{' '}
+                <Text style={styles.lgpdLink} onPress={() => setShowPoliticaModal(true)}>
+                  Política de Privacidade (LGPD)
+                </Text>
+                {' *'}
+              </Text>
+            </View>
+
             <TouchableOpacity
               style={[styles.btnPrimary, loading && { opacity: 0.7 }]}
               onPress={handleCadastro}
@@ -293,6 +328,51 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
         </ScrollView>
       </KeyboardAvoidingView>
       <AppModal {...modal} onClose={hideModal} />
+
+      <Modal
+        visible={showPoliticaModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPoliticaModal(false)}
+      >
+        <View style={styles.politicaOverlay}>
+          <View style={styles.politicaCard}>
+            <Text style={styles.politicaTitulo}>Política de Privacidade (LGPD)</Text>
+            <ScrollView style={styles.politicaScroll}>
+              <Text style={styles.politicaTexto}>
+                A UaiMED coleta e trata seus dados pessoais (nome, CPF/CNPJ, e-mail, telefone e,
+                quando aplicável, dados relacionados aos seus agendamentos e consultas) com as
+                seguintes finalidades: viabilizar o seu cadastro, o agendamento de consultas, a
+                comunicação entre pacientes e profissionais de saúde, e a geração de relatórios
+                de gestão para clínicas parceiras.{'\n\n'}
+
+                O tratamento desses dados tem como base o seu consentimento (art. 7º, I, da Lei
+                nº 13.709/2018 — LGPD) e, quando aplicável, o cumprimento de obrigações legais e
+                regulatórias.{'\n\n'}
+
+                Seus dados de saúde e de contato só são acessados por profissionais e clínicas
+                diretamente vinculados ao seu atendimento. Todo acesso de um profissional ou
+                clínica aos seus dados é registrado em um log de auditoria interno.{'\n\n'}
+
+                Relatórios e exportações de dados agregados, usados para gestão das clínicas,
+                são anonimizados: CPF, telefone e e-mail são mascarados, exibindo apenas os
+                últimos dígitos necessários para conferência.{'\n\n'}
+
+                Você pode, a qualquer momento, solicitar a confirmação da existência de
+                tratamento, acesso, correção, anonimização, portabilidade ou eliminação dos seus
+                dados, conforme os arts. 17 a 22 da LGPD, pelos canais de contato da plataforma.
+                {'\n\n'}
+
+                Ao marcar a opção de aceite no cadastro, você declara estar de acordo com esta
+                política (versão 1.0).
+              </Text>
+            </ScrollView>
+            <TouchableOpacity style={styles.politicaFechar} onPress={() => setShowPoliticaModal(false)}>
+              <Text style={styles.politicaFecharTexto}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -320,6 +400,17 @@ const styles = StyleSheet.create({
   passwordInput: { flex: 1, paddingVertical: 8, fontSize: 16 },
   btnPrimary: { backgroundColor: '#4CAF50', paddingVertical: 15, borderRadius: 10, alignItems: 'center', marginTop: 40 },
   btnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
+  lgpdRow: { flexDirection: 'row', alignItems: 'center', marginTop: 24, gap: 10 },
+  checkbox: { padding: 2 },
+  lgpdText: { flex: 1, fontSize: 13, color: '#444', lineHeight: 18 },
+  lgpdLink: { color: '#4CAF50', fontWeight: '700', textDecorationLine: 'underline' },
+  politicaOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+  politicaCard: { backgroundColor: '#FFF', borderRadius: 12, padding: 20, maxHeight: '80%' },
+  politicaTitulo: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 12 },
+  politicaScroll: { marginBottom: 16 },
+  politicaTexto: { fontSize: 14, color: '#444', lineHeight: 20 },
+  politicaFechar: { backgroundColor: '#4CAF50', paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+  politicaFecharTexto: { color: '#FFF', fontWeight: 'bold', fontSize: 15 },
 });
 
 export default CadastroScreen;

@@ -124,6 +124,7 @@ describe('Clínicas — listagem e recomendadas', () => {
         tipo: 'clinica',
         cidade: 'Belo Horizonte',
         estado: 'MG',
+        consentimentoLgpd: true,
       });
 
       expect(res.status).toBe(201);
@@ -140,6 +141,7 @@ describe('Clínicas — listagem e recomendadas', () => {
         telefone: '11999990005',
         senha: 'senha123',
         tipo: 'clinica',
+        consentimentoLgpd: true,
       });
 
       expect(res.status).toBe(409);

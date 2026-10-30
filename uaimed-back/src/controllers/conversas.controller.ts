@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { TipoUsuario } from "@prisma/client";
 import { prisma } from "../config/database";
+import AuditoriaService from "../services/auditoria.service";
 import logger from "../utils/logger";
 
 class ConversasController {
@@ -153,6 +154,7 @@ class ConversasController {
             ...(profissional ? [{ profissionalId: profissional.id }] : []),
           ],
         },
+        include: { usuario: { select: { id: true, nome: true } } },
       });
       if (!conversa) return res.status(403).json({ error: "Sem acesso a esta conversa" });
 
@@ -169,6 +171,18 @@ class ConversasController {
         },
         orderBy: { criado_em: "asc" },
       });
+
+      // Se quem acessa é o profissional (não o paciente dono da conversa), audita.
+      if (conversa.usuarioId !== usuarioId) {
+        await AuditoriaService.registrarAcesso({
+          ator: { id: usuarioId, tipo: req.user?.tipo },
+          acao: "VISUALIZAR_MENSAGENS_PACIENTE",
+          recurso: "Conversa",
+          recursoId: conversaId,
+          pacientes: [{ id: conversa.usuario.id, nome: conversa.usuario.nome }],
+          ip: req.ip,
+        });
+      }
 
       return res.json(mensagens);
     } catch (err) {

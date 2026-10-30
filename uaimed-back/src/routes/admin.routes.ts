@@ -16,5 +16,6 @@ router.put('/admin/destaques', authMiddleware, requireAdmin, validateBody(destaq
 
 // Protegido: apenas usuários autenticados com tipo 'clinica'
 router.get('/admin/summary', authMiddleware, requireRole(TipoUsuario.clinica), (req, res) => AdminController.summary(req, res));
+router.get('/admin/logs-auditoria', authMiddleware, requireRole(TipoUsuario.clinica), (req, res) => AdminController.logsAuditoria(req, res));
 
 export default router;

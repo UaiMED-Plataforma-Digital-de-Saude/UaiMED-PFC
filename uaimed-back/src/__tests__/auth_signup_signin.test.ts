@@ -24,6 +24,7 @@ describe('Auth — signup e signin', () => {
       telefone: '11999999999',
       senha,
       tipo: 'paciente',
+      consentimentoLgpd: true,
     });
     expect(res.status).toBe(201);
     expect(res.body).toHaveProperty('token');
@@ -39,8 +40,22 @@ describe('Auth — signup e signin', () => {
       telefone: '11999999999',
       senha,
       tipo: 'paciente',
+      consentimentoLgpd: true,
     });
     expect(res.status).toBe(409);
+  });
+
+  it('rejeita cadastro sem aceitar a política de privacidade (LGPD)', async () => {
+    const res = await request(app).post('/api/usuarios').send({
+      nome: 'Sem Consentimento',
+      email: `sem-consentimento-${unique}@example.com`,
+      cpf: uuidv4().replace(/\D/g, '').padEnd(11, '0').slice(0, 11),
+      telefone: '11999999999',
+      senha,
+      tipo: 'paciente',
+      consentimentoLgpd: false,
+    });
+    expect(res.status).toBe(400);
   });
 
   it('faz login com credenciais corretas', async () => {

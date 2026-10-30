@@ -41,6 +41,7 @@ describe('Auth schemas — validação Zod', () => {
       cpf: '12345678901',
       telefone: '11999999999',
       senha: 'senha123',
+      consentimentoLgpd: true,
     };
 
     it('aceita dados válidos de paciente', () => {
@@ -92,6 +93,17 @@ describe('Auth schemas — validação Zod', () => {
       const result = signupSchema.safeParse({ ...base, senha: '123' });
       expect(result.success).toBe(false);
     });
+
+    it('rejeita cadastro sem aceitar a política de privacidade (LGPD)', () => {
+      const result = signupSchema.safeParse({ ...base, consentimentoLgpd: false });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejeita cadastro quando o campo consentimentoLgpd está ausente', () => {
+      const { consentimentoLgpd, ...semConsentimento } = base;
+      const result = signupSchema.safeParse(semConsentimento);
+      expect(result.success).toBe(false);
+    });
   });
 
   // ─── signupSchemaValidated (.refine para médico) ─────────────────────────────
@@ -104,6 +116,7 @@ describe('Auth schemas — validação Zod', () => {
       telefone: '11988888888',
       senha: 'senha456',
       tipo: 'medico',
+      consentimentoLgpd: true,
     };
 
     it('rejeita médico sem especialidade e CRM', () => {
@@ -150,6 +163,7 @@ describe('Auth schemas — validação Zod', () => {
         telefone: '31999999999',
         senha: 'senha456',
         tipo: 'clinica',
+        consentimentoLgpd: true,
       });
       expect(result.success).toBe(true);
     });
