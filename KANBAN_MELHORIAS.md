@@ -1,7 +1,7 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.9.0  
-**Data**: 13 de Outubro de 2026  
+**Versão**: 1.10.0  
+**Data**: 30 de Outubro de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
 
@@ -306,6 +306,21 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
 
 ---
 
+## 🟢 CONCLUÍDO — 30/10/2026
+
+---
+
+### ✅ [SECURITY] Proteção LGPD
+**Área**: Backend + Frontend | **Esforço**: 8 — resolve o item de Backlog com o mesmo nome.
+
+- [x] Política de consentimento no cadastro — `consentimentoLgpd` obrigatório (`true`) em `POST /api/usuarios`; versão e data do aceite gravadas no `Usuario`; checkbox + modal com o texto da política em `CadastroScreen.tsx`
+- [x] Log de auditoria de acesso a dados de pacientes — model `LogAuditoria` (sem FK, sobrevive à exclusão do ator/paciente); gravado em `professional.controller`, `contatos.controller` e `conversas.controller` sempre que um médico/clínica acessa dados de outro usuário; consultável via `GET /admin/logs-auditoria`
+- [x] Anonimização em exports/relatórios — `GET /admin/relatorios/pacientes` exporta CSV com CPF/telefone/e-mail mascarados (`src/utils/anonimizacao.ts`); a própria exportação também é auditada
+
+Detalhes em [`uaimed-back/documents/API.md`](./uaimed-back/documents/API.md#lgpd--consentimento-auditoria-e-anonimização). Suíte do backend em 145/145 testes (6 novos casos cobrindo consentimento, auditoria e anonimização).
+
+---
+
 ## 🔴 BUG CONHECIDO — Encontrado em 13/10/2026
 
 ---
@@ -502,18 +517,6 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
 
 ---
 
-### 📌 [SECURITY] Proteção LGPD
-- **Área**: Backend
-- **Prioridade**: 🟠 Alto
-- **Esforço**: 8
-- **Descrição**: Sem anonimização, consentimento ou auditoria de acesso a dados sensíveis (confirmado por busca no código — nenhuma menção a LGPD/anonimização/consentimento). Relevante por ser uma plataforma de saúde.
-- **Critério de aceite**:
-  - [ ] Política de consentimento no cadastro
-  - [ ] Log de auditoria de acesso a dados de pacientes
-  - [ ] Anonimização em exports/relatórios
-
----
-
 ## ⏸️ BLOQUEADO
 
 > Itens que não podem avançar por dependência externa.
@@ -542,9 +545,10 @@ Este documento segue o estilo **Kanban** para rastreamento de melhorias, débito
 |---|---|
 | 🟢 Concluído — Sprints Anteriores (até 10/04/2026) | 19 itens |
 | 🟢 Concluído — Mai–Out/2026 (consolidado) | 13 itens |
+| 🟢 Concluído — 30/10/2026 | 1 item |
 | 🔴 Bug Conhecido | 1 item |
 | 🔵 A Fazer (próxima sprint) | 9 itens |
-| 🗃️ Backlog | 7 itens |
+| 🗃️ Backlog | 6 itens |
 | ⏸️ Bloqueado | 2 itens |
 | **Total** | **51 itens** |
 
@@ -564,7 +568,7 @@ Sprint seguinte (~1 semana)
         HistoricoAvaliacoesScreen, Status de pagamento visível
 
 Sprint seguinte (~1 semana)
-  Foco: E-mail de confirmação de agendamento/pagamento, Proteção LGPD
+  Foco: E-mail de confirmação de agendamento/pagamento
 
 Sprint entrega PFC
   Foco: Polimento visual, documentação final, apresentação
@@ -583,6 +587,7 @@ Sprint entrega PFC
 | 09/04/2026 | 1.7.0 | SelecaoHorarioScreen reescrita com calendário mensal + grade de horários; backend suporta filtro por `?data=YYYY-MM-DD` |
 | 10/04/2026 | 1.8.0 | Telas MinhasConsultas e MeusPagamentos; bug fix campo `data` vs `dataHora`; Boleto bancário; UX HomeScreen e PerfilScreen; fix Maximum update depth; fix expo-notifications Expo Go |
 | 13/10/2026 | 1.9.0 | Consolidação de ~6 meses sem atualização (Mai–Out/2026): 13 entregas movidas para Concluído (clínicas, artigos, chat, geolocalização, admin, refresh token, rate limiting, Zod, testes, logging), todas verificadas por inspeção de código. Removidos 7 itens resolvidos do Backlog/A Fazer. **Encontrado e documentado 1 bug crítico**: cancelamento de consulta chama endpoint inexistente no backend (`PATCH /agendamentos/:id/cancelar`). Adicionado item de Proteção LGPD ao Backlog. |
+| 30/10/2026 | 1.10.0 | Item "[SECURITY] Proteção LGPD" movido do Backlog para Concluído: consentimento obrigatório no cadastro, log de auditoria de acesso a dados de pacientes (`GET /admin/logs-auditoria`) e relatório de pacientes anonimizado (`GET /admin/relatorios/pacientes`). Removido também do Foco da sprint "E-mail de confirmação... / Proteção LGPD". |
 
 ---
 

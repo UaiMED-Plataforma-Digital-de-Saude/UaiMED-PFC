@@ -1,7 +1,7 @@
 # 📘 Documentação Completa do Projeto UaiMED
 
-**Versão**: 1.7.0  
-**Data**: 13 de Outubro de 2026  
+**Versão**: 1.8.0  
+**Data**: 30 de Outubro de 2026  
 **Classificação**: Documentação Técnica de Engenharia de Software  
 **Status**: Projeto em Desenvolvimento Avançado — Seção de Avaliação do Projeto (percurso, decisões técnicas, desafios, resultados e perspectivas) revisada com base no histórico real do Git (135 commits, 63 PRs, Fev–Out/2026)
 
@@ -219,7 +219,7 @@ Plataforma mobile-first que:
 #### RNF02 - Segurança
 - **RNF02.1**: Senhas criptografadas (bcrypt) ✅
 - **RNF02.2**: JWT com expiração (7 dias) ✅
-- **RNF02.3**: Proteção LGPD ⚠️ (sem anonimização, consentimento ou auditoria de acesso implementados)
+- **RNF02.3**: Proteção LGPD ✅ (consentimento obrigatório no cadastro, log de auditoria de acesso a dados de pacientes, relatório de pacientes anonimizado)
 - **RNF02.4**: Validação de entrada (Zod) ✅ (cobertura ampla via `validateBody` em praticamente todas as rotas de escrita)
 - **RNF02.5**: Refresh automático de token ✅ (`POST /api/sessions/refresh` implementado e funcional desde Set/2026)
 - **RNF02.6**: Rate limiting contra brute-force em login/cadastro ✅ (`express-rate-limit`, 10 tentativas/IP/min)
@@ -730,6 +730,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ Chat/Conversas entre usuários (REST, sem WebSocket/tempo real)
 - ✅ **139 casos de teste automatizados** (20 arquivos) cobrindo os endpoints principais
 - ✅ Logging revisado — Prisma não loga mais SQL com dados de usuário; app não loga payloads fora de ambiente de desenvolvimento
+- ✅ Proteção LGPD — consentimento obrigatório no cadastro, log de auditoria (`GET /admin/logs-auditoria`) de acesso a dados de pacientes, relatório de pacientes anonimizado (`GET /admin/relatorios/pacientes`)
 - ✅ Docker Compose para desenvolvimento
 - ✅ CI/CD com GitHub Actions
 
@@ -762,8 +763,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ⚠️ Status de pagamento visível na lista de agendamentos
 - ⚠️ `ResultadosScreen` com busca real na API
 - ⚠️ `HistoricoAvaliacoesScreen` com dados reais
-- ⚠️ Relatórios exportáveis
-- ⚠️ Proteção LGPD (anonimização, consentimento, auditoria de acesso)
+- ⚠️ Relatórios exportáveis de uso geral (já existe um caso específico: relatório de pacientes anonimizado, ver RNF02.3)
 
 #### ❌ Não Implementado (Fase 1)
 
@@ -801,7 +801,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ Validação de entrada (Zod) — cobertura ampla
 - ✅ CORS configurado
 - ✅ Logging sem dados sensíveis (SQL/payload) fora de desenvolvimento
-- ⚠️ LGPD: sem anonimização, consentimento ou auditoria de acesso implementados
+- ✅ LGPD: consentimento obrigatório no cadastro, log de auditoria de acesso a dados de pacientes, relatório de pacientes anonimizado
 
 ### 8.3 Histórico de Correções (v1.0 → v1.6)
 
@@ -1033,9 +1033,11 @@ GET /api/admin/analytics/location?granularity=city|state
 ### 10.4 Governança de Dados
 
 #### 10.4.1 Privacidade (LGPD)
-- **Anonimização**: Dados sensíveis protegidos
-- **Consentimento**: Controle de uso
-- **Auditoria**: Log de acessos
+- **Anonimização**: CPF/telefone/e-mail mascarados no relatório de pacientes (`GET /admin/relatorios/pacientes`)
+- **Consentimento**: Aceite obrigatório da Política de Privacidade no cadastro (`consentimentoLgpd`), com versão e data gravadas no `Usuario`
+- **Auditoria**: Log de acessos de médico/clínica a dados de outros usuários (model `LogAuditoria`), consultável em `GET /admin/logs-auditoria`
+
+Detalhes de implementação: [`uaimed-back/documents/API.md`](./uaimed-back/documents/API.md#lgpd--consentimento-auditoria-e-anonimização).
 
 #### 10.4.2 Backup e Recuperação
 - **Backup Diário**: Automatizado
@@ -1230,6 +1232,26 @@ O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 ---
 
 ## 14. Changelog
+
+### v1.8.0 — 30 de Outubro de 2026
+
+#### 🟢 Implementado
+
+**Backend — Proteção LGPD:**
+- Model `LogAuditoria` (sem FK — sobrevive à exclusão do ator/paciente) e `consentimentoLgpd`/`consentimentoLgpdVersao`/`consentimentoLgpdEm` no `Usuario` (migração `20261030152835_add_lgpd_consent_and_audit_log`)
+- `POST /api/usuarios` passa a exigir `consentimentoLgpd: true`
+- Log de auditoria gravado em `professional.controller`, `contatos.controller` e `conversas.controller` sempre que um médico/clínica acessa dados de outro usuário; consultável via `GET /admin/logs-auditoria`
+- `GET /admin/relatorios/pacientes` — relatório CSV de pacientes com CPF/telefone/e-mail anonimizados (`src/utils/anonimizacao.ts`); exportação também auditada
+- 6 novos casos de teste (`auditoria.test.ts`, `relatorios.test.ts` + ajustes em specs de signup existentes) — suíte completa do backend em 145/145
+
+**Frontend:**
+- `CadastroScreen.tsx` — checkbox obrigatório de aceite da Política de Privacidade (LGPD) com modal exibindo o texto completo; bloqueia o cadastro sem o aceite
+
+**Documentação:**
+- `uaimed-back/documents/API.md` — nova seção "LGPD — consentimento, auditoria e anonimização"
+- `KANBAN_MELHORIAS.md` — item "[SECURITY] Proteção LGPD" movido do Backlog para Concluído
+
+---
 
 ### v1.7.0 — 13 de Outubro de 2026
 
