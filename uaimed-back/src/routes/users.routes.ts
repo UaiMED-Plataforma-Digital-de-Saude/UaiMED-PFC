@@ -11,48 +11,74 @@ import crypto from "node:crypto";
 
 const router = Router();
 
-// PUT /api/users/me — atualiza nome e telefone do usuário autenticado
+// PUT /api/users/me — atualiza a conta e, para médicos, o próprio CRM.
 router.put('/users/me', authMiddleware, validateBody(atualizarPerfilSchema), async (req, res) => {
   try {
     const userId = (req as any).user?.id;
     if (!userId) return res.status(401).json({ error: 'Usuário não autenticado' });
 
-    const { nome, telefone, endereco, cidade, estado, cep } = req.body as {
+    const { nome, telefone, endereco, cidade, estado, cep, crm } = req.body as {
       nome?: string;
       telefone?: string;
       endereco?: string;
       cidade?: string;
       estado?: string;
       cep?: string;
+      crm?: string;
     };
     const usuarioAtual = await prisma.usuario.findUnique({
       where: { id: userId },
       select: { tipo: true },
     });
     if (!usuarioAtual) return res.status(404).json({ error: 'Usuário não encontrado' });
+    if (crm !== undefined && usuarioAtual.tipo !== 'medico') {
+      return res.status(403).json({ error: 'Somente médicos podem alterar o próprio CRM' });
+    }
 
-    const updated = await prisma.usuario.update({
-      where: { id: userId },
-      data: {
-        ...(nome?.trim()     ? { nome: nome.trim() }         : {}),
-        ...(telefone?.trim() ? { telefone: telefone.trim() } : {}),
-        ...(usuarioAtual.tipo === 'clinica' ? {
-          endereco: endereco?.trim() || null,
-          cidade: cidade?.trim() || null,
-          estado: estado?.trim().toUpperCase() || null,
-          cep: cep?.trim() || null,
-        } : {}),
-      },
-      select: {
-        id: true, nome: true, email: true, cpf: true, cnpj: true,
-        telefone: true, tipo: true, avatar: true, endereco: true,
-        cidade: true, estado: true, cep: true,
-      },
+    const updated = await prisma.$transaction(async (tx) => {
+      let profissional: { id: string; crm: string } | null = null;
+      if (crm !== undefined) {
+        const existente = await tx.profissional.findUnique({ where: { usuarioId: userId }, select: { id: true } });
+        if (!existente) throw new Error('Perfil profissional não encontrado');
+        const duplicado = await tx.profissional.findFirst({
+          where: { crm: { equals: crm, mode: 'insensitive' }, NOT: { usuarioId: userId } },
+          select: { id: true },
+        });
+        if (duplicado) throw new Error('CRM já cadastrado para outro profissional');
+        profissional = await tx.profissional.update({
+          where: { usuarioId: userId }, data: { crm }, select: { id: true, crm: true },
+        });
+      }
+      const conta = await tx.usuario.update({
+        where: { id: userId },
+        data: {
+          ...(nome?.trim()     ? { nome: nome.trim() }         : {}),
+          ...(telefone?.trim() ? { telefone: telefone.trim() } : {}),
+          ...(usuarioAtual.tipo === 'clinica' ? {
+            endereco: endereco?.trim() || null,
+            cidade: cidade?.trim() || null,
+            estado: estado?.trim().toUpperCase() || null,
+            cep: cep?.trim() || null,
+          } : {}),
+        },
+        select: {
+          id: true, nome: true, email: true, cpf: true, cnpj: true,
+          telefone: true, tipo: true, avatar: true, endereco: true,
+          cidade: true, estado: true, cep: true,
+        },
+      });
+      return { ...conta, ...(profissional ? { profissional } : {}) };
     });
 
     return res.json({ user: updated });
-  } catch (err) {
+  } catch (err: any) {
     logger.error('Erro ao atualizar perfil', err);
+    if (err?.code === 'P2002' || err?.message === 'CRM já cadastrado para outro profissional') {
+      return res.status(409).json({ error: 'CRM já cadastrado para outro profissional' });
+    }
+    if (err?.message === 'Perfil profissional não encontrado') {
+      return res.status(404).json({ error: err.message });
+    }
     return res.status(500).json({ error: 'Erro ao atualizar perfil' });
   }
 });

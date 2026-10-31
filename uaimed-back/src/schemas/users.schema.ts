@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { crmSchema } from './professional.schema';
 
 export const atualizarPerfilSchema = z.object({
   nome: z.string().trim().min(1).optional(),
@@ -7,6 +8,7 @@ export const atualizarPerfilSchema = z.object({
   cidade: z.string().trim().nullable().optional(),
   estado: z.string().trim().nullable().optional(),
   cep: z.string().trim().nullable().optional(),
+  crm: crmSchema.optional(),
 });
 
 export const atualizarAvatarSchema = z.object({
