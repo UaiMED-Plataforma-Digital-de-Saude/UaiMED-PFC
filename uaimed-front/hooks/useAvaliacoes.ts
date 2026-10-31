@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { Avaliacao, EstatisticasAvaliacao } from '../types/avaliacao';
 import uaiMedApi from '../api/uaiMedApi';
 
@@ -9,28 +10,38 @@ import uaiMedApi from '../api/uaiMedApi';
 export const useAvaliacoes = (medicoId?: string) => {
   const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([]);
   const [notaMedia, setNotaMedia] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [totalAvaliacoes, setTotalAvaliacoes] = useState<number | null>(null);
+  const [loading, setLoading] = useState(Boolean(medicoId));
   const [error, setError] = useState<string | null>(null);
+  const requisicaoAtual = useRef(0);
 
   /**
    * Carrega a média de avaliação de um profissional específico da API real
    */
   const carregarMediaAvaliacoes = useCallback(async (id: string) => {
+    const requisicao = ++requisicaoAtual.current;
     setLoading(true);
     setError(null);
     try {
       const res = await uaiMedApi.get(`/avaliacoes/medico/${id}/media`);
-      // ✅ Number() garante conversão caso a API retorne string (ex: "4.5")
       const nota: number = Number(res.data?.notaMedia ?? 0);
-      setNotaMedia(nota);
-      return nota;
+      const total = Number(res.data?.totalAvaliacoes);
+      if (!Number.isInteger(total) || total < 0 || !Number.isFinite(nota) || nota < 0 || nota > 5 || (total > 0 && nota === 0)) {
+        throw new Error('Resumo de avaliações inválido');
+      }
+      if (requisicao !== requisicaoAtual.current) return null;
+      setTotalAvaliacoes(total);
+      setNotaMedia(total > 0 ? nota : null);
+      return total > 0 ? nota : null;
     } catch (err: any) {
-      const message = err.response?.data?.message || 'Erro ao carregar avaliações.';
+      if (requisicao !== requisicaoAtual.current) return null;
+      const message = err.response?.data?.error || err.response?.data?.message || 'Erro ao carregar avaliações.';
       setError(message);
-      console.error('Erro em useAvaliacoes.carregarMediaAvaliacoes:', err);
+      setNotaMedia(null);
+      setTotalAvaliacoes(null);
       return null;
     } finally {
-      setLoading(false);
+      if (requisicao === requisicaoAtual.current) setLoading(false);
     }
   }, []);
 
@@ -55,13 +66,19 @@ export const useAvaliacoes = (medicoId?: string) => {
   }, []);
 
   /**
-   * Efeito para carregar média quando o componente é montado (se medicoId for fornecido)
+   * Recarrega ao voltar ao perfil e ignora respostas de uma tela/conta anterior.
    */
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
+    setNotaMedia(null);
+    setTotalAvaliacoes(null);
+    setError(null);
     if (medicoId) {
       carregarMediaAvaliacoes(medicoId);
+    } else {
+      setLoading(false);
     }
-  }, [medicoId, carregarMediaAvaliacoes]);
+    return () => { requisicaoAtual.current += 1; };
+  }, [medicoId, carregarMediaAvaliacoes]));
 
   /**
    * Cria uma nova avaliação via API
@@ -147,6 +164,7 @@ export const useAvaliacoes = (medicoId?: string) => {
   return {
     avaliacoes,
     notaMedia,
+    totalAvaliacoes,
     loading,
     error,
     loadAvaliacoes,

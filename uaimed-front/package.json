@@ -8,7 +8,9 @@
     "start": "expo start",
     "android": "bash start.sh --android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test:cadastro": "node --test tests/cadastroValidation.test.cjs",
+    "test:perfil": "node --test tests/avaliacoesPerfil.test.cjs tests/cadastroValidation.test.cjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
