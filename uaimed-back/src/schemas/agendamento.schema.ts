@@ -9,3 +9,11 @@ export const criarAgendamentoSchema = z.object({
 });
 
 export type CriarAgendamentoInput = z.infer<typeof criarAgendamentoSchema>;
+
+export const remarcarAgendamentoSchema = z.object({
+  dataHora: z.string().refine((v) => !Number.isNaN(Date.parse(v)), {
+    message: "dataHora inválida",
+  }),
+});
+
+export type RemarcarAgendamentoInput = z.infer<typeof remarcarAgendamentoSchema>;

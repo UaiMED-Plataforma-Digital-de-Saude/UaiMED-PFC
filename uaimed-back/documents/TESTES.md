@@ -1,7 +1,7 @@
 # 🧪 Estratégia e Documentação de Testes — UaiMED Backend
 
-**Versão**: 1.3.0  
-**Data**: 30 de Outubro de 2026  
+**Versão**: 1.4.0  
+**Data**: 01 de Novembro de 2026  
 **Framework**: Vitest 1.4 + Supertest 6.3  
 **Banco de Teste**: PostgreSQL (`uaimed_test`) — isolado do banco de desenvolvimento
 
@@ -29,7 +29,7 @@ O UaiMED adota uma estratégia de testes em camadas, priorizando **testes de int
 - **Isolamento**: cada suíte cria e limpa seus próprios dados por ID
 - **Repetibilidade**: UUIDs únicos garantem que testes paralelos não colidam
 - **Confiabilidade**: banco de teste isolado (`uaimed_test`) com schema migrado automaticamente via `globalSetup`
-- **Velocidade**: 155 casos (unitários + integração), em 23 arquivos, rodam em menos de 8 segundos no total (`Duration 7.75s` na última execução)
+- **Velocidade**: 238 casos (unitários + integração), em 26 arquivos, rodam em menos de 9 segundos no total (`Duration 8.94s` na última execução)
 
 ---
 
@@ -43,12 +43,12 @@ O UaiMED adota uma estratégia de testes em camadas, priorizando **testes de int
         └──────────────────┬──────────────────┘
                            │
         ┌──────────────────▼──────────────────┐
-        │      Integração (API)               │  ← Principal camada automatizada (116 casos, 20 arquivos)
+        │      Integração (API)               │  ← Principal camada automatizada (145 casos, 23 arquivos)
         │      Vitest + Supertest             │    Testa controllers, services e banco real
         └──────────────────┬──────────────────┘
                            │
         ┌──────────────────▼──────────────────┐
-        │          Unitários                  │  ← Lógica isolada: utils, schemas (39 casos, 3 arquivos)
+        │          Unitários                  │  ← Lógica isolada: utils, schemas (93 casos, 3 arquivos)
         │       Vitest (sem DB)               │
         └─────────────────────────────────────┘
 ```
@@ -84,6 +84,7 @@ Os testes de integração são a **camada principal** de validação automatizad
 | 6 | Rejeita login de usuário inexistente | `POST /api/sessions` | 401 Unauthorized |
 | 7 | Login de usuário sem `consentimentoLgpd` retorna `precisaConsentimentoLgpd: true` e ainda libera o token | `POST /api/sessions` | 200, login não bloqueado |
 | 8 | `POST /users/me/consentimento-lgpd` registra o aceite e audita a operação | `POST /api/users/me/consentimento-lgpd` | 200, `LogAuditoria` criado |
+| 9 | Rejeita telefone gigantesco no cadastro, sem criar a conta (parametrizado para `paciente`/`medico`/`clinica`) | `POST /api/usuarios` | 400 Bad Request, nenhuma conta criada |
 
 ---
 
@@ -339,6 +340,54 @@ Os testes de integração são a **camada principal** de validação automatizad
 
 ---
 
+### 3.21 `perfil_profissional.test.ts`
+**Localização**: `src/__tests__/perfil_profissional.test.ts`
+
+> Suíte pré-existente que não havia sido documentada aqui; incluída nesta atualização junto com a correção de cancelamento/remarcação.
+
+| # | Caso de Teste | Endpoint | Resultado Esperado |
+|---|---------------|----------|--------------------|
+| 1 | Salva e normaliza somente o CRM do médico autenticado, sem exigir endereço | `PUT /api/users/me` | 200 `user.profissional: { id, crm }` |
+| 2 | Rejeita CRM de outro médico sem diferenciar maiúsculas e sem alterar o nome | `PUT /api/users/me` | 409 Conflict |
+| 3 | Rejeita CRM vazio, malformado ou excessivo (5 variações parametrizadas: vazio, espaços, sem número, caractere inválido, 21 chars) | `PUT /api/users/me` | 400 Bad Request |
+| 4 | Exige autenticação e bloqueia alteração de CRM por paciente | `PUT /api/users/me` | 401 / 403 |
+| 5 | Retorna 404 se a conta médica não possui perfil profissional | `PUT /api/users/me` | 404 Not Found |
+| 6 | Retorna a mesma média e quantidade no perfil e na lista de avaliações recebidas | `GET /avaliacoes/medico/:id/media` + `GET /professionals/me/avaliacoes` | 200, valores idênticos |
+| 7 | Identifica profissional sem avaliações sem usar avaliações de outro médico | `GET /avaliacoes/medico/:id/media` + `GET /professionals/me/avaliacoes` | 200 `{ notaMedia: 0, totalAvaliacoes: 0 }` |
+| 8 | Atualiza média e total depois de uma nova avaliação | `GET /avaliacoes/medico/:id/media` | 200 média recalculada |
+
+---
+
+### 3.22 `agendamentos_cancelar.test.ts`
+**Localização**: `src/__tests__/agendamentos_cancelar.test.ts`
+
+| # | Caso de Teste | Endpoint | Resultado Esperado |
+|---|---------------|----------|--------------------|
+| 1 | Cancela um agendamento futuro com mais de 24h de antecedência | `PATCH /api/agendamentos/:id/cancelar` | 200 `{ status: 'cancelado' }` + `LogAuditoria` (`CANCELAR_AGENDAMENTO`) |
+| 2 | Rejeita cancelamento sem autenticação | `PATCH /api/agendamentos/:id/cancelar` | 401 Unauthorized |
+| 3 | Rejeita cancelamento de agendamento de outro usuário | `PATCH /api/agendamentos/:id/cancelar` | 403 Forbidden |
+| 4 | Rejeita cancelamento com menos de 24h de antecedência | `PATCH /api/agendamentos/:id/cancelar` | 422 Unprocessable Entity |
+| 5 | Rejeita cancelamento de agendamento já cancelado | `PATCH /api/agendamentos/:id/cancelar` | 409 Conflict |
+| 6 | Retorna 404 para agendamento inexistente | `PATCH /api/agendamentos/:id/cancelar` | 404 Not Found |
+
+---
+
+### 3.23 `agendamentos_remarcar.test.ts`
+**Localização**: `src/__tests__/agendamentos_remarcar.test.ts`
+
+| # | Caso de Teste | Endpoint | Resultado Esperado |
+|---|---------------|----------|--------------------|
+| 1 | Remarca um agendamento futuro com mais de 24h de antecedência, mantendo o mesmo id | `PATCH /api/agendamentos/:id/remarcar` | 200 mesmo `id`, nova `dataHora` + `LogAuditoria` (`REMARCAR_AGENDAMENTO`) |
+| 2 | Rejeita remarcação sem autenticação | `PATCH /api/agendamentos/:id/remarcar` | 401 Unauthorized |
+| 3 | Rejeita remarcação de agendamento de outro usuário | `PATCH /api/agendamentos/:id/remarcar` | 403 Forbidden |
+| 4 | Rejeita remarcação com menos de 24h de antecedência da consulta atual | `PATCH /api/agendamentos/:id/remarcar` | 422 Unprocessable Entity |
+| 5 | Rejeita remarcação para um horário já ocupado do mesmo profissional | `PATCH /api/agendamentos/:id/remarcar` | 409 Conflict |
+| 6 | Rejeita remarcação de agendamento já cancelado | `PATCH /api/agendamentos/:id/remarcar` | 409 Conflict |
+| 7 | Rejeita `dataHora` inválida | `PATCH /api/agendamentos/:id/remarcar` | 400 Bad Request |
+| 8 | Retorna 404 para agendamento inexistente | `PATCH /api/agendamentos/:id/remarcar` | 404 Not Found |
+
+---
+
 ## 4. Testes Unitários
 
 Os testes unitários validam lógica isolada **sem necessidade de banco de dados**. São rápidos, focados e não dependem do Docker ou do PostgreSQL.
@@ -518,7 +567,7 @@ npx vitest run --coverage
 | Suíte | Casos | Tipo | Status |
 |-------|-------|------|--------|
 | `health.test.ts` | 1 | Integração | ✅ Passando |
-| `auth_signup_signin.test.ts` | 8 | Integração | ✅ Passando |
+| `auth_signup_signin.test.ts` | 11 | Integração | ✅ Passando |
 | `auth_notifications.test.ts` | 2 | Integração | ✅ Passando |
 | `contatos.test.ts` | 3 | Integração | ✅ Passando |
 | `medicos_agendamentos.test.ts` | 2 | Integração | ✅ Passando |
@@ -537,7 +586,10 @@ npx vitest run --coverage
 | `auditoria.test.ts` | 2 | Integração | ✅ Passando |
 | `relatorios.test.ts` | 2 | Integração | ✅ Passando |
 | `users_lgpd.test.ts` | 4 | Integração | ✅ Passando |
-| **Subtotal** | **116** | | **✅ 116/116** |
+| `perfil_profissional.test.ts` | 12 | Integração | ✅ Passando |
+| `agendamentos_cancelar.test.ts` | 6 | Integração | ✅ Passando |
+| `agendamentos_remarcar.test.ts` | 8 | Integração | ✅ Passando |
+| **Subtotal** | **145** | | **✅ 145/145** |
 
 #### Testes Unitários
 
@@ -545,17 +597,19 @@ npx vitest run --coverage
 |-------|-------|------|--------|
 | `unit/jwt.unit.test.ts` | 8 | Unitário | ✅ Passando |
 | `unit/hash.unit.test.ts` | 8 | Unitário | ✅ Passando |
-| `unit/auth.schema.unit.test.ts` | 23 | Unitário | ✅ Passando |
-| **Subtotal** | **39** | | **✅ 39/39** |
+| `unit/auth.schema.unit.test.ts` | 77 | Unitário | ✅ Passando |
+| **Subtotal** | **93** | | **✅ 93/93** |
+
+> `auth.schema.unit.test.ts` cresceu de 23 para 77 casos ao longo de revisões anteriores (não documentadas aqui individualmente) com blocos `it.each` cobrindo variações de nome com acento, telefone em formatos diferentes, senha no limite de 72 bytes, CRM e CNPJ inválidos — ver seção 4.3 para os grupos, não cada valor testado.
 
 #### Total Geral
 
 | Tipo | Casos | Status |
 |------|-------|--------|
-| Integração (API) | 116 | ✅ |
-| Unitários | 39 | ✅ |
+| Integração (API) | 145 | ✅ |
+| Unitários | 93 | ✅ |
 | E2E automatizado | 0 | ⚠️ Planejado |
-| **Total** | **155** | **✅ 155/155** (executado em 30/10/2026, `Duration 7.75s`) |
+| **Total** | **238** | **✅ 238/238** (executado em 01/11/2026, `Duration 8.94s`) |
 
 ### Endpoints Cobertos
 
@@ -576,6 +630,8 @@ npx vitest run --coverage
 | `/api/medicos` | GET | ✅ |
 | `/api/agendamentos` | GET + POST | ✅ |
 | `/api/agendamentos/sugestoes-horario` | GET | ✅ |
+| `/api/agendamentos/:id/cancelar` | PATCH | ✅ |
+| `/api/agendamentos/:id/remarcar` | PATCH | ✅ |
 | `/api/avaliacoes` | POST | ✅ |
 | `/api/avaliacoes/medico/:id/media` | GET | ✅ |
 | `/api/pagamentos` | GET + POST | ✅ |
@@ -656,7 +712,7 @@ hookTimeout: 30000,  // 30s para beforeAll/afterAll
 ---
 
 **Documento criado em**: 17 de Abril de 2026  
-**Última atualização**: 30 de Outubro de 2026 (139 → 155 casos, 20 → 23 arquivos — testes de LGPD/auditoria: consentimento, reconsentimento, auditoria de operações críticas, relatório anonimizado, direitos do titular e retenção do log)  
+**Última atualização**: 01 de Novembro de 2026 — contagem real re-auditada via `npm test` (não apenas somada a partir da versão anterior do documento, que já estava desatualizada em alguns pontos: `auth.schema.unit.test.ts` e `auth_signup_signin.test.ts` haviam crescido em revisões anteriores sem atualizar esta tabela, e `perfil_profissional.test.ts` nunca havia sido documentado). 155 → 238 casos, 23 → 26 arquivos no total; dessa diferença, 14 casos (`agendamentos_cancelar.test.ts` + `agendamentos_remarcar.test.ts`) são da correção dos bugs de cancelamento/remarcação desta sessão — ver `KANBAN_MELHORIAS.md` v1.13.0 — e o restante é débito de documentação de sessões anteriores, agora reconciliado.  
 **Autor**: Equipe de Desenvolvimento UaiMED  
 **Referência**: [`vitest.config.ts`](../vitest.config.ts) · [`src/__tests__/`](../src/__tests__/) · [`DOCUMENTACAO_PROJETO_UAIMED.md`](../../DOCUMENTACAO_PROJETO_UAIMED.md)
 

@@ -1,7 +1,7 @@
 # 📘 Documentação Completa do Projeto UaiMED
 
-**Versão**: 1.9.0  
-**Data**: 30 de Outubro de 2026  
+**Versão**: 1.10.0  
+**Data**: 01 de Novembro de 2026  
 **Classificação**: Documentação Técnica de Engenharia de Software  
 **Status**: Projeto em Desenvolvimento Avançado — Seção de Avaliação do Projeto (percurso, decisões técnicas, desafios, resultados e perspectivas) revisada com base no histórico real do Git (135 commits, 63 PRs, Fev–Out/2026)
 
@@ -126,7 +126,7 @@ Plataforma mobile-first que:
 | RF03.1 | Busca de profissionais | Alta | ✅ Implementado |
 | RF03.2 | Exibição de disponibilidade | Alta | ✅ Implementado |
 | RF03.3 | Criação de agendamento | Alta | ✅ Implementado |
-| RF03.4 | Cancelamento/reagendamento pelo paciente | Alta | 🔴 Bug — frontend chama `PATCH /agendamentos/:id/cancelar`, endpoint inexistente no backend |
+| RF03.4 | Cancelamento/reagendamento pelo paciente | Alta | ✅ Implementado (`PATCH /agendamentos/:id/cancelar` e `/remarcar`, v1.13.0 do Kanban) |
 | RF03.5 | Visualização de agenda | Alta | ✅ Implementado |
 | RF03.6 | Fluxo completo Busca→Confirmação→Pagamento→Avaliação | Alta | ✅ Implementado (v1.3.0) |
 
@@ -236,7 +236,7 @@ Plataforma mobile-first que:
 
 #### RNF05 - Manutenibilidade
 - **RNF05.1**: Padrões TypeScript ✅
-- **RNF05.2**: Cobertura de testes ≥ 139 casos automatizados (20 arquivos) ✅
+- **RNF05.2**: Cobertura de testes ≥ 238 casos automatizados (26 arquivos) ✅
 - **RNF05.3**: Documentação completa ✅
 
 ---
@@ -728,7 +728,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ Artigos de saúde (leitura pública + CRUD administrativo)
 - ✅ Geolocalização (geocodificação de endereço, busca por proximidade)
 - ✅ Chat/Conversas entre usuários (REST, sem WebSocket/tempo real)
-- ✅ **139 casos de teste automatizados** (20 arquivos) cobrindo os endpoints principais
+- ✅ **238 casos de teste automatizados** (26 arquivos) cobrindo os endpoints principais
 - ✅ Logging revisado — Prisma não loga mais SQL com dados de usuário; app não loga payloads fora de ambiente de desenvolvimento
 - ✅ Proteção LGPD — consentimento (+ reconsentimento de contas antigas), auditoria de acesso a dados de pacientes e de operações críticas (`GET /admin/logs-auditoria`), relatório de pacientes anonimizado (`GET /admin/relatorios/pacientes`), exportar/excluir meus dados (`GET`/`DELETE /users/me`), retenção do log de auditoria
 - ✅ Docker Compose para desenvolvimento
@@ -753,10 +753,10 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ Sistema de avaliações com nota + comentário
 - ✅ Carousel de profissionais em destaque na Home
 - ✅ Filtro de localização (estado/município) na Home e na busca
+- ✅ **Cancelamento e remarcação de consulta**: `PATCH /agendamentos/:id/cancelar` e `/remarcar`, com regra de 24h de antecedência validada também no backend; remarcar atualiza a consulta existente em vez de duplicá-la (v1.13.0 do Kanban)
 
 #### ⚠️ Em Desenvolvimento
 
-- 🔴 **Bug conhecido**: cancelamento de consulta — `MinhasConsultasScreen` chama `PATCH /agendamentos/:id/cancelar`, que não existe no backend (só há `GET`/`POST /agendamentos` e `GET /agendamentos/sugestoes-horario`); botão "Cancelar" falha em runtime
 - ⚠️ Notificações push remotas (requer development build — bloqueado pelo Expo Go SDK 53+)
 - ⚠️ E-mail real de recuperação de senha (backend Nodemailer)
 - ⚠️ E-mail de confirmação de agendamento e pagamento
@@ -775,19 +775,11 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 ### 8.2 Métricas de Qualidade
 
 #### Cobertura de Testes
-- **Total de casos**: **139 testes automatizados** (20 arquivos) — todos passando ✅
-- **Suítes de integração (backend)** — principais adições desde Abr/2026:
-  - `clinicas.test.ts` — 17 casos
-  - `artigos.test.ts` — 11 casos
-  - `destaques.test.ts` — 9 casos
-  - `conversas.test.ts` — 4 casos
-  - `users.test.ts` — 4 casos
-  - `conta-bancaria.test.ts` — 3 casos
-  - `professionals.test.ts` — 3 casos
-  - (mantidas as suítes de auth, agendamentos, avaliações e pagamentos já documentadas em v1.6.0)
-- **Suítes unitárias**: `auth.schema.unit`, `hash.unit`, `jwt.unit` — 37 casos
-- **Frontend**: Testes manuais (fluxo completo verificado); sem suíte automatizada própria
-- **Documento de testes**: [`uaimed-back/documents/TESTES.md`](./uaimed-back/documents/TESTES.md)
+- **Total de casos**: **238 testes automatizados** (26 arquivos) — todos passando ✅
+- **Adições mais recentes**: `agendamentos_cancelar.test.ts` (6 casos) e `agendamentos_remarcar.test.ts` (8 casos), v1.10.0
+- **Suítes unitárias**: `auth.schema.unit`, `hash.unit`, `jwt.unit` — 39 casos
+- **Frontend**: Testes manuais (fluxo completo verificado) + `cadastroValidation.test.cjs`/`avaliacoesPerfil.test.cjs` (Node `--test`); sem suíte automatizada própria para as telas
+- **Detalhamento completo, suíte por suíte**: [`uaimed-back/documents/TESTES.md`](./uaimed-back/documents/TESTES.md) (fonte da verdade — mantido atualizado a cada sessão; os números aqui podem ficar defasados entre atualizações)
 
 #### Performance
 - **API Response Time**: < 500ms (média)
@@ -1234,6 +1226,30 @@ O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 ---
 
 ## 14. Changelog
+
+### v1.10.0 — 01 de Novembro de 2026
+
+#### 🟢 Implementado
+
+**Backend — Cancelamento de consulta (correção do bug crítico aberto desde 13/10):**
+- `PATCH /api/agendamentos/:id/cancelar` — valida dono do agendamento (`403`), status já `cancelado`/`realizado` (`409`) e antecedência mínima de 24h também no servidor (`422` — antes a regra só existia no cliente). Atualiza `status` para `cancelado` e audita (`CANCELAR_AGENDAMENTO`)
+- 6 novos casos de teste (`agendamentos_cancelar.test.ts`)
+
+**Backend — Remarcação de consulta (bug crítico encontrado durante a correção acima, não documentado antes):**
+- O botão "Remarcar" criava uma consulta nova e independente (`POST /agendamentos`) sem cancelar nem referenciar a original — o paciente ficava com duas consultas marcadas e era cobrado de novo pela mesma consulta
+- `PATCH /api/agendamentos/:id/remarcar` atualiza a `dataHora` do mesmo registro (mesmo `id`, `status` preservado, pagamento já feito continua válido), com as mesmas validações do cancelamento mais conflito de horário do profissional. Audita (`REMARCAR_AGENDAMENTO`, com data anterior/nova)
+- 8 novos casos de teste (`agendamentos_remarcar.test.ts`)
+
+**Frontend:**
+- `remarcarAgendamentoId` passa a trafegar por `SelecaoHorario`/`SelecaoHorariosDia`; ao confirmar um novo horário vindo do botão "Remarcar", a tela chama o endpoint de remarcação em vez de criar um agendamento novo, e não leva mais para a tela de pagamento
+
+**Verificação:**
+- Suíte de backend: 238 casos (26 arquivos), todos passando — reconciliada com a contagem real via `npm test` (ver `uaimed-back/documents/TESTES.md`)
+- Fluxo de remarcação verificado ponta a ponta no app rodando de verdade (driver headless `run-uaimed-front`): lista de consultas manteve o mesmo número de itens após remarcar, mesmo `id` no banco, log de auditoria com data anterior/nova
+
+Ver `KANBAN_MELHORIAS.md` v1.13.0 e `uaimed-back/documents/TESTES.md` v1.4.0 para o detalhamento completo.
+
+---
 
 ### v1.9.0 — 30 de Outubro de 2026
 

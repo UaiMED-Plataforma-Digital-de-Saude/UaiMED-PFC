@@ -146,6 +146,7 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('SelecaoHorario', {
       medicoId: item.medicoId,
       nomeProfissional: item.medico ?? undefined,
+      remarcarAgendamentoId: item.id,
     });
   };
 

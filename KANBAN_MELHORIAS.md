@@ -1,7 +1,7 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.12.0  
-**Data**: 30 de Outubro de 2026  
+**Versão**: 1.13.0  
+**Data**: 01 de Novembro de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
 
@@ -366,19 +366,37 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 
 ---
 
-## 🔴 BUG CONHECIDO — Encontrado em 13/10/2026
+## 🟢 CONCLUÍDO — 01/11/2026
 
 ---
 
-### 🔴 [BUG] Cancelamento de consulta — endpoint inexistente no backend
+### ✅ [BUG FIX] Cancelamento de consulta — endpoint inexistente no backend
 **Área**: Frontend + Backend | **Prioridade**: 🔴 Crítico | **Esforço**: 2
 
-**Descrição**: `MinhasConsultasScreen.tsx` chama `PATCH /agendamentos/:id/cancelar` ao tocar em "Cancelar", mas `agendamentos.routes.ts` só define `GET /agendamentos/sugestoes-horario`, `POST /agendamentos` e `GET /agendamentos`. Não existe rota de cancelamento nem método `cancelar()` no `AgendamentosController`. O botão "Cancelar" falha em runtime (a tela já tem toda a lógica de UI — confirmação, regra de 24h de antecedência — só falta o endpoint).
+**Descrição original (encontrado em 13/10/2026)**: `MinhasConsultasScreen.tsx` chama `PATCH /agendamentos/:id/cancelar` ao tocar em "Cancelar", mas `agendamentos.routes.ts` só definia `GET /agendamentos/sugestoes-horario`, `POST /agendamentos` e `GET /agendamentos`. Não existia rota de cancelamento nem método `cancelar()` no `AgendamentosController`. O botão "Cancelar" falhava em runtime (a tela já tinha toda a lógica de UI — confirmação, regra de 24h de antecedência — só faltava o endpoint).
+
+**Resolução**: Implementado `PATCH /agendamentos/:id/cancelar` (protegido por `authMiddleware`), validando dono do agendamento (`403` se for de outro usuário), status já `cancelado`/`realizado` (`409`) e antecedência mínima de 24h também no backend (`422` — antes a regra só existia no cliente e podia ser contornada chamando a API direto). Atualiza `status` para `cancelado` e grava log de auditoria `CANCELAR_AGENDAMENTO`.
 
 **Critério de aceite**:
-- [ ] `PATCH /agendamentos/:id/cancelar` implementado, protegido por `authMiddleware`, validando que o usuário é o dono do agendamento
-- [ ] Atualiza `status` do agendamento para `cancelado`
-- [ ] Teste de integração cobrindo sucesso, 403 (não é o dono) e 404 (agendamento inexistente)
+- [x] `PATCH /agendamentos/:id/cancelar` implementado, protegido por `authMiddleware`, validando que o usuário é o dono do agendamento
+- [x] Atualiza `status` do agendamento para `cancelado`
+- [x] Teste de integração cobrindo sucesso, 403 (não é o dono) e 404 (agendamento inexistente) — `agendamentos_cancelar.test.ts`, 6 casos
+
+---
+
+### ✅ [BUG FIX] Remarcação de consulta — criava agendamento duplicado em vez de atualizar o original
+**Área**: Frontend + Backend | **Prioridade**: 🔴 Crítico | **Esforço**: 3
+
+**Descrição**: Encontrado ao investigar o bug de cancelamento acima. O botão "Remarcar" em `MinhasConsultasScreen.tsx` navegava direto para o fluxo normal de agendamento (`SelecaoHorario` → `SelecaoHorariosDia` → `POST /agendamentos`), sem nenhuma referência ao agendamento original. Resultado: o paciente ficava com **duas consultas** marcadas (a antiga continuava `confirmado`, ocupando o horário) e era levado de novo para a tela de pagamento — cobrança duplicada pela mesma consulta.
+
+**Resolução**: Novo endpoint `PATCH /agendamentos/:id/remarcar` (schema Zod próprio, `remarcarAgendamentoSchema`), validando dono, status, antecedência mínima de 24h a partir do horário **atual** da consulta, novo horário no futuro e conflito de agenda do profissional. Atualiza `dataHora` no mesmo registro (mesmo `id`, mesmo `status`, sem tocar no pagamento já feito) e grava log de auditoria `REMARCAR_AGENDAMENTO` com `dataAnterior`/`dataNova`. No app, `remarcarAgendamentoId` passa a trafegar por `SelecaoHorario`/`SelecaoHorariosDia`; ao confirmar, a tela chama o endpoint de remarcação em vez de criar um agendamento novo e mostra "Consulta remarcada" sem reabrir a tela de pagamento.
+
+**Critério de aceite**:
+- [x] `PATCH /agendamentos/:id/remarcar` implementado, protegido por `authMiddleware`, validando dono/status/antecedência/conflito
+- [x] Atualiza `dataHora` do agendamento existente (não cria um novo registro)
+- [x] Frontend não leva mais para a tela de pagamento ao remarcar
+- [x] Teste de integração — `agendamentos_remarcar.test.ts`, 8 casos
+- [x] Verificado end-to-end no app rodando (driver headless `run-uaimed-front`): lista continua com o mesmo número de consultas após remarcar, mesmo `id` no banco
 
 ---
 
@@ -579,24 +597,21 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 | 🟢 Concluído — Sprints Anteriores (até 10/04/2026) | 19 itens |
 | 🟢 Concluído — Mai–Out/2026 (consolidado) | 13 itens |
 | 🟢 Concluído — 30/10/2026 | 6 itens |
-| 🔴 Bug Conhecido | 1 item |
+| 🟢 Concluído — 01/11/2026 | 2 itens |
+| 🔴 Bug Conhecido | 0 itens |
 | 🔵 A Fazer (próxima sprint) | 8 itens |
 | 🗃️ Backlog | 6 itens |
 | ⏸️ Bloqueado | 2 itens |
-| **Total** | **55 itens** |
+| **Total** | **56 itens** |
 
 ---
 
 ## 🏃 Cadência Ágil Sugerida
 
 ```
-Sprints Fev–Out/2026 ──────────────── CONCLUÍDAS (ver seções Concluído acima)
+Sprints Fev–Nov/2026 ──────────────── CONCLUÍDAS (ver seções Concluído acima)
 
 Sprint atual (próxima, ~1 semana)
-  Foco: 🔴 corrigir bug de cancelamento (endpoint ausente) — prioridade máxima,
-        é uma regressão em funcionalidade que a tela já expõe ao usuário
-
-Sprint seguinte (~1 semana)
   Foco: ResultadosScreen + SearchScreen busca real, HistoricoAvaliacoesScreen
         (consumir GET /avaliacoes/minhas, já pronto no backend), Status de
         pagamento visível
@@ -624,6 +639,7 @@ Sprint entrega PFC
 | 30/10/2026 | 1.10.0 | Item "[SECURITY] Proteção LGPD" movido do Backlog para Concluído: consentimento obrigatório no cadastro, log de auditoria de acesso a dados de pacientes (`GET /admin/logs-auditoria`) e relatório de pacientes anonimizado (`GET /admin/relatorios/pacientes`). Removido também do Foco da sprint "E-mail de confirmação... / Proteção LGPD". |
 | 30/10/2026 | 1.11.0 | Auditoria também passa a cobrir envio de mensagens (`ENVIAR_MENSAGEM`, nos dois sentidos), fechando o requisito "mensagens trocadas devem permanecer registradas para auditoria". `GET /avaliacoes/minhas` implementado e testado, movido de "A Fazer" para Concluído. **Gaps levantados e documentados como novos itens de Backlog** (não implementados ainda): auditoria não cobre operações críticas de escrita (agendar, pagar, trocar senha, vínculo clínica-médico); 40/40 usuários existentes no banco não têm consentimento LGPD registrado (fluxo só cobre cadastro novo); política de privacidade promete direito de acesso/eliminação de dados sem endpoint correspondente; log de auditoria não tem política de retenção própria. |
 | 30/10/2026 | 1.12.0 | Fechados os 4 gaps levantados na v1.11.0: auditoria estendida para 9 operações críticas de escrita (agendar, pagar, vínculo clínica-médico, trocar senha, dados bancários, consentimento, exportar/excluir dados); reconsentimento pós-login para as 40 contas existentes sem consentimento (`precisaConsentimentoLgpd` + `LgpdConsentGateScreen`); direitos do titular via `GET`/`DELETE /users/me` (exportar dados, excluir conta por anonimização) + tela de Perfil; expurgo de retenção do log de auditoria (`npm run logs:purgar`). Verificado com o driver headless `run-uaimed-front` — achado e corrigido no processo um bug real: telas fora do `NavigationContainer` (como o novo gate) quebravam por falta de `<SafeAreaProvider>` no app (nunca existiu; funcionava só dentro do Navigator, que injeta um). |
+| 01/11/2026 | 1.13.0 | Corrigido o bug crítico de cancelamento documentado desde 13/10 (`PATCH /agendamentos/:id/cancelar` implementado, com validação de dono/status/antecedência de 24h no backend e não só no app). **Encontrado e corrigido no mesmo processo um segundo bug crítico, não documentado anteriormente**: "Remarcar" criava uma consulta nova sem cancelar a original, duplicando o agendamento e cobrando pagamento de novo — resolvido com `PATCH /agendamentos/:id/remarcar`, que atualiza a `dataHora` do mesmo registro. Ambos cobertos por teste de integração (14 casos novos) e verificados end-to-end no app rodando via driver headless `run-uaimed-front`. Coluna "Bug Conhecido" zerada. **Aproveitado para reconciliar `TESTES.md`**, que estava com a contagem desatualizada desde revisões anteriores (não só pelos 14 casos novos): suíte real auditada via `npm test` em 238/238 (26 arquivos), não os 155/169 citados em versões anteriores deste documento e do `DOCUMENTACAO_PROJETO_UAIMED.md`. |
 
 ---
 

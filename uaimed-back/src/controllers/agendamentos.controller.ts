@@ -3,6 +3,9 @@ import { prisma } from "../config/database";
 import AuditoriaService from "../services/auditoria.service";
 import logger from "../utils/logger";
 
+// Antecedência mínima em horas para cancelar ou remarcar um agendamento (mantido em sincronia com o front).
+const HORAS_MINIMAS_CANCELAMENTO = 24;
+
 interface JanelaDia {
   ativo: boolean;
   inicioMin: number;
@@ -128,6 +131,125 @@ class AgendamentosController {
     } catch (err) {
       logger.error('Erro ao listar agendamentos', err);
       return res.status(500).json({ error: 'Erro ao listar agendamentos' });
+    }
+  }
+
+  // PATCH /api/agendamentos/:id/cancelar
+  async cancelar(req: Request, res: Response) {
+    try {
+      const usuarioId = (req as any).user?.id;
+      if (!usuarioId) return res.status(401).json({ error: 'Usuário não autenticado' });
+
+      const { id } = req.params;
+
+      const agendamento = await prisma.agendamento.findUnique({ where: { id } });
+      if (!agendamento) return res.status(404).json({ error: 'Agendamento não encontrado' });
+      if (agendamento.usuarioId !== usuarioId) {
+        return res.status(403).json({ error: 'Você não tem permissão para cancelar este agendamento' });
+      }
+      if (agendamento.status === 'cancelado') {
+        return res.status(409).json({ error: 'Este agendamento já está cancelado' });
+      }
+      if (agendamento.status === 'realizado' || agendamento.status === 'concluido') {
+        return res.status(409).json({ error: 'Não é possível cancelar uma consulta já realizada' });
+      }
+
+      const horasAteConsulta = (agendamento.dataHora.getTime() - Date.now()) / (1000 * 60 * 60);
+      if (horasAteConsulta < HORAS_MINIMAS_CANCELAMENTO) {
+        return res.status(422).json({
+          error: `Não é possível cancelar consultas com menos de ${HORAS_MINIMAS_CANCELAMENTO} horas de antecedência.`,
+        });
+      }
+
+      const atualizado = await prisma.agendamento.update({
+        where: { id },
+        data: { status: 'cancelado' },
+      });
+
+      logger.success(`Agendamento cancelado: ${atualizado.id}`);
+
+      await AuditoriaService.registrarAcesso({
+        ator: { id: usuarioId, tipo: req.user?.tipo },
+        acao: "CANCELAR_AGENDAMENTO",
+        recurso: "Agendamento",
+        recursoId: atualizado.id,
+        pacientes: [{ id: usuarioId }],
+        ip: req.ip,
+      });
+
+      return res.json({ id: atualizado.id, status: atualizado.status });
+    } catch (err: any) {
+      logger.error('Erro ao cancelar agendamento', err);
+      const detail = process.env.NODE_ENV !== 'production' ? (err?.message ?? String(err)) : undefined;
+      return res.status(500).json({ error: 'Erro ao cancelar agendamento', detail });
+    }
+  }
+
+  // PATCH /api/agendamentos/:id/remarcar
+  async remarcar(req: Request, res: Response) {
+    try {
+      const usuarioId = (req as any).user?.id;
+      if (!usuarioId) return res.status(401).json({ error: 'Usuário não autenticado' });
+
+      const { id } = req.params;
+      const { dataHora } = req.body;
+
+      const agendamento = await prisma.agendamento.findUnique({ where: { id } });
+      if (!agendamento) return res.status(404).json({ error: 'Agendamento não encontrado' });
+      if (agendamento.usuarioId !== usuarioId) {
+        return res.status(403).json({ error: 'Você não tem permissão para remarcar este agendamento' });
+      }
+      if (agendamento.status === 'cancelado') {
+        return res.status(409).json({ error: 'Não é possível remarcar uma consulta cancelada' });
+      }
+      if (agendamento.status === 'realizado' || agendamento.status === 'concluido') {
+        return res.status(409).json({ error: 'Não é possível remarcar uma consulta já realizada' });
+      }
+
+      const horasAteConsultaAtual = (agendamento.dataHora.getTime() - Date.now()) / (1000 * 60 * 60);
+      if (horasAteConsultaAtual < HORAS_MINIMAS_CANCELAMENTO) {
+        return res.status(422).json({
+          error: `Não é possível remarcar consultas com menos de ${HORAS_MINIMAS_CANCELAMENTO} horas de antecedência.`,
+        });
+      }
+
+      const novaDataHora = new Date(dataHora);
+      if (novaDataHora.getTime() <= Date.now()) {
+        return res.status(422).json({ error: 'O novo horário precisa estar no futuro.' });
+      }
+
+      const conflito = await prisma.agendamento.findFirst({
+        where: {
+          id: { not: id },
+          profissionalId: agendamento.profissionalId,
+          dataHora: novaDataHora,
+          status: { in: ['agendado', 'confirmado'] },
+        },
+      });
+      if (conflito) return res.status(409).json({ error: 'Horário já ocupado para este profissional' });
+
+      const atualizado = await prisma.agendamento.update({
+        where: { id },
+        data: { dataHora: novaDataHora },
+      });
+
+      logger.success(`Agendamento remarcado: ${atualizado.id}`);
+
+      await AuditoriaService.registrarAcesso({
+        ator: { id: usuarioId, tipo: req.user?.tipo },
+        acao: "REMARCAR_AGENDAMENTO",
+        recurso: "Agendamento",
+        recursoId: atualizado.id,
+        pacientes: [{ id: usuarioId }],
+        detalhes: { dataAnterior: agendamento.dataHora, dataNova: atualizado.dataHora },
+        ip: req.ip,
+      });
+
+      return res.json({ id: atualizado.id, status: atualizado.status, dataHora: atualizado.dataHora });
+    } catch (err: any) {
+      logger.error('Erro ao remarcar agendamento', err);
+      const detail = process.env.NODE_ENV !== 'production' ? (err?.message ?? String(err)) : undefined;
+      return res.status(500).json({ error: 'Erro ao remarcar agendamento', detail });
     }
   }
 
