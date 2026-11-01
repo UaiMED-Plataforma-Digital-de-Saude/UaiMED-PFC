@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+export const crmSchema = z.string().trim().toUpperCase()
+  .min(3, 'Informe um CRM válido, como 123456-MG')
+  .max(20, 'CRM deve ter no máximo 20 caracteres')
+  .regex(/^(?=.*\d)[A-Z0-9/-]+$/, 'Informe um CRM válido, como 123456-MG');
+
 export const atualizarEnderecoSchema = z.object({
   endereco: z.string().trim().min(1, "Endereço, cidade e estado são obrigatórios"),
   cidade: z.string().trim().min(1, "Endereço, cidade e estado são obrigatórios"),

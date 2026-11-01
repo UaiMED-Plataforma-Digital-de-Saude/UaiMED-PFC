@@ -15,6 +15,33 @@ Endpoints (scaffold):
 
 Use o header `Authorization: Bearer <token>` para rotas que exigem autenticação.
 
+## Validação do cadastro de usuários
+
+`POST /api/usuarios` valida os campos antes de consultar ou criar uma conta. Valores inválidos retornam `400` com `details[].path` e `details[].message`, apresentados junto ao campo correspondente no aplicativo.
+
+| Campo | Regra |
+| --- | --- |
+| Nome / razão social | Obrigatório, de 2 a 120 caracteres após remover espaços nas extremidades. |
+| E-mail | Obrigatório, formato de e-mail e até 254 caracteres. |
+| CPF | Obrigatório para paciente/médico; exatamente 11 dígitos, com ou sem máscara padrão. |
+| CNPJ | Obrigatório para clínica; exatamente 14 dígitos, com ou sem máscara padrão. |
+| Telefone | Obrigatório, DDD sem zero e 10 ou 11 dígitos. Aceita número puro ou máscara `(31) 99999-9999`; armazena somente números. |
+| Senha | Pelo menos 6 caracteres, não pode conter apenas espaços, até 72 bytes UTF-8 para evitar truncamento pelo bcrypt. Não é aparada ou normalizada. |
+| Especialidade / CRM | Obrigatórios para médico. Especialidade deve estar no catálogo; CRM com 3 a 20 caracteres, letras/números/hífen/barra e pelo menos um número. |
+| Endereço / cidade | Opcionais; quando informados, de 5 a 200 / de 2 a 100 caracteres. |
+| UF / CEP | Opcionais; UF brasileira válida e CEP com 8 dígitos, com ou sem máscara padrão. |
+| Consentimento LGPD | Deve ser `true`. |
+
+CPF/CNPJ são validados quanto ao formato e comprimento, sem consulta cadastral ou validação de dígitos verificadores. Os campos opcionais de endereço continuam opcionais para médicos e clínicas. A confirmação da senha é validada no aplicativo e não é enviada à API.
+
+O formulário limita a digitação/colagem dos campos e filtra caracteres não numéricos em telefone, CPF, CNPJ e CEP. A API também aplica limites para impedir o envio de valores excessivos por clientes externos.
+
+## Perfil profissional — CRM e avaliações
+
+- `PUT /api/users/me` aceita `crm` para contas médicas autenticadas. O valor é aparado e convertido para maiúsculas, usa a mesma validação do cadastro (3 a 20 caracteres, pelo menos um número, letras/números/hífen/barra) e só altera o profissional associado ao usuário autenticado. CRM de outro profissional retorna `409`, inclusive quando muda apenas a capitalização. Atualização do nome/telefone e do CRM ocorre em uma transação; falhas não deixam esses dados parcialmente salvos. A resposta inclui `user.profissional: { id, crm }` quando o CRM foi informado, sem dados bancários. Pacientes/clínicas não podem enviar `crm` (`403`); conta médica sem perfil profissional recebe `404`.
+- No app, **Perfil → Editar → CRM → Salvar Alterações** permite atualizar apenas o CRM; não é necessário alterar endereço ou preço da consulta junto.
+- O cabeçalho do perfil médico consulta `GET /api/avaliacoes/medico/:id/media` sempre que a tela recebe foco. Exibe média e `totalAvaliacoes`, mostra **Sem avaliações** quando o total é zero e oferece nova tentativa se a consulta falhar. Tocar na média abre a tela de avaliações recebidas (`GET /api/professionals/me/avaliacoes`). Respostas atrasadas de outra tela/conta são ignoradas.
+
 ## Destaques da home
 
 - `GET /api/admin/destaques`: lista os profissionais e clínicas ativos e indica os selecionados (`destaque`).

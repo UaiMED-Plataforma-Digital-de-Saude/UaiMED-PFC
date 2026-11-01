@@ -21,6 +21,7 @@ import { useModal } from '../../hooks/useModal';
 import { TipoCadastro, TipoUsuario } from '../../types/usuario';
 import EspecialidadeDropdown from '../../components/EspecialidadeDropdown';
 import { LGPD_POLICY_TEXT } from '../../constants/lgpdPolicy';
+import { CADASTRO_LIMITES, ErrosCadastro, DadosCadastro, formatarTelefone, limitarDigitos, validarCadastro } from '../../utils/cadastroValidation';
 
 type CadastroScreenProps = StackScreenProps<AuthStackParamList, 'Cadastro'>;
 
@@ -45,6 +46,7 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [aceitaLgpd, setAceitaLgpd] = useState(false);
   const [showPoliticaModal, setShowPoliticaModal] = useState(false);
+  const [erros, setErros] = useState<ErrosCadastro>({});
 
   // Campos específicos
   const [especialidade, setEspecialidade] = useState('');
@@ -67,55 +69,27 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
     return c.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5').substring(0, 18);
   };
 
-  const formatPhone = (v: string) => {
-    const c = v.replace(/\D/g, '');
-    if (c.length <= 10) return c.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
-    return c.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+  const atualizarCampo = (campo: keyof DadosCadastro, valor: string, atualizar: (valor: string) => void) => {
+    atualizar(valor);
+    setErros((atuais) => ({ ...atuais, [campo]: undefined }));
   };
+
+  const erroCampo = (campo: keyof DadosCadastro) => erros[campo]
+    ? <Text accessibilityRole="alert" style={styles.erroTexto}>{erros[campo]}</Text>
+    : null;
+  const estiloCampo = (campo: keyof DadosCadastro) => [styles.input, erros[campo] && styles.inputErro];
 
   // ── Cadastro ───────────────────────────────────────────────────────────────
   const handleCadastro = async () => {
-    if (!nome.trim() || !documento || !email || !senha) {
-      showModal('Campos obrigatórios', 'Por favor, preencha todos os campos marcados com *', { type: 'warning' });
+    if (loading) return;
+    const errosValidacao = validarCadastro({ tipo, nome, documento, email, telefone, senha, confirmaSenha, especialidade, crm, endereco, cidade, estado, cep, aceitaLgpd });
+    setErros(errosValidacao);
+    if (Object.keys(errosValidacao).length > 0) {
+      showModal('Revise o cadastro', Object.values(errosValidacao)[0]!, { type: 'warning' });
       return;
     }
 
     const documentoNumeros = documento.replace(/\D/g, '');
-    const tamanhoDocumento = tipo === TipoUsuario.CLINICA ? 14 : 11;
-    if (documentoNumeros.length !== tamanhoDocumento) {
-      showModal(
-        'Documento inválido',
-        tipo === TipoUsuario.CLINICA
-          ? 'O CNPJ deve possuir exatamente 14 dígitos.'
-          : 'O CPF deve possuir exatamente 11 dígitos.',
-        { type: 'warning' },
-      );
-      return;
-    }
-
-    if (tipo === TipoUsuario.MEDICO && (!especialidade || !crm.trim())) {
-      showModal(
-        'Dados profissionais obrigatórios',
-        'Selecione uma especialidade e informe o CRM.',
-        { type: 'warning' },
-      );
-      return;
-    }
-
-    if (senha !== confirmaSenha) {
-      showModal('Erro na senha', 'As senhas não coincidem.', { type: 'error' });
-      return;
-    }
-
-    if (!aceitaLgpd) {
-      showModal(
-        'Consentimento necessário',
-        'É necessário aceitar a Política de Privacidade (LGPD) para continuar.',
-        { type: 'warning' },
-      );
-      return;
-    }
-
     setLoading(true);
     try {
       const payload: any = {
@@ -124,14 +98,14 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
         telefone: telefone.replace(/\D/g, ''),
         senha,
         tipo,
-        consentimentoLgpd: true,
+        consentimentoLgpd: aceitaLgpd,
       };
 
       if (tipo === TipoUsuario.CLINICA) {
         payload.cnpj = documentoNumeros;
-        payload.endereco = endereco;
-        payload.cidade = cidade;
-        payload.estado = estado;
+        payload.endereco = endereco.trim();
+        payload.cidade = cidade.trim();
+        payload.estado = estado.trim().toUpperCase();
         payload.cep = cep.replace(/\D/g, '');
       } else {
         payload.cpf = documentoNumeros;
@@ -139,14 +113,14 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
 
       if (tipo === TipoUsuario.MEDICO) {
         payload.especialidade = especialidade;
-        payload.crm = crm.trim();
-        payload.endereco = endereco;
-        payload.cidade = cidade;
-        payload.estado = estado;
+        payload.crm = crm.trim().toUpperCase();
+        payload.endereco = endereco.trim();
+        payload.cidade = cidade.trim();
+        payload.estado = estado.trim().toUpperCase();
         payload.cep = cep.replace(/\D/g, '');
       }
 
-      const res = await uaiMedApi.post('/usuarios', payload);
+      await uaiMedApi.post('/usuarios', payload);
 
       showModal('Sucesso!', 'Seu cadastro foi realizado com sucesso.', {
         type: 'success',
@@ -154,6 +128,18 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
       });
     } catch (err: any) {
       const details = err.response?.data?.details;
+      if (Array.isArray(details)) {
+        const errosApi: ErrosCadastro = {};
+        for (const detalhe of details) {
+          const campo = detalhe?.path?.[0];
+          const campoFormulario = campo === 'cpf' || campo === 'cnpj' ? 'documento'
+            : campo === 'consentimentoLgpd' ? 'aceitaLgpd' : campo;
+          if (typeof campoFormulario === 'string' && typeof detalhe.message === 'string') {
+            errosApi[campoFormulario as keyof DadosCadastro] = detalhe.message;
+          }
+        }
+        setErros(errosApi);
+      }
       const validationMessage = Array.isArray(details)
         ? details.find((detail: any) => typeof detail?.message === 'string')?.message
         : undefined;
@@ -169,7 +155,7 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
           <View style={styles.header}>
             <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -197,43 +183,51 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
           <View style={styles.form}>
             <Text style={styles.label}>{tipo === TipoUsuario.CLINICA ? 'Razão Social *' : 'Nome Completo *'}</Text>
             <TextInput
-              style={styles.input}
+              style={estiloCampo('nome')}
               placeholder={tipo === TipoUsuario.CLINICA ? "Ex: Clínica Saúde Ltda" : "Ex: João Silva"}
               value={nome}
-              onChangeText={setNome}
+              onChangeText={(valor) => atualizarCampo('nome', valor, setNome)}
+              maxLength={CADASTRO_LIMITES.nome}
             />
+            {erroCampo('nome')}
 
             <Text style={styles.label}>{tipo === TipoUsuario.CLINICA ? 'CNPJ *' : 'CPF *'}</Text>
             <TextInput
-              style={styles.input}
+              style={estiloCampo('documento')}
               placeholder={tipo === TipoUsuario.CLINICA ? "00.000.000/0000-00" : "000.000.000-00"}
               keyboardType="numeric"
               value={tipo === TipoUsuario.CLINICA ? formatCNPJ(documento) : formatCPF(documento)}
               onChangeText={(value) => {
                 const limite = tipo === TipoUsuario.CLINICA ? 14 : 11;
-                setDocumento(value.replace(/\D/g, '').slice(0, limite));
+                atualizarCampo('documento', limitarDigitos(value, limite), setDocumento);
               }}
               maxLength={tipo === TipoUsuario.CLINICA ? 18 : 14}
             />
+            {erroCampo('documento')}
 
             <Text style={styles.label}>E-mail *</Text>
             <TextInput
-              style={styles.input}
+              style={estiloCampo('email')}
               placeholder="exemplo@email.com"
               keyboardType="email-address"
               autoCapitalize="none"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(valor) => atualizarCampo('email', valor, setEmail)}
+              maxLength={CADASTRO_LIMITES.email}
+              autoCorrect={false}
             />
+            {erroCampo('email')}
 
             <Text style={styles.label}>Telefone *</Text>
             <TextInput
-              style={styles.input}
+              style={estiloCampo('telefone')}
               placeholder="(31) 99999-9999"
               keyboardType="phone-pad"
-              value={formatPhone(telefone)}
-              onChangeText={setTelefone}
+              value={formatarTelefone(telefone)}
+              onChangeText={(valor) => atualizarCampo('telefone', limitarDigitos(valor, CADASTRO_LIMITES.telefone), setTelefone)}
+              maxLength={15}
             />
+            {erroCampo('telefone')}
 
             {/* Campos de Profissional */}
             {tipo === TipoUsuario.MEDICO && (
@@ -241,12 +235,14 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
                 <Text style={styles.label}>Especialidade *</Text>
                 <EspecialidadeDropdown
                   value={especialidade || null}
-                  onChange={(value) => setEspecialidade(value ?? '')}
+                  onChange={(value) => atualizarCampo('especialidade', value ?? '', setEspecialidade)}
                   disabled={loading}
                 />
+                {erroCampo('especialidade')}
 
                 <Text style={styles.label}>CRM *</Text>
-                <TextInput style={styles.input} placeholder="000000-MG" value={crm} onChangeText={setCrm} />
+                <TextInput style={estiloCampo('crm')} placeholder="000000-MG" value={crm} onChangeText={(valor) => atualizarCampo('crm', valor.toUpperCase(), setCrm)} maxLength={CADASTRO_LIMITES.crm} autoCapitalize="characters" autoCorrect={false} />
+                {erroCampo('crm')}
               </>
             )}
 
@@ -254,51 +250,67 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
             {(tipo === TipoUsuario.MEDICO || tipo === TipoUsuario.CLINICA) && (
               <>
                 <Text style={styles.label}>Endereço Completo</Text>
-                <TextInput style={styles.input} placeholder="Rua, Número, Bairro" value={endereco} onChangeText={setEndereco} />
+                <TextInput style={estiloCampo('endereco')} placeholder="Rua, Número, Bairro" value={endereco} onChangeText={(valor) => atualizarCampo('endereco', valor, setEndereco)} maxLength={CADASTRO_LIMITES.endereco} />
+                {erroCampo('endereco')}
 
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <View style={{ flex: 2 }}>
                     <Text style={styles.label}>Cidade</Text>
-                    <TextInput style={styles.input} placeholder="Belo Horizonte" value={cidade} onChangeText={setCidade} />
+                    <TextInput style={estiloCampo('cidade')} placeholder="Belo Horizonte" value={cidade} onChangeText={(valor) => atualizarCampo('cidade', valor, setCidade)} maxLength={CADASTRO_LIMITES.cidade} />
+                    {erroCampo('cidade')}
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.label}>UF</Text>
-                    <TextInput style={styles.input} placeholder="MG" maxLength={2} autoCapitalize="characters" value={estado} onChangeText={setEstado} />
+                    <TextInput style={estiloCampo('estado')} placeholder="MG" maxLength={2} autoCapitalize="characters" value={estado} onChangeText={(valor) => atualizarCampo('estado', valor.replace(/[^a-z]/gi, '').toUpperCase(), setEstado)} />
+                    {erroCampo('estado')}
                   </View>
                 </View>
+                <Text style={styles.label}>CEP</Text>
+                <TextInput style={estiloCampo('cep')} placeholder="00000-000" keyboardType="numeric" maxLength={9} value={cep.length > 5 ? `${cep.slice(0, 5)}-${cep.slice(5)}` : cep} onChangeText={(valor) => atualizarCampo('cep', limitarDigitos(valor, 8), setCep)} />
+                {erroCampo('cep')}
               </>
             )}
 
             <Text style={styles.label}>Senha *</Text>
-            <View style={styles.passwordWrapper}>
+            <View style={[styles.passwordWrapper, erros.senha && styles.inputErro]}>
               <TextInput
                 style={styles.passwordInput}
                 secureTextEntry={!showPassword}
                 value={senha}
-                onChangeText={setSenha}
+                onChangeText={(valor) => atualizarCampo('senha', valor, setSenha)}
+                maxLength={CADASTRO_LIMITES.senha}
+                autoCapitalize="none"
+                autoCorrect={false}
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                 <Ionicons name={showPassword ? "eye-off" : "eye"} size={20} color="#666" />
               </TouchableOpacity>
             </View>
+            {erroCampo('senha')}
 
             <Text style={styles.label}>Confirmar Senha *</Text>
-            <View style={styles.passwordWrapper}>
+            <View style={[styles.passwordWrapper, erros.confirmaSenha && styles.inputErro]}>
               <TextInput
                 style={styles.passwordInput}
                 secureTextEntry={!showConfirmPassword}
                 value={confirmaSenha}
-                onChangeText={setConfirmaSenha}
+                onChangeText={(valor) => atualizarCampo('confirmaSenha', valor, setConfirmaSenha)}
+                maxLength={CADASTRO_LIMITES.senha}
+                autoCapitalize="none"
+                autoCorrect={false}
               />
               <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
                 <Ionicons name={showConfirmPassword ? "eye-off" : "eye"} size={20} color="#666" />
               </TouchableOpacity>
             </View>
+            {erroCampo('confirmaSenha')}
 
             <View style={styles.lgpdRow}>
               <TouchableOpacity
                 style={styles.checkbox}
-                onPress={() => setAceitaLgpd((v) => !v)}
+                onPress={() => { setAceitaLgpd((v) => !v); setErros((atuais) => ({ ...atuais, aceitaLgpd: undefined })); }}
+                hitSlop={10}
+                accessibilityLabel="Aceitar a Política de Privacidade"
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: aceitaLgpd }}
               >
@@ -316,6 +328,7 @@ const CadastroScreen: React.FC<CadastroScreenProps> = ({ navigation, route }) =>
                 {' *'}
               </Text>
             </View>
+            {erroCampo('aceitaLgpd')}
 
             <TouchableOpacity
               style={[styles.btnPrimary, loading && { opacity: 0.7 }]}
@@ -371,6 +384,8 @@ const styles = StyleSheet.create({
   form: { flex: 1 },
   label: { fontSize: 14, fontWeight: '600', color: '#444', marginBottom: 8, marginTop: 12 },
   input: { borderBottomWidth: 1.5, borderColor: '#EEE', paddingVertical: 8, fontSize: 16, color: '#333' },
+  inputErro: { borderColor: '#C62828' },
+  erroTexto: { color: '#C62828', fontSize: 12, marginTop: 5 },
   passwordWrapper: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1.5, borderColor: '#EEE' },
   passwordInput: { flex: 1, paddingVertical: 8, fontSize: 16 },
   btnPrimary: { backgroundColor: '#4CAF50', paddingVertical: 15, borderRadius: 10, alignItems: 'center', marginTop: 40 },

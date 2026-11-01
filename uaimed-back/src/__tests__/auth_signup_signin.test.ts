@@ -11,9 +11,10 @@ describe('Auth — signup e signin', () => {
   const senha = 'senha123';
   const cpf = unique.replace(/\D/g, '').padEnd(11, '0').slice(0, 11);
   const cpfDuplicado = uuidv4().replace(/\D/g, '').padEnd(11, '0').slice(0, 11);
+  const emailsRegressao: string[] = [];
 
   afterAll(async () => {
-    await prisma.usuario.deleteMany({ where: { email } }).catch(() => {});
+    await prisma.usuario.deleteMany({ where: { email: { in: [email, ...emailsRegressao] } } }).catch(() => {});
     await prisma.$disconnect();
   });
 
@@ -57,6 +58,20 @@ describe('Auth — signup e signin', () => {
       consentimentoLgpd: false,
     });
     expect(res.status).toBe(400);
+  });
+
+  it.each(['paciente', 'medico', 'clinica'])('rejeita telefone gigantesco na API de cadastro de %s sem criar a conta', async (tipo) => {
+    const emailRegressao = `telefone-${tipo}-${unique}@example.com`;
+    emailsRegressao.push(emailRegressao);
+    const res = await request(app).post('/api/usuarios').send({
+      nome: 'Teste de Validação', email: emailRegressao,
+      ...(tipo === 'clinica' ? { cnpj: '12345678000199' } : { cpf: '12345678901' }),
+      telefone: '31999999999'.repeat(100), senha, tipo, consentimentoLgpd: true,
+      ...(tipo === 'medico' ? { especialidade: 'Cardiologia', crm: '123456-MG' } : {}),
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.details).toEqual(expect.arrayContaining([expect.objectContaining({ path: ['telefone'] })]));
+    expect(await prisma.usuario.findUnique({ where: { email: emailRegressao } })).toBeNull();
   });
 
   it('faz login com credenciais corretas', async () => {

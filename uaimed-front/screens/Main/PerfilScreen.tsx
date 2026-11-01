@@ -17,6 +17,8 @@ import { TipoUsuario } from '../../types/usuario';
 import LocalizacaoMedicoCard from '../../components/LocalizacaoMedicoCard';
 import { googleMapsUrl } from '../../utils/geo';
 import { SolicitacaoVinculoClinica } from '../../types/clinica';
+import { CADASTRO_LIMITES, validarCrm } from '../../utils/cadastroValidation';
+import { formatNota } from '../../utils/format';
 
 type PerfilScreenProps = BottomTabScreenProps<MainTabParamList, 'Perfil'>;
 
@@ -69,7 +71,8 @@ const ActionRow: React.FC<{
 const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   const { user, signOut, updateUser } = useAuth();
   const profissionalId = user?.tipo === TipoUsuario.MEDICO ? user?.profissional?.id : undefined;
-  const { notaMedia, loading: loadingAvaliacoes } = useAvaliacoes(profissionalId);
+  const { notaMedia, totalAvaliacoes, loading: loadingAvaliacoes, error: erroAvaliacoes, carregarMediaAvaliacoes } = useAvaliacoes(profissionalId);
+  const notaEstrelas = Math.round((notaMedia ?? 0) * 2) / 2;
 
   // ── Modo edição ────────────────────────────────────────────────
   const [editMode, setEditMode]       = React.useState(false);
@@ -80,6 +83,8 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   const [editEstado, setEditEstado]     = React.useState('');
   const [editCep, setEditCep]           = React.useState('');
   const [editPreco, setEditPreco]       = React.useState('');
+  const [editCrm, setEditCrm] = React.useState('');
+  const [erroCrm, setErroCrm] = React.useState<string | null>(null);
   const [saveLoading, setSaveLoading] = React.useState(false);
   const [avatarLoading, setAvatarLoading] = React.useState(false);
 
@@ -175,6 +180,8 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
     setEditEstado(isMedico ? (user?.profissional?.estado ?? '') : (user?.estado ?? ''));
     setEditCep(isMedico ? (user?.profissional?.cep ?? '') : (user?.cep ?? ''));
     setEditPreco(isMedico ? String(user?.profissional?.precoConsulta ?? '') : '');
+    setEditCrm(user?.profissional?.crm ?? '');
+    setErroCrm(null);
     setEditMode(true);
   };
 
@@ -184,16 +191,32 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
 
   // ── Salvar perfil ──────────────────────────────────────────────
   const handleSaveProfile = async () => {
+    if (saveLoading) return;
+    const crmNormalizado = editCrm.trim().toUpperCase();
+    const crmAlterado = isMedico && crmNormalizado !== (user?.profissional?.crm ?? '').trim().toUpperCase();
+    const enderecoAlterado = isMedico && (
+      editEndereco.trim() !== (user?.profissional?.endereco ?? '').trim() ||
+      editCidade.trim() !== (user?.profissional?.cidade ?? '').trim() ||
+      editEstado.trim() !== (user?.profissional?.estado ?? '').trim() ||
+      editCep.trim() !== (user?.profissional?.cep ?? '').trim()
+    );
+    const precoAlterado = isMedico && editPreco !== String(user?.profissional?.precoConsulta ?? '');
+    const mensagemCrm = crmAlterado ? validarCrm(editCrm) : undefined;
+    if (mensagemCrm) {
+      setErroCrm(mensagemCrm);
+      showModal('CRM inválido', mensagemCrm, { type: 'warning' });
+      return;
+    }
     if (!editNome.trim()) {
       showModal('Campo obrigatório', 'O nome não pode ficar vazio.', { type: 'warning' });
       return;
     }
-    if ((isMedico || isClinica) && (!editEndereco.trim() || !editCidade.trim() || !editEstado.trim())) {
+    if ((enderecoAlterado || isClinica) && (!editEndereco.trim() || !editCidade.trim() || !editEstado.trim())) {
       showModal('Campo obrigatório', 'Endereço, cidade e estado são obrigatórios.', { type: 'warning' });
       return;
     }
     const precoNumerico = Number(editPreco.replace(',', '.'));
-    if (isMedico && (!editPreco.trim() || Number.isNaN(precoNumerico) || precoNumerico <= 0)) {
+    if (precoAlterado && (!editPreco.trim() || !Number.isFinite(precoNumerico) || precoNumerico <= 0)) {
       showModal('Campo obrigatório', 'Informe um preço de consulta válido.', { type: 'warning' });
       return;
     }
@@ -201,8 +224,9 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
     try {
       const [contaRes, enderecoRes, precoRes] = await Promise.all([
         uaiMedApi.put('/users/me', {
-          nome: editNome.trim(),
-          telefone: editTelefone.trim(),
+          ...(editNome.trim() !== user?.nome ? { nome: editNome.trim() } : {}),
+          ...(editTelefone.trim() !== (user?.telefone ?? '') ? { telefone: editTelefone.trim() } : {}),
+          ...(crmAlterado ? { crm: crmNormalizado } : {}),
           ...(isClinica ? {
             endereco: editEndereco.trim(),
             cidade: editCidade.trim(),
@@ -210,7 +234,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
             cep: editCep.trim(),
           } : {}),
         }),
-        isMedico
+        enderecoAlterado
           ? uaiMedApi.put('/professionals/me/endereco', {
               endereco: editEndereco.trim(),
               cidade: editCidade.trim(),
@@ -218,7 +242,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
               cep: editCep.trim(),
             })
           : Promise.resolve(null),
-        isMedico
+        precoAlterado
           ? uaiMedApi.put('/professionals/me/preco', { precoConsulta: precoNumerico })
           : Promise.resolve(null),
       ]);
@@ -231,14 +255,20 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
           estado: contaRes.data.user.estado,
           cep: contaRes.data.user.cep,
         } : {}),
-        ...(enderecoRes || precoRes ? {
-          profissional: { ...user?.profissional, ...enderecoRes?.data, ...precoRes?.data },
+        ...(contaRes.data.user.profissional || enderecoRes || precoRes ? {
+          profissional: { ...user?.profissional, ...contaRes.data.user.profissional, ...enderecoRes?.data, ...precoRes?.data },
         } : {}),
       });
       setEditMode(false);
       showModal('Perfil atualizado!', 'Suas informações foram salvas com sucesso.', { type: 'success' });
-    } catch {
-      showModal('Erro', 'Não foi possível salvar as alterações.', { type: 'error' });
+    } catch (error: any) {
+      const detalhes = error.response?.data?.details;
+      const mensagem = error.response?.data?.error === 'Validation failed'
+        ? detalhes?.[0]?.message : error.response?.data?.error;
+      if (error.response?.status === 409 && crmAlterado) {
+        setErroCrm(mensagem || 'CRM já cadastrado para outro profissional.');
+      }
+      showModal('Erro', mensagem || 'Não foi possível salvar as alterações.', { type: 'error' });
     } finally {
       setSaveLoading(false);
     }
@@ -403,18 +433,37 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
             />
             <Text style={s.typeBadgeTxt}>{tipoLabel}</Text>
           </View>
-          {(isMedico || isClinica) && (
-            <View style={s.ratingInline}>
+          {isMedico && (
+            <TouchableOpacity style={s.ratingInline}
+              disabled={loadingAvaliacoes || !profissionalId}
+              accessibilityRole="button"
+              accessibilityLabel={erroAvaliacoes ? 'Tentar carregar avaliações novamente' : 'Ver avaliações recebidas'}
+              onPress={() => erroAvaliacoes && profissionalId
+                ? carregarMediaAvaliacoes(profissionalId)
+                : navigation.navigate('MedicoAvaliacoes')}
+            >
               {loadingAvaliacoes
                 ? <ActivityIndicator size="small" color="#FFC107" />
                 : <>
-                    <Ionicons name="star" size={12} color="#FFC107" />
+                    <View style={s.ratingStars}>
+                      {[1, 2, 3, 4, 5].map((estrela) => (
+                        <Ionicons
+                          key={estrela}
+                          name={notaEstrelas >= estrela ? 'star' : notaEstrelas >= estrela - 0.5 ? 'star-half' : 'star-outline'}
+                          size={14}
+                          color="#B77900"
+                        />
+                      ))}
+                    </View>
                     <Text style={s.ratingTxt}>
-                      {notaMedia !== null ? `${Number(notaMedia).toFixed(1)} / 5.0` : 'Sem avaliações'}
+                      {erroAvaliacoes ? 'Erro ao carregar. Toque para tentar novamente.'
+                        : notaMedia !== null && totalAvaliacoes
+                          ? `${formatNota(notaMedia)} / 5 · ${totalAvaliacoes} ${totalAvaliacoes === 1 ? 'avaliação' : 'avaliações'}`
+                          : 'Sem avaliações'}
                     </Text>
                   </>
               }
-            </View>
+            </TouchableOpacity>
           )}
         </View>
 
@@ -468,8 +517,19 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
               )}
               {isMedico && (
                 <>
-                  <Text style={s.fieldLabelReadonly}>CRM</Text>
-                  <Text style={s.fieldReadonlyValue}>{user.profissional?.crm || 'Não informado'}</Text>
+                  <Text style={s.fieldLabel}>CRM</Text>
+                  <TextInput
+                    style={[s.fieldInput, erroCrm && { borderColor: '#C62828' }]}
+                    value={editCrm}
+                    onChangeText={(valor) => { setEditCrm(valor.toUpperCase()); setErroCrm(null); }}
+                    maxLength={CADASTRO_LIMITES.crm}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    placeholder="123456-MG"
+                    accessibilityLabel="CRM"
+                    editable={!saveLoading}
+                  />
+                  {erroCrm ? <Text accessibilityRole="alert" style={{ color: '#C62828', fontSize: 12, marginTop: 4 }}>{erroCrm}</Text> : null}
                   <Text style={s.fieldLabelReadonly}>Especialidade</Text>
                   <Text style={s.fieldReadonlyValue}>{user.profissional?.especialidade || 'Não informado'}</Text>
 
@@ -1019,8 +1079,9 @@ const s = StyleSheet.create({
     marginTop: 5, alignSelf: 'flex-start',
   },
   typeBadgeTxt: { fontSize: 11, color: '#888', fontWeight: '600' },
-  ratingInline: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 5 },
-  ratingTxt: { fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
+  ratingInline: { alignItems: 'flex-start', gap: 4, marginTop: 5 },
+  ratingStars: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  ratingTxt: { fontSize: 12, lineHeight: 16, color: '#52525B', fontWeight: '600', flexShrink: 1 },
 
   // ScrollView
   scrollContent: { padding: 10, paddingBottom: 20 },

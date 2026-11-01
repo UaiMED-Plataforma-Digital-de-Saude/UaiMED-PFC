@@ -1,0 +1,142 @@
+{
+  "executadoEm": "2026-10-18T20:22:03.998Z",
+  "cenarios": [
+    {
+      "id": "recuperacao_senha",
+      "actual": {
+        "error": "Rota não encontrada",
+        "path": "/api/password-recovery"
+      },
+      "expected": "Solicitação de recuperação processada"
+    },
+    {
+      "id": "data_passada",
+      "actual": 201,
+      "expected": "Rejeitar data passada"
+    },
+    {
+      "id": "fora_expediente",
+      "actual": 201,
+      "expected": "Rejeitar horário fora do expediente"
+    },
+    {
+      "id": "cancelamento",
+      "actual": {
+        "http": 404,
+        "body": {
+          "error": "Rota não encontrada",
+          "path": "/api/agendamentos/9263311e-07b3-4193-a1a4-fd575f134e4d/cancelar"
+        }
+      },
+      "expected": "Cancelar agendamento existente"
+    },
+    {
+      "id": "sobreposicao_30_minutos",
+      "actual": 201,
+      "expected": "Rejeitar sobreposição com consulta de 30 minutos"
+    },
+    {
+      "id": "reserva_concorrente",
+      "actual": [
+        201,
+        201,
+        201,
+        201,
+        201,
+        201,
+        201,
+        201
+      ],
+      "expected": "Exatamente uma criação 201; demais requisições em conflito 409"
+    },
+    {
+      "id": "domingo_sem_configuracao",
+      "actual": {
+        "medicoExibeAtivo": false,
+        "slotsPaciente": 18
+      },
+      "expected": "Ambos os fluxos devem concordar sobre disponibilidade"
+    },
+    {
+      "id": "cupom_esgotado",
+      "actual": {
+        "validacao": 400,
+        "pagamento": 201
+      },
+      "expected": "Pagamento deve respeitar o limite que a validação aplica"
+    },
+    {
+      "id": "desconto_divergente",
+      "actual": {
+        "tela": 76.5,
+        "backend": 75
+      },
+      "expected": "O valor mostrado e o registrado devem ser iguais"
+    },
+    {
+      "id": "pagamento_e_consulta",
+      "actual": {
+        "pagamento": "concluido",
+        "consulta": "agendado"
+      },
+      "expected": "Definir e aplicar transição coerente do ciclo da consulta"
+    },
+    {
+      "id": "repetir_pagamento",
+      "actual": {
+        "http": 500,
+        "usosAntes": 2,
+        "usosDepois": 3
+      },
+      "expected": "Repetição idempotente, sem consumir cupom em pagamento rejeitado"
+    },
+    {
+      "id": "avaliacoes_antes_consulta_e_repetidas",
+      "actual": [
+        201,
+        201,
+        201,
+        201,
+        201,
+        201
+      ],
+      "expected": "Exigir consulta realizada e impedir repetição da mesma avaliação"
+    },
+    {
+      "id": "medias_divergentes",
+      "actual": {
+        "perfil": 5,
+        "endpointMedia": 4.3,
+        "total": 6
+      },
+      "expected": "Média global igual nas duas respostas"
+    },
+    {
+      "id": "preferencias_notificacao",
+      "actual": {
+        "http": 200,
+        "camposPersistidos": []
+      },
+      "expected": "Persistir e recuperar as preferências salvas"
+    },
+    {
+      "id": "retomar_pagamento",
+      "actual": {
+        "campos": [
+          "id",
+          "medicoId",
+          "medico",
+          "especialidade",
+          "data",
+          "status",
+          "endereco",
+          "cidade",
+          "estado",
+          "latitude",
+          "longitude"
+        ]
+      },
+      "expected": "Listagem deve permitir identificar pendência e retomar pagamento"
+    }
+  ]
+}

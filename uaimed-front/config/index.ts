@@ -6,6 +6,7 @@
  */
 
 import { Platform } from 'react-native';
+import { CADASTRO_LIMITES } from '../utils/cadastroValidation';
 
 export const CONFIG = {
   // ============================================
@@ -112,7 +113,7 @@ export const CONFIG = {
   // ============================================
   VALIDATION: {
     minPasswordLength: 6,
-    maxPasswordLength: 128,
+    maxPasswordLength: CADASTRO_LIMITES.senha,
     emailRegex: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
     phoneRegex: /^\(?([0-9]{2})\)?[\s.-]?([0-9]{4,5})[\s.-]?([0-9]{4})$/,
     cpfRegex: /^\d{3}\.\d{3}\.\d{3}-\d{2}$/,
