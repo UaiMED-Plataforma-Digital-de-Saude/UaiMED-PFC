@@ -9,6 +9,10 @@ Endpoints (scaffold):
 - POST /api/contatos -> Create contact (auth)
 - GET /api/contatos -> List contacts (auth)
 - POST /api/cupons/validar -> Validate coupon
+- POST /api/agendamentos -> Create appointment (auth)
+- GET /api/agendamentos -> List own appointments (auth)
+- PATCH /api/agendamentos/:id/cancelar -> Cancel own appointment (auth)
+- PATCH /api/agendamentos/:id/remarcar -> Reschedule own appointment (auth)
 - POST /api/pagamentos -> Process payment (auth)
 - POST /api/avaliacoes -> Create review
 - GET /api/avaliacoes/medico/:id/media -> Get average rating
@@ -35,6 +39,21 @@ Use o header `Authorization: Bearer <token>` para rotas que exigem autenticaçã
 CPF/CNPJ são validados quanto ao formato e comprimento, sem consulta cadastral ou validação de dígitos verificadores. Os campos opcionais de endereço continuam opcionais para médicos e clínicas. A confirmação da senha é validada no aplicativo e não é enviada à API.
 
 O formulário limita a digitação/colagem dos campos e filtra caracteres não numéricos em telefone, CPF, CNPJ e CEP. A API também aplica limites para impedir o envio de valores excessivos por clientes externos.
+
+## Agendamentos — cancelamento e remarcação
+
+- `PATCH /api/agendamentos/:id/cancelar`: cancela uma consulta do próprio usuário autenticado. Retorna `403` se o agendamento for de outro usuário, `409` se já estiver `cancelado`/`realizado`/`concluido`, e `422` se faltarem menos de 24h para o horário marcado (a mesma regra que a tela já aplica no cliente, aqui também reforçada no servidor). Em caso de sucesso, `status` passa para `cancelado` e é gravado log de auditoria `CANCELAR_AGENDAMENTO`.
+- `PATCH /api/agendamentos/:id/remarcar`: altera a `dataHora` de uma consulta do próprio usuário **sem criar um novo registro** (mesmo `id`, `status` preservado, pagamento já efetuado continua associado à mesma consulta). Corpo: `{ "dataHora": "<ISO 8601>" }`. Mesmas validações de dono/status/antecedência de 24h do cancelamento, calculadas a partir do horário **atual** da consulta, mais `409` se o novo horário já estiver ocupado por outro agendamento do mesmo profissional e `422` se o novo horário não estiver no futuro. Log de auditoria `REMARCAR_AGENDAMENTO` com `detalhes: { dataAnterior, dataNova }`.
+- No app, **Minhas Consultas → Remarcar** reaproveita o fluxo de seleção de data/horário (`SelecaoHorario`/`SelecaoHorariosDia`) passando o `agendamentoId` original; ao confirmar, a tela chama `remarcar` em vez de criar um agendamento novo, então não há cobrança duplicada nem tela de pagamento repetida.
+- `GET /api/agendamentos` também retorna `valor` (preço da consulta do profissional), `pixKey` e `pagamento: { status, valorFinal, metodo } | null` (`null` quando não há nenhum pagamento registrado para o agendamento). No app, **Minhas Consultas** exibe um badge "Pago"/"Não pago" ao lado do status e, quando não pago, um botão "Pagar agora" que navega para `Pagamento` com esses dados.
+- `POST /api/pagamentos` usa `upsert` (chave única `agendamentoId`) em vez de `create`: se o agendamento já tiver um `Pagamento` com status diferente de `concluido` (ex.: `pendente`), o registro é atualizado para `concluido` em vez de falhar na constraint única. Se já existir um pagamento `concluido` para o agendamento, retorna `409` em vez de processar de novo.
+- `GET /api/agendamentos` também retorna `avaliado: boolean` (se já existe uma `Avaliacao` vinculada àquele agendamento específico — não apenas ao profissional). No app, **Minhas Consultas** exibe um botão "Avaliar" em consultas `concluido` sem avaliação.
+- `POST /api/avaliacoes` aceita `agendamentoId` opcional. Quando informado: `404` se o agendamento não existir, `403` se não pertencer ao usuário autenticado, `400` se `profissionalId` não corresponder ao profissional do agendamento, `422` se o agendamento não estiver `concluido`, `409` se esse agendamento já tiver sido avaliado (constraint única `agendamentoId` em `Avaliacao`). Sem `agendamentoId`, o comportamento antigo é preservado (avaliação solta, vinculada só ao profissional).
+
+## Busca de profissionais
+
+- `GET /api/medicos` aceita `query` (nome), `especialidade`, `cidade`, `estado`, `precoMin`/`precoMax` (faixa de `precoConsulta`), e paginação via `skip`/`take` (`take` máx. 100, padrão 50). Cada item retorna também `notaMedia`/`totalAvaliacoes` (agregados via `avaliacao.groupBy`, sem N+1) e `precoConsulta`. A resposta continua um array — o total de resultados (ignorando `skip`/`take`) vai no header `X-Total-Count`, para preservar o contrato existente dos consumidores atuais.
+- Não há filtro por "plano de saúde aceito": o modelo `Profissional` não tem nenhum campo de convênio — ver `KANBAN_MELHORIAS.md` (Backlog) para o que falta ser desenhado.
 
 ## Perfil profissional — CRM e avaliações
 
@@ -69,6 +88,8 @@ críticas"):
 | Ação | Onde | `acao` no log |
 |---|---|---|
 | Criar agendamento | `POST /api/agendamentos` | `CRIAR_AGENDAMENTO` |
+| Cancelar agendamento | `PATCH /api/agendamentos/:id/cancelar` | `CANCELAR_AGENDAMENTO` |
+| Remarcar agendamento | `PATCH /api/agendamentos/:id/remarcar` | `REMARCAR_AGENDAMENTO` |
 | Processar pagamento | `POST /api/pagamentos` | `PROCESSAR_PAGAMENTO` |
 | Enviar mensagem (ambos os sentidos) | `POST /api/conversas/:id/mensagens` | `ENVIAR_MENSAGEM` |
 | Aceitar/recusar vínculo clínica-médico | `PATCH /api/clinicas/solicitacoes/:clinicaId` | `ACEITAR_VINCULO_CLINICA` / `RECUSAR_VINCULO_CLINICA` |

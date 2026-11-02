@@ -1,7 +1,7 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.12.0  
-**Data**: 30 de Outubro de 2026  
+**Versão**: 1.17.0  
+**Data**: 01 de Novembro de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
 
@@ -366,19 +366,117 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 
 ---
 
-## 🔴 BUG CONHECIDO — Encontrado em 13/10/2026
+## 🟢 CONCLUÍDO — 01/11/2026
 
 ---
 
-### 🔴 [BUG] Cancelamento de consulta — endpoint inexistente no backend
+### ✅ [BUG FIX] Cancelamento de consulta — endpoint inexistente no backend
 **Área**: Frontend + Backend | **Prioridade**: 🔴 Crítico | **Esforço**: 2
 
-**Descrição**: `MinhasConsultasScreen.tsx` chama `PATCH /agendamentos/:id/cancelar` ao tocar em "Cancelar", mas `agendamentos.routes.ts` só define `GET /agendamentos/sugestoes-horario`, `POST /agendamentos` e `GET /agendamentos`. Não existe rota de cancelamento nem método `cancelar()` no `AgendamentosController`. O botão "Cancelar" falha em runtime (a tela já tem toda a lógica de UI — confirmação, regra de 24h de antecedência — só falta o endpoint).
+**Descrição original (encontrado em 13/10/2026)**: `MinhasConsultasScreen.tsx` chama `PATCH /agendamentos/:id/cancelar` ao tocar em "Cancelar", mas `agendamentos.routes.ts` só definia `GET /agendamentos/sugestoes-horario`, `POST /agendamentos` e `GET /agendamentos`. Não existia rota de cancelamento nem método `cancelar()` no `AgendamentosController`. O botão "Cancelar" falhava em runtime (a tela já tinha toda a lógica de UI — confirmação, regra de 24h de antecedência — só faltava o endpoint).
+
+**Resolução**: Implementado `PATCH /agendamentos/:id/cancelar` (protegido por `authMiddleware`), validando dono do agendamento (`403` se for de outro usuário), status já `cancelado`/`realizado` (`409`) e antecedência mínima de 24h também no backend (`422` — antes a regra só existia no cliente e podia ser contornada chamando a API direto). Atualiza `status` para `cancelado` e grava log de auditoria `CANCELAR_AGENDAMENTO`.
 
 **Critério de aceite**:
-- [ ] `PATCH /agendamentos/:id/cancelar` implementado, protegido por `authMiddleware`, validando que o usuário é o dono do agendamento
-- [ ] Atualiza `status` do agendamento para `cancelado`
-- [ ] Teste de integração cobrindo sucesso, 403 (não é o dono) e 404 (agendamento inexistente)
+- [x] `PATCH /agendamentos/:id/cancelar` implementado, protegido por `authMiddleware`, validando que o usuário é o dono do agendamento
+- [x] Atualiza `status` do agendamento para `cancelado`
+- [x] Teste de integração cobrindo sucesso, 403 (não é o dono) e 404 (agendamento inexistente) — `agendamentos_cancelar.test.ts`, 6 casos
+
+---
+
+### ✅ [BUG FIX] Remarcação de consulta — criava agendamento duplicado em vez de atualizar o original
+**Área**: Frontend + Backend | **Prioridade**: 🔴 Crítico | **Esforço**: 3
+
+**Descrição**: Encontrado ao investigar o bug de cancelamento acima. O botão "Remarcar" em `MinhasConsultasScreen.tsx` navegava direto para o fluxo normal de agendamento (`SelecaoHorario` → `SelecaoHorariosDia` → `POST /agendamentos`), sem nenhuma referência ao agendamento original. Resultado: o paciente ficava com **duas consultas** marcadas (a antiga continuava `confirmado`, ocupando o horário) e era levado de novo para a tela de pagamento — cobrança duplicada pela mesma consulta.
+
+**Resolução**: Novo endpoint `PATCH /agendamentos/:id/remarcar` (schema Zod próprio, `remarcarAgendamentoSchema`), validando dono, status, antecedência mínima de 24h a partir do horário **atual** da consulta, novo horário no futuro e conflito de agenda do profissional. Atualiza `dataHora` no mesmo registro (mesmo `id`, mesmo `status`, sem tocar no pagamento já feito) e grava log de auditoria `REMARCAR_AGENDAMENTO` com `dataAnterior`/`dataNova`. No app, `remarcarAgendamentoId` passa a trafegar por `SelecaoHorario`/`SelecaoHorariosDia`; ao confirmar, a tela chama o endpoint de remarcação em vez de criar um agendamento novo e mostra "Consulta remarcada" sem reabrir a tela de pagamento.
+
+**Critério de aceite**:
+- [x] `PATCH /agendamentos/:id/remarcar` implementado, protegido por `authMiddleware`, validando dono/status/antecedência/conflito
+- [x] Atualiza `dataHora` do agendamento existente (não cria um novo registro)
+- [x] Frontend não leva mais para a tela de pagamento ao remarcar
+- [x] Teste de integração — `agendamentos_remarcar.test.ts`, 8 casos
+- [x] Verificado end-to-end no app rodando (driver headless `run-uaimed-front`): lista continua com o mesmo número de consultas após remarcar, mesmo `id` no banco
+
+---
+
+### ✅ [FEATURE] Status de pagamento visível no agendamento
+**Área**: Frontend + Backend | **Prioridade**: 🟠 Alto | **Esforço**: 3
+
+**Descrição original**: o card descrevia a feature para `AgendamentosScreen`, mostrando status (`confirmado`/`cancelado`/`realizado`) mas não se a consulta foi paga.
+
+**Correção de escopo (revisão antes de implementar)**: `AgendamentosScreen.tsx` é código morto — não é importado por nenhum navigator (a aba real usa `AgendamentoStack` → `MinhasConsultasScreen`) e tem um erro de sintaxe JSX real (`<View ...> />` sem fechar). A implementação foi feita em `MinhasConsultasScreen.tsx`, que é a tela que o paciente de fato usa. Também revisado o critério de aceite: `Pagamento.status` tem default `"pendente"` no schema, mas `processar()` sempre criava o registro já `"concluido"` — não existe de fato um terceiro estado "pendente" produzido pelo fluxo real de pagamento, então o badge ficou com 2 estados (`✅ Pago` / `❌ Não pago`) em vez de 3.
+
+**Resolução**:
+- `GET /agendamentos` (`listar()`) agora inclui `pagamento: { status, valorFinal, metodo } | null`, `valor` (`profissional.precoConsulta`) e `pixKey`
+- `MinhasConsultasScreen.tsx`: badge de pagamento ao lado do status; botão "Pagar agora" (quando não pago e não cancelado) navega para `Pagamento` com os mesmos params que `ConfirmacaoScreen` já usa
+- **Bug colateral encontrado e corrigido durante a verificação manual**: o seed usa valores de status `"aprovado"`/`"pendente"` para `Pagamento` (distintos de `"concluido"`, usado pelo fluxo real). Pagar uma consulta cujo agendamento já tinha uma linha `Pagamento` com status `"pendente"` (dado de demonstração) colidia com a constraint única `agendamentoId` e derrubava `POST /pagamentos` com 500. Corrigido trocando `create` por `upsert` em `PagamentosController.processar()`, com guarda explícita (`409`) para não sobrescrever um pagamento já `"concluido"`
+- 2 novos casos de teste de integração (`agendamentos_listar_pagamento.test.ts`) + 2 em `pagamentos.test.ts` (completa pagamento pendente via upsert; rejeita novo pagamento sobre um já concluído)
+
+**Critério de aceite**:
+- [x] `GET /agendamentos` inclui `pagamento: { status, valorFinal, metodo }` no retorno
+- [x] Card do agendamento exibe badge de pagamento (`✅ Pago` / `❌ Não pago` — ver nota de escopo acima sobre o terceiro estado)
+- [x] Consultas não pagas exibem botão "Pagar agora" → navega para `Pagamento`
+- [x] Verificado end-to-end no app rodando: pagamento via Pix atualiza o badge sem duplicar registro; caso de borda do pagamento `"pendente"` pré-existente também verificado
+
+---
+
+### ✅ [FEATURE] Botão "Avaliar" em consultas concluídas
+**Área**: Frontend + Backend | **Prioridade**: 🟠 Alto | **Esforço**: 3
+
+**Descrição original**: card mirava `AgendamentosScreen` (mesmo arquivo morto dos dois itens corrigidos anteriormente); implementado em `MinhasConsultasScreen.tsx`.
+
+**Gap de schema encontrado na revisão (antes de implementar)**: o modelo `Avaliacao` não tinha nenhuma relação com `Agendamento` — só `usuarioId` + `profissionalId`. Isso tornava o critério de aceite "agendamentos já avaliados não exibem o botão" literalmente impossível de cumprir por consulta específica (só daria pra saber "esse paciente já avaliou esse médico alguma vez", não "essa consulta already foi avaliada"). `AvaliacaoScreen.tsx` já recebia `agendamentoId` por parâmetro de navegação (vindo de `PagamentoScreen` após pagar) mas descartava o valor sem nunca enviá-lo à API — sinal de que o campo foi planejado e nunca finalizado.
+
+**Resolução**: migração adicionando `agendamentoId String? @unique` em `Avaliacao` (+ relação reversa `avaliacao Avaliacao?` em `Agendamento`). `POST /avaliacoes` passa a aceitar `agendamentoId` opcional, validando dono (`403`), profissional correspondente (`400`), status `concluido` (`422`) e ausência de avaliação prévia para aquele agendamento (`409`). `GET /agendamentos` retorna `avaliado: boolean`. `MinhasConsultasScreen.tsx` exibe botão "Avaliar" em consultas `concluido` sem avaliação, navegando para `Avaliacao` com `agendamentoId`/`medicoId`.
+
+**Critério de aceite**:
+- [x] Card de agendamento com status `concluido` exibe botão "Avaliar"
+- [x] Navega para `Avaliacao` com `agendamentoId` e `medicoId`
+- [x] Agendamentos já avaliados não exibem o botão (agora por consulta específica, não por médico)
+- [x] 7 novos casos de teste (`avaliacoes_agendamento.test.ts`)
+- [x] Verificado end-to-end: avaliação criada via API vinculada ao `agendamentoId` certo; botão "Avaliar" some da lista após recarregar
+
+---
+
+### ✅ [FEATURE] `ResultadosScreen` — exibir lista real de médicos da API
+**Área**: Frontend + Backend | **Prioridade**: 🟠 Alto | **Esforço**: 5
+
+**Descrição original**: dizia que `ResultadosScreen` não consumia a API real.
+
+**Correção de escopo (revisão antes de implementar)**: a descrição estava desatualizada — `ResultadosScreen.tsx` **já** chamava `GET /medicos` com os filtros reais (`query`/`especialidade`/`cidade`/`estado`), sem dados simulados. O que realmente faltava, comparado ao critério de aceite, era bem menor: o card não exibia avaliação média nem valor da consulta (apesar de `precoConsulta` já vir na resposta da API), a navegação para `DetalhesMedico` não passava `amount`, e `GET /medicos` não tinha paginação nem média de avaliação agregada.
+
+**Resolução**:
+- Backend: `GET /medicos` passa a aceitar `skip`/`take` (teto 100) e retorna `notaMedia`/`totalAvaliacoes` por profissional via uma única query agregada (`avaliacao.groupBy`, evita N+1). **Contrato preservado**: a resposta continua um array (não foi envelopada em `{ data, total }`) para não quebrar os 2 consumidores existentes (`ResultadosScreen` e os testes `destaques.test.ts`/`medicos_agendamentos.test.ts`) — o total vai no header `X-Total-Count`
+- Frontend: card de `ResultadosScreen` exibe nota média (ou "Sem avaliações") e preço; navegação para `DetalhesMedico` agora inclui `amount`
+- **Não implementado**: UI de "carregar mais"/paginação visual no front — com ~10-14 profissionais cadastrados hoje, não há necessidade real, e construir isso exigiria decisões de design (scroll infinito vs. botão vs. páginas) não pedidas explicitamente; o backend já suporta `skip`/`take` para quando for necessário
+
+**Critério de aceite**:
+- [x] `GET /medicos?especialidade=xxx&nome=yyy` com paginação (`skip`/`take`, total no header)
+- [x] Card do médico exibe nome, especialidade, avaliação média e valor da consulta
+- [x] Navegar para `DetalhesMedico` passando `medicoId` e `amount`
+- [x] 3 novos casos de teste (`medicos_listar.test.ts`)
+- [x] Verificado end-to-end no app rodando: nota média e preço aparecem no card, `DetalhesMedico` carrega corretamente
+
+---
+
+### ✅ [FEATURE] `SearchScreen` — busca real com filtros funcionais
+**Área**: Frontend + Backend | **Prioridade**: 🟡 Médio | **Esforço**: 3
+
+**Descrição original**: dizia que `SearchScreen` não tinha integração real com a API.
+
+**Correção de escopo (revisão antes de implementar)**: também desatualizada — `SearchScreen.tsx` já buscava por nome (`query`) e especialidade (dropdown), já tinha filtro de cidade/estado (`LocationModal`) e já navegava para `Resultados` com os parâmetros reais. O único filtro do critério de aceite genuinamente ausente era faixa de preço — implementado agora. **"Plano de saúde aceito" não foi implementado**: não existe nenhum campo relacionado a convênios/planos de saúde no modelo `Profissional` (o único conceito próximo no sistema é o desconto genérico de 15% que o paciente escolhe ativar no pagamento, não uma lista de convênios aceitos por médico) — implementar esse filtro de verdade exige desenhar um modelo de dados novo, não só adicionar um dropdown; movido para o Backlog como item próprio em vez de construir um filtro sem dado real por trás.
+
+**Resolução**: `GET /medicos` aceita `precoMin`/`precoMax`. `SearchScreen` ganhou chips de faixa de preço ("Até R$150", "R$150 a 300", "Acima de R$300"), incluídos em `buildParams()` (usado tanto pela busca quanto pelos chips de especialidade rápida). `ResultadosScreen` repassa os novos parâmetros para a API.
+
+**Critério de aceite**:
+- [x] Campo de busca por especialidade ou nome do médico
+- [x] Filtro de cidade
+- [x] Filtro de faixa de preço
+- [ ] Filtro de plano de saúde aceito — **movido para o Backlog**, requer modelo de dados novo
+- [x] Ao pesquisar, navega para `Resultados` com os parâmetros
+- [x] 1 novo caso de teste (`medicos_listar.test.ts`, filtro de preço)
+- [x] Verificado end-to-end no app rodando: filtro "Acima de R$300" corretamente retorna zero resultados no dataset atual
 
 ---
 
@@ -415,51 +513,6 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 
 ---
 
-### 🎯 [FEATURE] Status de pagamento visível no agendamento
-- **Área**: Frontend + Backend
-- **Prioridade**: 🟠 Alto
-- **Esforço**: 3
-- **Descrição**: `AgendamentosScreen` mostra status do agendamento (`confirmado`, `cancelado`, `realizado`) mas não exibe se o pagamento foi efetuado. Paciente não sabe se a consulta está paga ou pendente.
-- **Critério de aceite**:
-  - [ ] `GET /agendamentos` inclui `pagamento: { status, valorFinal, metodo }` no retorno
-  - [ ] Card do agendamento exibe badge de pagamento: `✅ Pago`, `⏳ Pendente` ou `❌ Não pago`
-  - [ ] Consultas não pagas exibem botão "Pagar agora" → navega para `Pagamento`
-
----
-
-### 🎯 [FEATURE] `AgendamentosScreen` — botão "Avaliar" em consultas concluídas
-- **Área**: Frontend
-- **Prioridade**: 🟠 Alto
-- **Esforço**: 3
-- **Descrição**: Lista de agendamentos anteriores não possui botão de avaliação. Paciente só pode avaliar logo após agendar (fluxo direto), não consegue avaliar depois.
-- **Critério de aceite**:
-  - [ ] Card de agendamento com status `concluido` exibe botão "Avaliar"
-  - [ ] Navega para `Avaliacao` com `agendamentoId` e `medicoId`
-  - [ ] Agendamentos já avaliados não exibem o botão
-
----
-
-### 🎯 [FEATURE] `ResultadosScreen` — exibir lista real de médicos da API
-- **Área**: Frontend + Backend
-- **Prioridade**: 🟠 Alto
-- **Esforço**: 5
-- **Descrição**: Tela de resultados de busca não consome a API real. Deve chamar `GET /medicos` com filtros de especialidade e nome.
-- **Critério de aceite**:
-  - [ ] `GET /medicos?especialidade=xxx&nome=yyy` com paginação
-  - [ ] Card do médico exibe nome, especialidade, avaliação média e valor da consulta
-  - [ ] Navegar para `DetalhesMedico` passando `medicoId` e `amount`
-
----
-
-### 🎯 [FEATURE] `SearchScreen` — busca real com filtros funcionais
-- **Área**: Frontend
-- **Prioridade**: 🟡 Médio
-- **Esforço**: 3
-- **Descrição**: `SearchScreen` é a entrada do fluxo de agendamento mas não possui integração real com a API.
-- **Critério de aceite**:
-  - [ ] Campo de busca por especialidade ou nome do médico
-  - [ ] Filtros: cidade, plano de saúde aceito, faixa de preço
-  - [ ] Ao pesquisar, navega para `Resultados` com os parâmetros
 
 ---
 
@@ -498,6 +551,23 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 - **Esforço**: 8
 - **Descrição**: `expo-notifications` não suporta push remoto no Expo Go SDK 53+. Para push funcionar é necessário gerar um **development build** com `npx expo run:android`. Requer configuração do Expo Push Service ou Firebase Cloud Messaging (FCM).
 - **Dependência**: Geração do APK/build de desenvolvimento
+
+---
+
+### 📌 [FEATURE] Filtro de busca por plano de saúde aceito
+- **Área**: Backend + Frontend
+- **Prioridade**: 🟡 Médio
+- **Esforço**: 5
+- **Descrição**: Levantado ao revisar o card "SearchScreen — busca real com filtros funcionais" (01/11/2026): o modelo `Profissional` não tem nenhum campo relacionado a convênios/planos de saúde aceitos. O único conceito próximo hoje é um desconto genérico de 15% que o paciente escolhe ativar em `PagamentoScreen` ("Plano de saúde"), sem relação com convênios específicos por médico. Implementar o filtro de verdade exige modelar isso — não é só adicionar um dropdown.
+- **Decisões de design em aberto**:
+  - Catálogo fixo de convênios (como `especialidade`) ou texto livre por profissional?
+  - Relação N:N (`Profissional` ↔ `Convenio`) ou lista de strings?
+  - Quem cadastra: o próprio médico no perfil, ou só admin?
+- **Critério de aceite** (a refinar):
+  - [ ] Modelo de dados para convênios aceitos por profissional
+  - [ ] Médico consegue selecionar/editar seus convênios no perfil
+  - [ ] `GET /medicos` aceita filtro por convênio
+  - [ ] `SearchScreen` exibe o filtro
 
 ---
 
@@ -579,24 +649,21 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 | 🟢 Concluído — Sprints Anteriores (até 10/04/2026) | 19 itens |
 | 🟢 Concluído — Mai–Out/2026 (consolidado) | 13 itens |
 | 🟢 Concluído — 30/10/2026 | 6 itens |
-| 🔴 Bug Conhecido | 1 item |
-| 🔵 A Fazer (próxima sprint) | 8 itens |
-| 🗃️ Backlog | 6 itens |
+| 🟢 Concluído — 01/11/2026 | 6 itens |
+| 🔴 Bug Conhecido | 0 itens |
+| 🔵 A Fazer (próxima sprint) | 4 itens |
+| 🗃️ Backlog | 7 itens |
 | ⏸️ Bloqueado | 2 itens |
-| **Total** | **55 itens** |
+| **Total** | **57 itens** |
 
 ---
 
 ## 🏃 Cadência Ágil Sugerida
 
 ```
-Sprints Fev–Out/2026 ──────────────── CONCLUÍDAS (ver seções Concluído acima)
+Sprints Fev–Nov/2026 ──────────────── CONCLUÍDAS (ver seções Concluído acima)
 
 Sprint atual (próxima, ~1 semana)
-  Foco: 🔴 corrigir bug de cancelamento (endpoint ausente) — prioridade máxima,
-        é uma regressão em funcionalidade que a tela já expõe ao usuário
-
-Sprint seguinte (~1 semana)
   Foco: ResultadosScreen + SearchScreen busca real, HistoricoAvaliacoesScreen
         (consumir GET /avaliacoes/minhas, já pronto no backend), Status de
         pagamento visível
@@ -624,6 +691,11 @@ Sprint entrega PFC
 | 30/10/2026 | 1.10.0 | Item "[SECURITY] Proteção LGPD" movido do Backlog para Concluído: consentimento obrigatório no cadastro, log de auditoria de acesso a dados de pacientes (`GET /admin/logs-auditoria`) e relatório de pacientes anonimizado (`GET /admin/relatorios/pacientes`). Removido também do Foco da sprint "E-mail de confirmação... / Proteção LGPD". |
 | 30/10/2026 | 1.11.0 | Auditoria também passa a cobrir envio de mensagens (`ENVIAR_MENSAGEM`, nos dois sentidos), fechando o requisito "mensagens trocadas devem permanecer registradas para auditoria". `GET /avaliacoes/minhas` implementado e testado, movido de "A Fazer" para Concluído. **Gaps levantados e documentados como novos itens de Backlog** (não implementados ainda): auditoria não cobre operações críticas de escrita (agendar, pagar, trocar senha, vínculo clínica-médico); 40/40 usuários existentes no banco não têm consentimento LGPD registrado (fluxo só cobre cadastro novo); política de privacidade promete direito de acesso/eliminação de dados sem endpoint correspondente; log de auditoria não tem política de retenção própria. |
 | 30/10/2026 | 1.12.0 | Fechados os 4 gaps levantados na v1.11.0: auditoria estendida para 9 operações críticas de escrita (agendar, pagar, vínculo clínica-médico, trocar senha, dados bancários, consentimento, exportar/excluir dados); reconsentimento pós-login para as 40 contas existentes sem consentimento (`precisaConsentimentoLgpd` + `LgpdConsentGateScreen`); direitos do titular via `GET`/`DELETE /users/me` (exportar dados, excluir conta por anonimização) + tela de Perfil; expurgo de retenção do log de auditoria (`npm run logs:purgar`). Verificado com o driver headless `run-uaimed-front` — achado e corrigido no processo um bug real: telas fora do `NavigationContainer` (como o novo gate) quebravam por falta de `<SafeAreaProvider>` no app (nunca existiu; funcionava só dentro do Navigator, que injeta um). |
+| 01/11/2026 | 1.13.0 | Corrigido o bug crítico de cancelamento documentado desde 13/10 (`PATCH /agendamentos/:id/cancelar` implementado, com validação de dono/status/antecedência de 24h no backend e não só no app). **Encontrado e corrigido no mesmo processo um segundo bug crítico, não documentado anteriormente**: "Remarcar" criava uma consulta nova sem cancelar a original, duplicando o agendamento e cobrando pagamento de novo — resolvido com `PATCH /agendamentos/:id/remarcar`, que atualiza a `dataHora` do mesmo registro. Ambos cobertos por teste de integração (14 casos novos) e verificados end-to-end no app rodando via driver headless `run-uaimed-front`. Coluna "Bug Conhecido" zerada. **Aproveitado para reconciliar `TESTES.md`**, que estava com a contagem desatualizada desde revisões anteriores (não só pelos 14 casos novos): suíte real auditada via `npm test` em 238/238 (26 arquivos), não os 155/169 citados em versões anteriores deste documento e do `DOCUMENTACAO_PROJETO_UAIMED.md`. |
+| 01/11/2026 | 1.14.0 | Implementado "Status de pagamento visível no agendamento", com correção de escopo antes de codar: o card original mirava `AgendamentosScreen.tsx`, que é código morto (não usado por nenhum navigator, com um erro de sintaxe JSX real) — a feature foi implementada em `MinhasConsultasScreen.tsx`, a tela que o app de fato usa. Badge reduzido a 2 estados (Pago/Não pago) em vez dos 3 do card original, porque o fluxo real de pagamento nunca produz o status `"pendente"` do schema. **Bug colateral encontrado na verificação manual**: o seed usa status de pagamento (`"aprovado"`/`"pendente"`) que colidiam com a constraint única `agendamentoId` ao tentar pagar — `POST /pagamentos` derrubava com 500. Corrigido com `upsert` + guarda de `409` para pagamento já concluído. 4 novos casos de teste. |
+| 01/11/2026 | 1.15.0 | Implementado botão "Avaliar" em consultas concluídas (mais uma vez corrigindo o card para `MinhasConsultasScreen.tsx`, não `AgendamentosScreen.tsx`). **Gap de schema encontrado na revisão**: `Avaliacao` não tinha relação com `Agendamento`, tornando "agendamentos já avaliados não exibem o botão" impossível de cumprir por consulta específica — só dava pra saber se o paciente já avaliou aquele médico alguma vez. `AvaliacaoScreen.tsx` já recebia `agendamentoId` por navegação mas descartava o valor, sinal de que o campo foi planejado e nunca finalizado. Resolvido com migração `agendamentoId String? @unique` em `Avaliacao`; `POST /avaliacoes` valida dono/profissional/status/duplicidade; `GET /agendamentos` retorna `avaliado: boolean`. 7 novos casos de teste, verificado end-to-end (avaliação some da lista após ser enviada). |
+| 01/11/2026 | 1.16.0 | Implementado "ResultadosScreen — exibir lista real de médicos da API", com correção de escopo: a descrição do card estava desatualizada, `ResultadosScreen.tsx` já consumia `GET /medicos` com filtros reais, sem dados simulados. O gap real era menor — faltava nota média/preço no card, `amount` na navegação para `DetalhesMedico`, e paginação/agregação de avaliação no backend. `GET /medicos` passa a aceitar `skip`/`take` e retorna `notaMedia`/`totalAvaliacoes` via `groupBy` (sem N+1), mantendo o contrato de resposta como array (total vai no header `X-Total-Count`, para não quebrar os 2 consumidores existentes). Decisão consciente de não construir UI de "carregar mais" agora — dataset tem ~10-14 profissionais, sem necessidade real hoje. 3 novos casos de teste, verificado end-to-end no app rodando. |
+| 01/11/2026 | 1.17.0 | Implementado "SearchScreen — busca real com filtros funcionais", mais uma vez com card desatualizado: a tela já buscava por nome/especialidade/cidade e já navegava para `Resultados` com parâmetros reais. Único gap genuíno era faixa de preço, agora implementado (`precoMin`/`precoMax` em `GET /medicos`, chips de faixa em `SearchScreen`). **Filtro de "plano de saúde aceito" não implementado**: não existe esse conceito no modelo `Profissional` hoje (só um desconto genérico de 15% escolhido pelo paciente no pagamento, sem relação com convênios específicos) — implementar de verdade exige desenhar um modelo de dados novo; movido para item próprio no Backlog em vez de construir um filtro decorativo sem dado real por trás. 1 novo caso de teste, verificado end-to-end. |
 
 ---
 

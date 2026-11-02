@@ -1,7 +1,7 @@
 # 📘 Documentação Completa do Projeto UaiMED
 
-**Versão**: 1.9.0  
-**Data**: 30 de Outubro de 2026  
+**Versão**: 1.14.0  
+**Data**: 01 de Novembro de 2026  
 **Classificação**: Documentação Técnica de Engenharia de Software  
 **Status**: Projeto em Desenvolvimento Avançado — Seção de Avaliação do Projeto (percurso, decisões técnicas, desafios, resultados e perspectivas) revisada com base no histórico real do Git (135 commits, 63 PRs, Fev–Out/2026)
 
@@ -126,7 +126,7 @@ Plataforma mobile-first que:
 | RF03.1 | Busca de profissionais | Alta | ✅ Implementado |
 | RF03.2 | Exibição de disponibilidade | Alta | ✅ Implementado |
 | RF03.3 | Criação de agendamento | Alta | ✅ Implementado |
-| RF03.4 | Cancelamento/reagendamento pelo paciente | Alta | 🔴 Bug — frontend chama `PATCH /agendamentos/:id/cancelar`, endpoint inexistente no backend |
+| RF03.4 | Cancelamento/reagendamento pelo paciente | Alta | ✅ Implementado (`PATCH /agendamentos/:id/cancelar` e `/remarcar`, v1.13.0 do Kanban) |
 | RF03.5 | Visualização de agenda | Alta | ✅ Implementado |
 | RF03.6 | Fluxo completo Busca→Confirmação→Pagamento→Avaliação | Alta | ✅ Implementado (v1.3.0) |
 
@@ -139,7 +139,7 @@ Plataforma mobile-first que:
 | RF04.4 | Aplicação de cupons | Alta | ✅ Implementado |
 | RF04.5 | Cobertura de plano de saúde | Alta | ✅ Implementado |
 | RF04.6 | Meus Pagamentos (lista dedicada) | Alta | ✅ Implementado |
-| RF04.7 | Status de pagamento visível no agendamento | Alta | ⚠️ Pendente (KANBAN) |
+| RF04.7 | Status de pagamento visível no agendamento | Alta | ✅ Implementado (badge + "Pagar agora" em `MinhasConsultasScreen`, v1.14.0 do Kanban) |
 
 #### RF05 - Sistema de Avaliações
 | ID | Requisito | Prioridade | Status |
@@ -236,7 +236,7 @@ Plataforma mobile-first que:
 
 #### RNF05 - Manutenibilidade
 - **RNF05.1**: Padrões TypeScript ✅
-- **RNF05.2**: Cobertura de testes ≥ 139 casos automatizados (20 arquivos) ✅
+- **RNF05.2**: Cobertura de testes ≥ 253 casos automatizados (29 arquivos) ✅
 - **RNF05.3**: Documentação completa ✅
 
 ---
@@ -728,7 +728,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ Artigos de saúde (leitura pública + CRUD administrativo)
 - ✅ Geolocalização (geocodificação de endereço, busca por proximidade)
 - ✅ Chat/Conversas entre usuários (REST, sem WebSocket/tempo real)
-- ✅ **139 casos de teste automatizados** (20 arquivos) cobrindo os endpoints principais
+- ✅ **253 casos de teste automatizados** (29 arquivos) cobrindo os endpoints principais
 - ✅ Logging revisado — Prisma não loga mais SQL com dados de usuário; app não loga payloads fora de ambiente de desenvolvimento
 - ✅ Proteção LGPD — consentimento (+ reconsentimento de contas antigas), auditoria de acesso a dados de pacientes e de operações críticas (`GET /admin/logs-auditoria`), relatório de pacientes anonimizado (`GET /admin/relatorios/pacientes`), exportar/excluir meus dados (`GET`/`DELETE /users/me`), retenção do log de auditoria
 - ✅ Docker Compose para desenvolvimento
@@ -753,15 +753,17 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ Sistema de avaliações com nota + comentário
 - ✅ Carousel de profissionais em destaque na Home
 - ✅ Filtro de localização (estado/município) na Home e na busca
+- ✅ **Cancelamento e remarcação de consulta**: `PATCH /agendamentos/:id/cancelar` e `/remarcar`, com regra de 24h de antecedência validada também no backend; remarcar atualiza a consulta existente em vez de duplicá-la (v1.13.0 do Kanban)
+- ✅ **Status de pagamento visível na lista de consultas**: `GET /agendamentos` retorna `pagamento`/`valor`/`pixKey`; `MinhasConsultasScreen` exibe badge Pago/Não pago e botão "Pagar agora" (v1.14.0 do Kanban)
+- ✅ **Botão "Avaliar" em consultas concluídas**: `Avaliacao` vinculada a um `agendamentoId` específico; `MinhasConsultasScreen` exibe o botão só quando aplicável (v1.15.0 do Kanban)
+- ✅ **`ResultadosScreen` com busca real na API**: já consumia `GET /medicos` com filtros reais; adicionada nota média, preço da consulta e `amount` na navegação, mais paginação (`skip`/`take`) e agregação de avaliação no backend (v1.16.0 do Kanban)
+- ✅ **`SearchScreen` com filtros funcionais**: já buscava por nome/especialidade/cidade; adicionado filtro de faixa de preço (chips + `precoMin`/`precoMax` em `GET /medicos`). Filtro de plano de saúde aceito movido para o Backlog — não há esse conceito no modelo de dados hoje (v1.17.0 do Kanban)
 
 #### ⚠️ Em Desenvolvimento
 
-- 🔴 **Bug conhecido**: cancelamento de consulta — `MinhasConsultasScreen` chama `PATCH /agendamentos/:id/cancelar`, que não existe no backend (só há `GET`/`POST /agendamentos` e `GET /agendamentos/sugestoes-horario`); botão "Cancelar" falha em runtime
 - ⚠️ Notificações push remotas (requer development build — bloqueado pelo Expo Go SDK 53+)
 - ⚠️ E-mail real de recuperação de senha (backend Nodemailer)
 - ⚠️ E-mail de confirmação de agendamento e pagamento
-- ⚠️ Status de pagamento visível na lista de agendamentos
-- ⚠️ `ResultadosScreen` com busca real na API
 - ⚠️ `HistoricoAvaliacoesScreen` com dados reais
 - ⚠️ Relatórios exportáveis de uso geral (já existe um caso específico: relatório de pacientes anonimizado, ver RNF02.3)
 
@@ -775,19 +777,11 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 ### 8.2 Métricas de Qualidade
 
 #### Cobertura de Testes
-- **Total de casos**: **139 testes automatizados** (20 arquivos) — todos passando ✅
-- **Suítes de integração (backend)** — principais adições desde Abr/2026:
-  - `clinicas.test.ts` — 17 casos
-  - `artigos.test.ts` — 11 casos
-  - `destaques.test.ts` — 9 casos
-  - `conversas.test.ts` — 4 casos
-  - `users.test.ts` — 4 casos
-  - `conta-bancaria.test.ts` — 3 casos
-  - `professionals.test.ts` — 3 casos
-  - (mantidas as suítes de auth, agendamentos, avaliações e pagamentos já documentadas em v1.6.0)
-- **Suítes unitárias**: `auth.schema.unit`, `hash.unit`, `jwt.unit` — 37 casos
-- **Frontend**: Testes manuais (fluxo completo verificado); sem suíte automatizada própria
-- **Documento de testes**: [`uaimed-back/documents/TESTES.md`](./uaimed-back/documents/TESTES.md)
+- **Total de casos**: **253 testes automatizados** (29 arquivos) — todos passando ✅
+- **Adições mais recentes**: `agendamentos_cancelar.test.ts` (6 casos) e `agendamentos_remarcar.test.ts` (8 casos), v1.10.0
+- **Suítes unitárias**: `auth.schema.unit`, `hash.unit`, `jwt.unit` — 39 casos
+- **Frontend**: Testes manuais (fluxo completo verificado) + `cadastroValidation.test.cjs`/`avaliacoesPerfil.test.cjs` (Node `--test`); sem suíte automatizada própria para as telas
+- **Detalhamento completo, suíte por suíte**: [`uaimed-back/documents/TESTES.md`](./uaimed-back/documents/TESTES.md) (fonte da verdade — mantido atualizado a cada sessão; os números aqui podem ficar defasados entre atualizações)
 
 #### Performance
 - **API Response Time**: < 500ms (média)
@@ -1234,6 +1228,98 @@ O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 ---
 
 ## 14. Changelog
+
+### v1.14.0 — 01 de Novembro de 2026
+
+#### 🟢 Implementado
+
+**`SearchScreen` — filtro de faixa de preço (card mais uma vez desatualizado):**
+- A descrição dizia que `SearchScreen` não tinha integração real com a API — também não era verdade: já buscava por nome/especialidade, já tinha filtro de cidade/estado e já navegava para `Resultados` com parâmetros reais
+- Único filtro genuinamente ausente do critério de aceite: faixa de preço — implementado agora (`precoMin`/`precoMax` em `GET /medicos`, chips de faixa em `SearchScreen`)
+- **"Plano de saúde aceito" não implementado**: não existe esse conceito no modelo `Profissional` — o único campo relacionado é um desconto genérico de 15% que o paciente ativa no pagamento, sem relação com convênios específicos por médico. Implementar de verdade exigiria um modelo de dados novo (catálogo de convênios, relação N:N, fluxo de cadastro pelo médico). Movido para item próprio no Backlog em vez de construir um filtro decorativo sem dado real
+
+**Verificação:** 1 novo caso de teste; suíte de backend 252 → 253 casos (mesmos 29 arquivos). Verificado end-to-end no app rodando: filtro "Acima de R$300" corretamente zera os resultados no dataset atual.
+
+Ver `KANBAN_MELHORIAS.md` v1.17.0 para o detalhamento completo.
+
+---
+
+### v1.13.0 — 01 de Novembro de 2026
+
+#### 🟢 Implementado
+
+**`ResultadosScreen` — busca real de médicos (correção de escopo antes de implementar):**
+- A descrição do card estava desatualizada: `ResultadosScreen.tsx` **já** consumia `GET /medicos` com filtros reais (`query`/`especialidade`/`cidade`/`estado`), sem dados simulados. O gap real era menor: card sem nota média/preço, navegação para `DetalhesMedico` sem `amount`, e backend sem paginação/agregação de avaliação
+- `GET /medicos` passa a aceitar `skip`/`take` (teto 100) e retorna `notaMedia`/`totalAvaliacoes` por profissional via `avaliacao.groupBy` (uma única query agregada, sem N+1)
+- **Contrato preservado**: a resposta continua um array — não foi envelopada em `{ data, total }` para não quebrar os 2 consumidores existentes (`ResultadosScreen` e os testes de `destaques`/`medicos_agendamentos`); o total de resultados vai no header `X-Total-Count`
+- Frontend: card exibe nota média (ou "Sem avaliações") e preço da consulta; navegação para `DetalhesMedico` agora inclui `amount`
+- **Decisão consciente de não implementar**: UI de "carregar mais"/paginação visual — com ~10-14 profissionais cadastrados hoje, não há necessidade real, e construir isso exigiria decisões de design não pedidas explicitamente
+
+**Verificação:** 3 novos casos de teste (`medicos_listar.test.ts`); suíte de backend 249 → 252 casos (28 → 29 arquivos). Verificado end-to-end no app rodando: nota média e preço aparecem corretamente no card, navegação para `DetalhesMedico` funciona sem erros.
+
+Ver `KANBAN_MELHORIAS.md` v1.16.0 para o detalhamento completo.
+
+---
+
+### v1.12.0 — 01 de Novembro de 2026
+
+#### 🟢 Implementado
+
+**Botão "Avaliar" em consultas concluídas (mais uma correção de escopo — mesmo card mirando `AgendamentosScreen.tsx` morta dos dois itens anteriores):**
+- Implementado em `MinhasConsultasScreen.tsx`
+- **Gap de schema encontrado na revisão, antes de implementar**: `Avaliacao` não tinha nenhuma relação com `Agendamento` (só `usuarioId` + `profissionalId`), o que tornava "agendamentos já avaliados não exibem o botão" impossível de cumprir por consulta específica — só dava para saber se o paciente já avaliou aquele médico alguma vez, não qual consulta. `AvaliacaoScreen.tsx` já recebia `agendamentoId` por parâmetro de navegação (vindo de `PagamentoScreen`) mas descartava o valor sem enviá-lo à API, sinal de que o vínculo foi planejado e nunca finalizado
+- Migração adicionando `agendamentoId String? @unique` em `Avaliacao` (+ relação reversa em `Agendamento`)
+- `POST /api/avaliacoes` passa a aceitar `agendamentoId` opcional, validando dono (`403`), profissional correspondente (`400`), status `concluido` (`422`) e ausência de avaliação prévia para aquele agendamento (`409`)
+- `GET /api/agendamentos` retorna `avaliado: boolean`; `MinhasConsultasScreen` exibe o botão "Avaliar" só quando aplicável
+
+**Verificação:** 7 novos casos de teste (`avaliacoes_agendamento.test.ts`); suíte de backend 242 → 249 casos (27 → 28 arquivos). Verificado end-to-end no app rodando: avaliação criada via API vinculada ao `agendamentoId` correto, botão "Avaliar" desaparece da lista após recarregar.
+
+Ver `KANBAN_MELHORIAS.md` v1.15.0 para o detalhamento completo.
+
+---
+
+### v1.11.0 — 01 de Novembro de 2026
+
+#### 🟢 Implementado
+
+**Status de pagamento visível no agendamento (com correção de escopo antes de implementar):**
+- O card do Kanban mirava `AgendamentosScreen.tsx`, que é código morto — não é importado por nenhum navigator (a aba real usa `AgendamentoStack` → `MinhasConsultasScreen`) e tem um erro de sintaxe JSX real (`<View ...> />` sem fechar). Implementado em `MinhasConsultasScreen.tsx`, a tela que o app de fato usa
+- `GET /api/agendamentos` passa a incluir `pagamento: { status, valorFinal, metodo } | null`, `valor` (preço da consulta) e `pixKey`
+- Badge "Pago"/"Não pago" por consulta e botão "Pagar agora" (quando não pago e não cancelado), navegando para `Pagamento` com os mesmos parâmetros que `ConfirmacaoScreen` já usa — sem cobrar de novo quem já pagou
+- Badge reduzido a 2 estados em vez dos 3 do card original: o fluxo real de pagamento nunca produz o status `"pendente"` do schema (`processar()` sempre gravava `"concluido"` diretamente)
+
+**Bug colateral encontrado na verificação manual:**
+- O script de seed usa valores de status de pagamento (`"aprovado"`/`"pendente"`) distintos do que o fluxo real produz (`"concluido"`). Pagar uma consulta cujo agendamento já tinha uma linha `Pagamento` de demonstração colidia com a constraint única `agendamentoId` e derrubava `POST /pagamentos` com 500 — reproduzido e corrigido trocando `create` por `upsert`, com guarda de `409` para não sobrescrever um pagamento já `concluido`
+
+**Verificação:** 4 novos casos de teste (`agendamentos_listar_pagamento.test.ts` + 2 em `pagamentos.test.ts`); suíte de backend 238 → 242 casos (26 → 27 arquivos). Fluxo completo verificado no app rodando via driver headless `run-uaimed-front`: pagamento via Pix atualiza o badge sem duplicar registro no banco, e o caso de borda do pagamento `"pendente"` pré-existente também foi testado manualmente.
+
+Ver `KANBAN_MELHORIAS.md` v1.14.0 para o detalhamento completo.
+
+---
+
+### v1.10.0 — 01 de Novembro de 2026
+
+#### 🟢 Implementado
+
+**Backend — Cancelamento de consulta (correção do bug crítico aberto desde 13/10):**
+- `PATCH /api/agendamentos/:id/cancelar` — valida dono do agendamento (`403`), status já `cancelado`/`realizado` (`409`) e antecedência mínima de 24h também no servidor (`422` — antes a regra só existia no cliente). Atualiza `status` para `cancelado` e audita (`CANCELAR_AGENDAMENTO`)
+- 6 novos casos de teste (`agendamentos_cancelar.test.ts`)
+
+**Backend — Remarcação de consulta (bug crítico encontrado durante a correção acima, não documentado antes):**
+- O botão "Remarcar" criava uma consulta nova e independente (`POST /agendamentos`) sem cancelar nem referenciar a original — o paciente ficava com duas consultas marcadas e era cobrado de novo pela mesma consulta
+- `PATCH /api/agendamentos/:id/remarcar` atualiza a `dataHora` do mesmo registro (mesmo `id`, `status` preservado, pagamento já feito continua válido), com as mesmas validações do cancelamento mais conflito de horário do profissional. Audita (`REMARCAR_AGENDAMENTO`, com data anterior/nova)
+- 8 novos casos de teste (`agendamentos_remarcar.test.ts`)
+
+**Frontend:**
+- `remarcarAgendamentoId` passa a trafegar por `SelecaoHorario`/`SelecaoHorariosDia`; ao confirmar um novo horário vindo do botão "Remarcar", a tela chama o endpoint de remarcação em vez de criar um agendamento novo, e não leva mais para a tela de pagamento
+
+**Verificação:**
+- Suíte de backend: 238 casos (26 arquivos), todos passando — reconciliada com a contagem real via `npm test` (ver `uaimed-back/documents/TESTES.md`)
+- Fluxo de remarcação verificado ponta a ponta no app rodando de verdade (driver headless `run-uaimed-front`): lista de consultas manteve o mesmo número de itens após remarcar, mesmo `id` no banco, log de auditoria com data anterior/nova
+
+Ver `KANBAN_MELHORIAS.md` v1.13.0 e `uaimed-back/documents/TESTES.md` v1.4.0 para o detalhamento completo.
+
+---
 
 ### v1.9.0 — 30 de Outubro de 2026
 

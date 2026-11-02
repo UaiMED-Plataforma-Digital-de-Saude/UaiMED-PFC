@@ -35,7 +35,7 @@ interface AvaliacaoFormData {
 }
 
 export const AvaliacaoScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { medicoId } = route.params ?? { medicoId: undefined };
+  const { medicoId, agendamentoId } = route.params ?? { medicoId: undefined, agendamentoId: undefined };
   const [form, setForm] = useState<AvaliacaoFormData>({
     notaAtendimento: 0,
     notaPuntualidade: 0,
@@ -132,6 +132,7 @@ export const AvaliacaoScreen: React.FC<Props> = ({ route, navigation }) => {
 
       await uaiMedApi.post('/avaliacoes', {
         profissionalId: medicoId,
+        agendamentoId,
         nota: notaMedia,
         comentario: form.comentario,
       });

@@ -50,28 +50,51 @@ class MedicosController {
       const { query, especialidade, cidade, estado } = req.query as {
         query?: string; especialidade?: string; cidade?: string; estado?: string;
       };
+      const skip = Number(req.query.skip) || 0;
+      const take = Math.min(Number(req.query.take) || 50, 100);
+      const precoMin = req.query.precoMin !== undefined ? Number(req.query.precoMin) : undefined;
+      const precoMax = req.query.precoMax !== undefined ? Number(req.query.precoMax) : undefined;
+
       const where: any = {};
       if (especialidade) where.especialidade = { contains: especialidade, mode: 'insensitive' };
       if (estado)        where.estado        = { contains: estado,        mode: 'insensitive' };
       if (cidade)        where.cidade        = { contains: cidade,        mode: 'insensitive' };
       if (query)         where.usuario       = { nome: { contains: query, mode: 'insensitive' } };
+      if (precoMin !== undefined && !Number.isNaN(precoMin)) where.precoConsulta = { ...where.precoConsulta, gte: precoMin };
+      if (precoMax !== undefined && !Number.isNaN(precoMax)) where.precoConsulta = { ...where.precoConsulta, lte: precoMax };
 
-      const profs = await prisma.profissional.findMany({
-        where,
-        include: { usuario: true },
-        take: 50,
+      const [profs, total] = await Promise.all([
+        prisma.profissional.findMany({ where, include: { usuario: true }, skip, take }),
+        prisma.profissional.count({ where }),
+      ]);
+
+      // Média/contagem de avaliações em uma única query agregada (evita N+1)
+      const mediasPorProfissional = await prisma.avaliacao.groupBy({
+        by: ['profissionalId'],
+        where: { profissionalId: { in: profs.map(p => p.id) } },
+        _avg: { nota: true },
+        _count: { nota: true },
       });
+      const mediaMap = new Map(mediasPorProfissional.map(m => [m.profissionalId, m]));
 
-      return res.json(profs.map(p => ({
-        id: p.id,
-        nome: p.usuario?.nome || null,
-        especialidade: p.especialidade,
-        cidade: p.cidade,
-        estado: p.estado,
-        avatar: p.usuario?.avatar || null,
-        pixKey: p.pixKey || null,
-        precoConsulta: p.precoConsulta,
-      })));
+      // Resposta continua um array (contrato existente preservado) — total/paginação
+      // vão no header para não quebrar os consumidores atuais de GET /medicos.
+      res.setHeader('X-Total-Count', String(total));
+      return res.json(profs.map(p => {
+        const media = mediaMap.get(p.id);
+        return {
+          id: p.id,
+          nome: p.usuario?.nome || null,
+          especialidade: p.especialidade,
+          cidade: p.cidade,
+          estado: p.estado,
+          avatar: p.usuario?.avatar || null,
+          pixKey: p.pixKey || null,
+          precoConsulta: p.precoConsulta,
+          notaMedia: media?._avg.nota != null ? parseFloat(media._avg.nota.toFixed(1)) : null,
+          totalAvaliacoes: media?._count.nota ?? 0,
+        };
+      }));
     } catch (err) {
       logger.error('Erro ao listar profissionais', err);
       return res.status(500).json({ error: 'Erro ao listar profissionais' });

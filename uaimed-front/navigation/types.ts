@@ -40,11 +40,13 @@ export type AgendamentoStackParamList = {
     query?: string;
     cidade?: string;
     estado?: string;
+    precoMin?: number;
+    precoMax?: number;
   };
   DetalhesMedico?: { medicoId: string; amount?: number; pixKey?: string; nomeProfissional?: string };
   ClinicaPerfil?: { clinicaId: string; nomeClinica?: string };
-  SelecaoHorario?: { medicoId: string; amount?: number; pixKey?: string; nomeProfissional?: string; latitude?: number | null; longitude?: number | null };
-  SelecaoHorariosDia?: { medicoId: string; dateKey: string; displayDate: string; amount?: number; pixKey?: string; nomeProfissional?: string; latitude?: number | null; longitude?: number | null };
+  SelecaoHorario?: { medicoId: string; amount?: number; pixKey?: string; nomeProfissional?: string; latitude?: number | null; longitude?: number | null; remarcarAgendamentoId?: string };
+  SelecaoHorariosDia?: { medicoId: string; dateKey: string; displayDate: string; amount?: number; pixKey?: string; nomeProfissional?: string; latitude?: number | null; longitude?: number | null; remarcarAgendamentoId?: string };
   Confirmacao?: { horario?: string; medicoId?: string; agendamentoId?: string; amount?: number; pixKey?: string; nomeProfissional?: string; latitude?: number | null; longitude?: number | null };
   Avaliacao?: { agendamentoId: string; medicoId: string };
   HistoricoAvaliacoes?: undefined;

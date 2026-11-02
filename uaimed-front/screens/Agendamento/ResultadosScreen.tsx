@@ -8,7 +8,7 @@ import uaiMedApi from '../../api/uaiMedApi';
 type Props = StackScreenProps<AgendamentoStackParamList, 'Resultados'>;
 
 const ResultadosScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { query, especialidade, cidade, estado } = route.params ?? {};
+  const { query, especialidade, cidade, estado, precoMin, precoMax } = route.params ?? {};
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<any[]>([]);
   const [iniciandoConversaId, setIniciandoConversaId] = useState<string | null>(null);
@@ -51,11 +51,13 @@ const ResultadosScreen: React.FC<Props> = ({ route, navigation }) => {
     const fetchResults = async () => {
       setLoading(true);
       try {
-        const params: Record<string, string> = {};
+        const params: Record<string, string | number> = {};
         if (query) params.query = query;
         if (especialidade) params.especialidade = especialidade;
         if (estado) params.estado = estado;
         if (cidade) params.cidade = cidade;
+        if (precoMin !== undefined) params.precoMin = precoMin;
+        if (precoMax !== undefined) params.precoMax = precoMax;
 
         const res = await uaiMedApi.get('/medicos', { params });
         setResults(res.data);
@@ -68,13 +70,14 @@ const ResultadosScreen: React.FC<Props> = ({ route, navigation }) => {
     };
 
     fetchResults();
-  }, [query, especialidade, cidade, estado]);
+  }, [query, especialidade, cidade, estado, precoMin, precoMax]);
 
   const renderItem = ({ item }: any) => (
     <TouchableOpacity
       style={styles.card}
       onPress={() => navigation.navigate('DetalhesMedico', {
         medicoId: item.id,
+        amount: item.precoConsulta ?? undefined,
         pixKey: item.pixKey ?? undefined,
         nomeProfissional: item.nome ?? undefined,
       })}
@@ -82,6 +85,29 @@ const ResultadosScreen: React.FC<Props> = ({ route, navigation }) => {
       <View style={styles.cardBody}>
         <Text style={styles.name}>{item.nome}</Text>
         <Text style={styles.specialty}>{item.especialidade}</Text>
+        <View style={styles.metaRow}>
+          {item.notaMedia != null ? (
+            <View style={styles.metaItem}>
+              <Ionicons name="star" size={13} color="#FFC107" />
+              <Text style={styles.metaText}>
+                {item.notaMedia.toFixed(1)} ({item.totalAvaliacoes})
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.metaItem}>
+              <Ionicons name="star-outline" size={13} color="#CCC" />
+              <Text style={styles.metaTextMuted}>Sem avaliações</Text>
+            </View>
+          )}
+          {item.precoConsulta != null && (
+            <View style={styles.metaItem}>
+              <Ionicons name="cash-outline" size={13} color="#4CAF50" />
+              <Text style={styles.metaText}>
+                R$ {Number(item.precoConsulta).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </Text>
+            </View>
+          )}
+        </View>
         {(item.cidade || item.estado) && (
           <View style={styles.locationRow}>
             <Ionicons name="location-outline" size={13} color="#888" />
@@ -171,6 +197,10 @@ const styles = StyleSheet.create({
   cardBody: { flex: 1 },
   name: { fontSize: 16, fontWeight: '700', color: '#222' },
   specialty: { fontSize: 14, color: '#666', marginTop: 2 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 14 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  metaText: { fontSize: 12, color: '#555', fontWeight: '600' },
+  metaTextMuted: { fontSize: 12, color: '#AAA' },
   locationRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   locationText: { fontSize: 12, color: '#888', marginLeft: 4 },
   chatBtn: {

@@ -20,7 +20,7 @@ import { useModal } from '../../hooks/useModal';
 type Props = StackScreenProps<AgendamentoStackParamList, 'SelecaoHorariosDia'>;
 
 const SelecaoHorariosDiaScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { medicoId, dateKey, displayDate, amount, pixKey, nomeProfissional, latitude, longitude } = route.params ?? {};
+  const { medicoId, dateKey, displayDate, amount, pixKey, nomeProfissional, latitude, longitude, remarcarAgendamentoId } = route.params ?? {};
 
   const [horarios, setHorarios] = useState<string[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -70,10 +70,8 @@ const SelecaoHorariosDiaScreen: React.FC<Props> = ({ route, navigation }) => {
     setModalHorario(horario);
   };
 
-  // ── Cria o agendamento após confirmação ────────────────────────────────────
+  // ── Cria um novo agendamento após confirmação ───────────────────────────────
   const criarAgendamento = async (horario: string) => {
-    if (confirming) return;
-    setConfirming(horario);
     try {
       const res = await uaiMedApi.post('/agendamentos', {
         medicoId,
@@ -110,6 +108,58 @@ const SelecaoHorariosDiaScreen: React.FC<Props> = ({ route, navigation }) => {
 
       const msg = serverError || 'Não foi possível criar o agendamento.';
       showModal('Erro', serverDetail ? `${msg}\n\n${serverDetail}` : msg, { type: 'error' });
+    }
+  };
+
+  // ── Atualiza a data/hora de uma consulta já existente (sem novo pagamento) ──
+  const remarcarAgendamento = async (horario: string) => {
+    try {
+      await uaiMedApi.patch(`/agendamentos/${remarcarAgendamentoId}/remarcar`, {
+        dataHora: horario,
+      });
+      showModal(
+        'Consulta remarcada',
+        'Sua consulta foi remarcada com sucesso.',
+        { type: 'success', buttons: [{ text: 'OK', onPress: () => navigation.navigate('MinhasConsultas') }] },
+      );
+    } catch (e: any) {
+      const status = e?.response?.status;
+      const serverError: string = e?.response?.data?.error || '';
+
+      if (status === 401) {
+        showModal('Sessão expirada', serverError || 'Sua sessão expirou. Faça login novamente.', { type: 'warning' });
+        return;
+      }
+      if (status === 403) {
+        showModal('Não permitido', serverError || 'Você não tem permissão para remarcar esta consulta.', { type: 'error' });
+        return;
+      }
+      if (status === 409) {
+        showModal('Horário ocupado', serverError || 'Este horário já foi reservado. Escolha outro.', { type: 'warning' });
+        return;
+      }
+      if (status === 404) {
+        showModal('Consulta não encontrada', 'Esta consulta não foi encontrada. Volte e tente novamente.', { type: 'error' });
+        return;
+      }
+      if (status === 422) {
+        showModal('Remarcação não permitida', serverError || 'Não é possível remarcar esta consulta.', { type: 'warning' });
+        return;
+      }
+
+      showModal('Erro', serverError || 'Não foi possível remarcar a consulta.', { type: 'error' });
+    }
+  };
+
+  const confirmarEReservar = async (horario: string) => {
+    if (confirming) return;
+    setConfirming(horario);
+    try {
+      if (remarcarAgendamentoId) {
+        await remarcarAgendamento(horario);
+      } else {
+        await criarAgendamento(horario);
+      }
     } finally {
       setConfirming(null);
     }
@@ -235,7 +285,7 @@ const SelecaoHorariosDiaScreen: React.FC<Props> = ({ route, navigation }) => {
                 onPress={() => {
                   const h = modalHorario!;
                   setModalHorario(null);
-                  criarAgendamento(h);
+                  confirmarEReservar(h);
                 }}
                 disabled={!!confirming}
                 activeOpacity={0.8}
