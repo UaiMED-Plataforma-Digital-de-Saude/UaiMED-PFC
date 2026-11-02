@@ -1,6 +1,6 @@
 # 🧪 Estratégia e Documentação de Testes — UaiMED Backend
 
-**Versão**: 1.7.0  
+**Versão**: 1.8.0  
 **Data**: 01 de Novembro de 2026  
 **Framework**: Vitest 1.4 + Supertest 6.3  
 **Banco de Teste**: PostgreSQL (`uaimed_test`) — isolado do banco de desenvolvimento
@@ -29,7 +29,7 @@ O UaiMED adota uma estratégia de testes em camadas, priorizando **testes de int
 - **Isolamento**: cada suíte cria e limpa seus próprios dados por ID
 - **Repetibilidade**: UUIDs únicos garantem que testes paralelos não colidam
 - **Confiabilidade**: banco de teste isolado (`uaimed_test`) com schema migrado automaticamente via `globalSetup`
-- **Velocidade**: 253 casos (unitários + integração), em 29 arquivos, rodam em menos de 10 segundos no total (`Duration 10.18s` na última execução)
+- **Velocidade**: 256 casos (unitários + integração), em 29 arquivos, rodam em menos de 10 segundos no total (`Duration 9.94s` na última execução)
 
 ---
 
@@ -43,7 +43,7 @@ O UaiMED adota uma estratégia de testes em camadas, priorizando **testes de int
         └──────────────────┬──────────────────┘
                            │
         ┌──────────────────▼──────────────────┐
-        │      Integração (API)               │  ← Principal camada automatizada (160 casos, 26 arquivos)
+        │      Integração (API)               │  ← Principal camada automatizada (163 casos, 26 arquivos)
         │      Vitest + Supertest             │    Testa controllers, services e banco real
         └──────────────────┬──────────────────┘
                            │
@@ -147,6 +147,9 @@ Os testes de integração são a **camada principal** de validação automatizad
 | 6 | Rejeita criação sem autenticação | `POST /api/avaliacoes` | 401 Unauthorized |
 | 7 | Lista as avaliações feitas pelo paciente autenticado | `GET /api/avaliacoes/minhas` | 200 array com dados do profissional |
 | 8 | Rejeita listagem de avaliações próprias sem autenticação | `GET /api/avaliacoes/minhas` | 401 Unauthorized |
+| 9 | Persiste e retorna o detalhamento completo (notas por critério, voltaria, recomenda, melhorias) | `POST /api/avaliacoes` + `GET /api/avaliacoes/minhas` | 201/200, campos de detalhe presentes nos dois |
+| 10 | Rejeita detalhamento com nota fora de 1-5 ou resposta inválida | `POST /api/avaliacoes` | 400 Bad Request |
+| 11 | Permite avaliação sem detalhamento, campos de detalhe ficam `null` | `POST /api/avaliacoes` | 201, `notaAtendimento`/`voltariaClinica` nulos |
 
 ---
 
@@ -610,7 +613,7 @@ npx vitest run --coverage
 | `contatos.test.ts` | 3 | Integração | ✅ Passando |
 | `medicos_agendamentos.test.ts` | 2 | Integração | ✅ Passando |
 | `agendamentos_criar.test.ts` | 7 | Integração | ✅ Passando |
-| `avaliacoes.test.ts` | 8 | Integração | ✅ Passando |
+| `avaliacoes.test.ts` | 11 | Integração | ✅ Passando |
 | `pagamentos.test.ts` | 12 | Integração | ✅ Passando |
 | `admin.test.ts` | 1 | Integração | ✅ Passando |
 | `professional.test.ts` | 8 | Integração | ✅ Passando |
@@ -630,7 +633,7 @@ npx vitest run --coverage
 | `agendamentos_listar_pagamento.test.ts` | 2 | Integração | ✅ Passando |
 | `avaliacoes_agendamento.test.ts` | 7 | Integração | ✅ Passando |
 | `medicos_listar.test.ts` | 4 | Integração | ✅ Passando |
-| **Subtotal** | **160** | | **✅ 160/160** |
+| **Subtotal** | **163** | | **✅ 163/163** |
 
 #### Testes Unitários
 
@@ -647,10 +650,10 @@ npx vitest run --coverage
 
 | Tipo | Casos | Status |
 |------|-------|--------|
-| Integração (API) | 160 | ✅ |
+| Integração (API) | 163 | ✅ |
 | Unitários | 93 | ✅ |
 | E2E automatizado | 0 | ⚠️ Planejado |
-| **Total** | **253** | **✅ 253/253** (executado em 01/11/2026, `Duration 10.18s`) |
+| **Total** | **256** | **✅ 256/256** (executado em 01/11/2026, `Duration 9.94s`) |
 
 ### Endpoints Cobertos
 
@@ -753,7 +756,7 @@ hookTimeout: 30000,  // 30s para beforeAll/afterAll
 ---
 
 **Documento criado em**: 17 de Abril de 2026  
-**Última atualização**: 01 de Novembro de 2026 — contagem real re-auditada via `npm test` (não apenas somada a partir da versão anterior do documento, que já estava desatualizada em alguns pontos: `auth.schema.unit.test.ts` e `auth_signup_signin.test.ts` haviam crescido em revisões anteriores sem atualizar esta tabela, e `perfil_profissional.test.ts` nunca havia sido documentado). 155 → 253 casos, 23 → 29 arquivos no total ao longo da sessão de 01/11 (cancelamento/remarcação, status de pagamento, botão de avaliar agendamentos, busca real de médicos e filtro de preço) — ver `KANBAN_MELHORIAS.md` v1.17.0.  
+**Última atualização**: 01 de Novembro de 2026 — contagem real re-auditada via `npm test` (não apenas somada a partir da versão anterior do documento, que já estava desatualizada em alguns pontos: `auth.schema.unit.test.ts` e `auth_signup_signin.test.ts` haviam crescido em revisões anteriores sem atualizar esta tabela, e `perfil_profissional.test.ts` nunca havia sido documentado). 155 → 256 casos, 23 → 29 arquivos no total ao longo da sessão de 01/11 (cancelamento/remarcação, status de pagamento, botão de avaliar agendamentos, busca real de médicos, filtro de preço e detalhamento completo de avaliações) — ver `KANBAN_MELHORIAS.md` v1.18.0.  
 **Autor**: Equipe de Desenvolvimento UaiMED  
 **Referência**: [`vitest.config.ts`](../vitest.config.ts) · [`src/__tests__/`](../src/__tests__/) · [`DOCUMENTACAO_PROJETO_UAIMED.md`](../../DOCUMENTACAO_PROJETO_UAIMED.md)
 

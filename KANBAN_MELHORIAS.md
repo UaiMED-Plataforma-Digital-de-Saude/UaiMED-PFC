@@ -1,6 +1,6 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.17.0  
+**Versão**: 1.18.0  
 **Data**: 01 de Novembro de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
@@ -480,6 +480,33 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 
 ---
 
+### ✅ [FEATURE] `HistoricoAvaliacoesScreen` — consumir API real
+**Área**: Frontend + Backend | **Prioridade**: 🟡 Médio | **Esforço**: 3 (revisado para **5** — o gap real era maior que "trocar mock por fetch")
+
+**Descrição original**: dizia que só faltava consumir `GET /avaliacoes/minhas`, que já existia.
+
+**Achado na revisão (antes de implementar) — causa raiz, não só sintoma**: `HistoricoAvaliacoesScreen.tsx` de fato usava 100% dado simulado, mas contra um shape (`types/avaliacao.ts`) que **nunca existiu no backend**: 4 notas por critério (atendimento/pontualidade/clínica/comunicação), voltaria/recomenda e sugestões de melhoria. `AvaliacaoScreen.tsx` — a tela onde o paciente *envia* a avaliação — já coletava tudo isso no formulário, mas `handleSubmit` calculava só a média das 4 notas e mandava apenas `nota` + `comentario` pro backend; o resto era descartado silenciosamente. O modelo `Avaliacao` no Prisma só tinha `nota: Int` + `comentario: String?`. Ou seja: **toda avaliação enviada no app perdia a maior parte do feedback do paciente**, não só a tela de histórico estava com mock.
+
+**Decisão (opção escolhida pelo usuário)**: resolver na raiz — expandir o modelo de dados — em vez de só simplificar a tela de histórico pra mostrar o pouco que já era salvo.
+
+**Resolução**:
+- Migração adicionando `notaAtendimento`, `notaPontualidade`, `notaClinica`, `notaComunicacao` (Int opcionais), `voltariaClinica`, `recomendaMedico` (String opcionais, `sim`/`nao`/`talvez`) e `melhorias` (String opcional) em `Avaliacao` — todos nulos para avaliações antigas/seed, que só tinham nota+comentário
+- `POST /avaliacoes` valida e persiste os novos campos; `GET /avaliacoes/minhas` passa a retorná-los
+- `AvaliacaoScreen.handleSubmit` agora envia o detalhamento completo, não só a média
+- `HistoricoAvaliacoesScreen` reescrita com interface local (sem tocar em `types/avaliacao.ts`/`useAvaliacoes.ts`/`CardAvaliacao.tsx`, confirmados código morto — não importados em lugar nenhum) consumindo `GET /avaliacoes/minhas` de verdade; grade de notas por critério e respostas de voltaria/recomenda só aparecem quando o detalhamento existe (avaliações antigas sem detalhe mostram só nota + comentário, sem seção vazia)
+- **Achado adicional**: a tela não tinha nenhum ponto de entrada na navegação (estava no stack mas nada chamava `navigate('HistoricoAvaliacoes')`, e o FAB antigo da própria tela navegava pra `Avaliacao` sem nenhum parâmetro, o que sempre falhava). Adicionado atalho "Minhas Avaliações" em `PerfilScreen` → "Meus Registros"
+
+**Critério de aceite**:
+- [x] Lista real de avaliações do usuário logado
+- [x] Exibe nome do médico, data, nota e comentário
+- [x] Estado vazio com mensagem amigável
+- [x] Detalhamento completo (4 notas, voltaria, recomenda, sugestões) persistido e exibido, com degradação graciosa para avaliações antigas sem detalhe
+- [x] Ponto de entrada na navegação (não existia antes)
+- [x] 5 novos casos de teste (3 em `avaliacoes.test.ts` para o detalhamento + ajustes)
+- [x] Verificado end-to-end no app rodando: avaliação com detalhamento completo e avaliação antiga (só nota+comentário) lado a lado na mesma lista, renderizando corretamente cada uma
+
+---
+
 ## 🔵 A FAZER — Próxima Sprint
 
 > Itens refinados e prontos para desenvolvimento.
@@ -516,15 +543,6 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 
 ---
 
-### 🎯 [FEATURE] `HistoricoAvaliacoesScreen` — consumir API real
-- **Área**: Frontend
-- **Prioridade**: 🟡 Médio
-- **Esforço**: 3
-- **Descrição**: Tela usa dados simulados hardcoded. Deve chamar `GET /avaliacoes/minhas` para listar avaliações do paciente autenticado. **O endpoint já existe** (ver Concluído — 30/10/2026) — falta só o consumo no front.
-- **Critério de aceite**:
-  - [ ] Lista real de avaliações do usuário logado
-  - [ ] Exibe nome do médico, data, nota e comentário
-  - [ ] Estado vazio com mensagem amigável
 
 ---
 
@@ -649,9 +667,9 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 | 🟢 Concluído — Sprints Anteriores (até 10/04/2026) | 19 itens |
 | 🟢 Concluído — Mai–Out/2026 (consolidado) | 13 itens |
 | 🟢 Concluído — 30/10/2026 | 6 itens |
-| 🟢 Concluído — 01/11/2026 | 6 itens |
+| 🟢 Concluído — 01/11/2026 | 7 itens |
 | 🔴 Bug Conhecido | 0 itens |
-| 🔵 A Fazer (próxima sprint) | 4 itens |
+| 🔵 A Fazer (próxima sprint) | 3 itens |
 | 🗃️ Backlog | 7 itens |
 | ⏸️ Bloqueado | 2 itens |
 | **Total** | **57 itens** |
@@ -696,6 +714,7 @@ Sprint entrega PFC
 | 01/11/2026 | 1.15.0 | Implementado botão "Avaliar" em consultas concluídas (mais uma vez corrigindo o card para `MinhasConsultasScreen.tsx`, não `AgendamentosScreen.tsx`). **Gap de schema encontrado na revisão**: `Avaliacao` não tinha relação com `Agendamento`, tornando "agendamentos já avaliados não exibem o botão" impossível de cumprir por consulta específica — só dava pra saber se o paciente já avaliou aquele médico alguma vez. `AvaliacaoScreen.tsx` já recebia `agendamentoId` por navegação mas descartava o valor, sinal de que o campo foi planejado e nunca finalizado. Resolvido com migração `agendamentoId String? @unique` em `Avaliacao`; `POST /avaliacoes` valida dono/profissional/status/duplicidade; `GET /agendamentos` retorna `avaliado: boolean`. 7 novos casos de teste, verificado end-to-end (avaliação some da lista após ser enviada). |
 | 01/11/2026 | 1.16.0 | Implementado "ResultadosScreen — exibir lista real de médicos da API", com correção de escopo: a descrição do card estava desatualizada, `ResultadosScreen.tsx` já consumia `GET /medicos` com filtros reais, sem dados simulados. O gap real era menor — faltava nota média/preço no card, `amount` na navegação para `DetalhesMedico`, e paginação/agregação de avaliação no backend. `GET /medicos` passa a aceitar `skip`/`take` e retorna `notaMedia`/`totalAvaliacoes` via `groupBy` (sem N+1), mantendo o contrato de resposta como array (total vai no header `X-Total-Count`, para não quebrar os 2 consumidores existentes). Decisão consciente de não construir UI de "carregar mais" agora — dataset tem ~10-14 profissionais, sem necessidade real hoje. 3 novos casos de teste, verificado end-to-end no app rodando. |
 | 01/11/2026 | 1.17.0 | Implementado "SearchScreen — busca real com filtros funcionais", mais uma vez com card desatualizado: a tela já buscava por nome/especialidade/cidade e já navegava para `Resultados` com parâmetros reais. Único gap genuíno era faixa de preço, agora implementado (`precoMin`/`precoMax` em `GET /medicos`, chips de faixa em `SearchScreen`). **Filtro de "plano de saúde aceito" não implementado**: não existe esse conceito no modelo `Profissional` hoje (só um desconto genérico de 15% escolhido pelo paciente no pagamento, sem relação com convênios específicos) — implementar de verdade exige desenhar um modelo de dados novo; movido para item próprio no Backlog em vez de construir um filtro decorativo sem dado real por trás. 1 novo caso de teste, verificado end-to-end. |
+| 01/11/2026 | 1.18.0 | Implementado "HistoricoAvaliacoesScreen — consumir API real". Revisão antes de codar achou um problema bem mais fundo que "trocar mock por fetch": a tela foi construída contra um shape de avaliação (4 notas por critério, voltaria, recomenda, sugestões) que **nunca existiu no backend** — `AvaliacaoScreen` já coletava tudo isso no formulário mas `handleSubmit` só enviava a média das notas + comentário, descartando o resto silenciosamente; o modelo `Avaliacao` só tinha `nota`+`comentario`. Ou seja, toda avaliação enviada no app perdia a maior parte do feedback, não só a tela de histórico estava desatualizada. **Decisão do usuário: resolver na raiz.** Migração expandindo `Avaliacao` com os campos de detalhamento (opcionais, nulos para avaliações antigas); `POST /avaliacoes` e `AvaliacaoScreen.handleSubmit` passam a persistir tudo; `HistoricoAvaliacoesScreen` reescrita consumindo dado real, com degradação graciosa pra avaliações antigas sem detalhe. Achado adicional: a tela não tinha ponto de entrada nenhum na navegação — adicionado atalho em `PerfilScreen`. 5 novos casos de teste, verificado end-to-end (avaliação nova com detalhamento completo e avaliação antiga simples, lado a lado, cada uma renderizando certo). |
 
 ---
 

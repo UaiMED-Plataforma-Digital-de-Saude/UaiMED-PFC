@@ -135,6 +135,13 @@ export const AvaliacaoScreen: React.FC<Props> = ({ route, navigation }) => {
         agendamentoId,
         nota: notaMedia,
         comentario: form.comentario,
+        notaAtendimento: form.notaAtendimento,
+        notaPontualidade: form.notaPuntualidade,
+        notaClinica: form.notaClinica,
+        notaComunicacao: form.notaComuni,
+        voltariaClinica: form.voltariaClinica,
+        recomendaMedico: form.recomendaMedico,
+        melhorias: form.melhorias || undefined,
       });
 
       showModal(

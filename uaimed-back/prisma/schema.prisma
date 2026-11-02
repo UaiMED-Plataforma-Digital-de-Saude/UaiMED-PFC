@@ -139,17 +139,26 @@ model Agendamento {
 }
 
 model Avaliacao {
-  id             String       @id @default(uuid())
-  usuarioId      String
-  profissionalId String
-  agendamentoId  String?      @unique
-  nota           Int
-  comentario     String?
-  criado_em      DateTime     @default(now())
-  atualizado_em  DateTime     @updatedAt
-  profissional   Profissional @relation(fields: [profissionalId], references: [id], onDelete: Cascade)
-  usuario        Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  agendamento    Agendamento? @relation(fields: [agendamentoId], references: [id], onDelete: SetNull)
+  id               String       @id @default(uuid())
+  usuarioId        String
+  profissionalId   String
+  agendamentoId    String?      @unique
+  nota             Int
+  comentario       String?
+  // Detalhamento opcional coletado pelo formulário completo (AvaliacaoScreen).
+  // Nulos para avaliações antigas/seed, que só tinham nota + comentário.
+  notaAtendimento  Int?
+  notaPontualidade Int?
+  notaClinica      Int?
+  notaComunicacao  Int?
+  voltariaClinica  String?
+  recomendaMedico  String?
+  melhorias        String?
+  criado_em        DateTime     @default(now())
+  atualizado_em    DateTime     @updatedAt
+  profissional     Profissional @relation(fields: [profissionalId], references: [id], onDelete: Cascade)
+  usuario          Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  agendamento      Agendamento? @relation(fields: [agendamentoId], references: [id], onDelete: SetNull)
 
   @@map("avaliacoes")
 }

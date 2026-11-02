@@ -1,19 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   SafeAreaView,
   FlatList,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { AgendamentoStackParamList } from '../../navigation/types';
-import { Avaliacao } from '../../types/avaliacao';
+import uaiMedApi from '../../api/uaiMedApi';
 
 /**
  * Tela de Histórico de Avaliações
@@ -21,197 +21,136 @@ import { Avaliacao } from '../../types/avaliacao';
  */
 type Props = StackScreenProps<AgendamentoStackParamList, 'HistoricoAvaliacoes'>;
 
+type Resposta = 'sim' | 'nao' | 'talvez';
+
+interface AvaliacaoApi {
+  id: string;
+  nota: number;
+  comentario: string | null;
+  notaAtendimento: number | null;
+  notaPontualidade: number | null;
+  notaClinica: number | null;
+  notaComunicacao: number | null;
+  voltariaClinica: Resposta | null;
+  recomendaMedico: Resposta | null;
+  melhorias: string | null;
+  criado_em: string;
+  profissional: {
+    id: string;
+    especialidade: string | null;
+    usuario: { nome: string | null; avatar: string | null } | null;
+  };
+}
+
+const RESPOSTA_LABEL: Record<Resposta, string> = { sim: '✓ Sim', nao: '✗ Não', talvez: '? Talvez' };
+const RESPOSTA_COLOR: Record<Resposta, string> = { sim: '#4CAF50', nao: '#D9534F', talvez: '#FF9800' };
+
 export const HistoricoAvaliacoesScreen: React.FC<Props> = ({ navigation }) => {
-  const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([]);
+  const [avaliacoes, setAvaliacoes] = useState<AvaliacaoApi[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Carrega dados simulados na primeira renderização
-  useEffect(() => {
-    loadAvaliacoes();
-  }, []);
-
-  const loadAvaliacoes = async () => {
+  const carregar = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true); else setLoading(true);
     try {
-      setLoading(true);
-      // Simula chamada à API
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Dados simulados
-      const avaliacoesSimuladas: Avaliacao[] = [
-        {
-          id: '1',
-          agendamentoId: 'agd-001',
-          medicoId: 'med-001',
-          pacienteId: 'pac-001',
-          dataAvaliacao: new Date(2025, 10, 5).toISOString(),
-          notaAtendimento: 5,
-          notaPuntualidade: 4,
-          notaClinica: 5,
-          notaComuni: 5,
-          voltariaClinica: 'sim',
-          recomendaMedico: 'sim',
-          comentario: 'Atendimento excelente, médico muito atenciosos e prestativo!',
-          melhorias: 'Tudo perfeito',
-          criadoEm: new Date(2025, 10, 5).toISOString(),
-          atualizadoEm: new Date(2025, 10, 5).toISOString(),
-        },
-        {
-          id: '2',
-          agendamentoId: 'agd-002',
-          medicoId: 'med-002',
-          pacienteId: 'pac-001',
-          dataAvaliacao: new Date(2025, 9, 20).toISOString(),
-          notaAtendimento: 4,
-          notaPuntualidade: 5,
-          notaClinica: 4,
-          notaComuni: 4,
-          voltariaClinica: 'sim',
-          recomendaMedico: 'sim',
-          comentario: 'Bom atendimento, clínica bem organizada.',
-          melhorias: 'Poderia ter mais conforto na sala de espera',
-          criadoEm: new Date(2025, 9, 20).toISOString(),
-          atualizadoEm: new Date(2025, 9, 20).toISOString(),
-        },
-        {
-          id: '3',
-          agendamentoId: 'agd-003',
-          medicoId: 'med-003',
-          pacienteId: 'pac-001',
-          dataAvaliacao: new Date(2025, 8, 15).toISOString(),
-          notaAtendimento: 3,
-          notaPuntualidade: 2,
-          notaClinica: 3,
-          notaComuni: 3,
-          voltariaClinica: 'talvez',
-          recomendaMedico: 'talvez',
-          comentario: 'Atendimento ok, mas demora na sala de espera foi longa.',
-          melhorias: 'Melhorar pontualidade do médico',
-          criadoEm: new Date(2025, 8, 15).toISOString(),
-          atualizadoEm: new Date(2025, 8, 15).toISOString(),
-        },
-      ];
-
-      setAvaliacoes(avaliacoesSimuladas);
+      const res = await uaiMedApi.get('/avaliacoes/minhas');
+      setAvaliacoes(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
-      console.error('Erro ao carregar avaliações:', error);
+      console.warn('Erro ao carregar avaliações:', error);
+      setAvaliacoes([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadAvaliacoes();
-  };
+  useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
 
-  // Renderiza card de avaliação
-  const renderCard = ({ item }: { item: Avaliacao }) => {
-    const mediaNotas =
-      (item.notaAtendimento +
-        item.notaPuntualidade +
-        item.notaClinica +
-        item.notaComuni) /
-      4;
+  const onRefresh = () => carregar(true);
 
-    const data = new Date(item.dataAvaliacao);
-    const dataFormatada = data.toLocaleDateString('pt-BR');
+  const renderCard = ({ item }: { item: AvaliacaoApi }) => {
+    const dataFormatada = new Date(item.criado_em).toLocaleDateString('pt-BR');
+    const temDetalhamento = item.notaAtendimento != null && item.notaPontualidade != null
+      && item.notaClinica != null && item.notaComunicacao != null;
 
     return (
-      <TouchableOpacity style={styles.card}>
+      <View style={styles.card}>
         {/* Header do Card */}
         <View style={styles.cardHeader}>
-          <View style={styles.cardDate}>
-            <Ionicons name="calendar-outline" size={16} color="#4CAF50" />
-            <Text style={styles.cardDateText}>{dataFormatada}</Text>
+          <View style={styles.cardHeaderText}>
+            <Text style={styles.medicoNome} numberOfLines={1}>
+              {item.profissional?.usuario?.nome ?? 'Profissional'}
+            </Text>
+            {item.profissional?.especialidade ? (
+              <Text style={styles.especialidade}>{item.profissional.especialidade}</Text>
+            ) : null}
           </View>
-          <View style={styles.ratingBadge}>
-            <Ionicons name="star" size={14} color="#FFB800" />
-            <Text style={styles.ratingBadgeText}>{mediaNotas.toFixed(1)}</Text>
+          <View style={styles.headerRight}>
+            <View style={styles.cardDate}>
+              <Ionicons name="calendar-outline" size={14} color="#888" />
+              <Text style={styles.cardDateText}>{dataFormatada}</Text>
+            </View>
+            <View style={styles.ratingBadge}>
+              <Ionicons name="star" size={14} color="#FFB800" />
+              <Text style={styles.ratingBadgeText}>{item.nota}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Notas */}
-        <View style={styles.notasGrid}>
-          <View style={styles.notaItem}>
-            <Ionicons name="person" size={16} color="#4CAF50" />
-            <Text style={styles.notaLabel}>Atendimento</Text>
-            <Text style={styles.notaValue}>{item.notaAtendimento}★</Text>
+        {/* Notas detalhadas — só quando o detalhamento completo existe */}
+        {temDetalhamento && (
+          <View style={styles.notasGrid}>
+            <View style={styles.notaItem}>
+              <Ionicons name="person" size={16} color="#4CAF50" />
+              <Text style={styles.notaLabel}>Atendimento</Text>
+              <Text style={styles.notaValue}>{item.notaAtendimento}★</Text>
+            </View>
+            <View style={styles.notaItem}>
+              <Ionicons name="time" size={16} color="#4CAF50" />
+              <Text style={styles.notaLabel}>Pontualidade</Text>
+              <Text style={styles.notaValue}>{item.notaPontualidade}★</Text>
+            </View>
+            <View style={styles.notaItem}>
+              <Ionicons name="medkit-outline" size={16} color="#4CAF50" />
+              <Text style={styles.notaLabel}>Clínica</Text>
+              <Text style={styles.notaValue}>{item.notaClinica}★</Text>
+            </View>
+            <View style={styles.notaItem}>
+              <Ionicons name="chatbubbles" size={16} color="#4CAF50" />
+              <Text style={styles.notaLabel}>Comunicação</Text>
+              <Text style={styles.notaValue}>{item.notaComunicacao}★</Text>
+            </View>
           </View>
-          <View style={styles.notaItem}>
-            <Ionicons name="time" size={16} color="#4CAF50" />
-            <Text style={styles.notaLabel}>Pontualidade</Text>
-            <Text style={styles.notaValue}>{item.notaPuntualidade}★</Text>
-          </View>
-          <View style={styles.notaItem}>
-            <Ionicons name="medkit-outline" size={16} color="#4CAF50" />
-            <Text style={styles.notaLabel}>Clínica</Text>
-            <Text style={styles.notaValue}>{item.notaClinica}★</Text>
-          </View>
-          <View style={styles.notaItem}>
-            <Ionicons name="chatbubbles" size={16} color="#4CAF50" />
-            <Text style={styles.notaLabel}>Comunicação</Text>
-            <Text style={styles.notaValue}>{item.notaComuni}★</Text>
-          </View>
-        </View>
+        )}
 
-        {/* Respostas */}
-        <View style={styles.respostasContainer}>
-          <View style={styles.respostaItem}>
-            <Text style={styles.respostaLabel}>Voltaria?</Text>
-            <Text
-              style={[
-                styles.respostaValue,
-                {
-                  color:
-                    item.voltariaClinica === 'sim'
-                      ? '#4CAF50'
-                      : item.voltariaClinica === 'nao'
-                        ? '#D9534F'
-                        : '#FF9800',
-                },
-              ]}
-            >
-              {item.voltariaClinica === 'sim'
-                ? '✓ Sim'
-                : item.voltariaClinica === 'nao'
-                  ? '✗ Não'
-                  : '? Talvez'}
-            </Text>
+        {/* Respostas — só quando existem */}
+        {(item.voltariaClinica || item.recomendaMedico) && (
+          <View style={styles.respostasContainer}>
+            {item.voltariaClinica && (
+              <View style={styles.respostaItem}>
+                <Text style={styles.respostaLabel}>Voltaria?</Text>
+                <Text style={[styles.respostaValue, { color: RESPOSTA_COLOR[item.voltariaClinica] }]}>
+                  {RESPOSTA_LABEL[item.voltariaClinica]}
+                </Text>
+              </View>
+            )}
+            {item.voltariaClinica && item.recomendaMedico && <View style={styles.divider} />}
+            {item.recomendaMedico && (
+              <View style={styles.respostaItem}>
+                <Text style={styles.respostaLabel}>Recomenda?</Text>
+                <Text style={[styles.respostaValue, { color: RESPOSTA_COLOR[item.recomendaMedico] }]}>
+                  {RESPOSTA_LABEL[item.recomendaMedico]}
+                </Text>
+              </View>
+            )}
           </View>
-          <View style={styles.divider} />
-          <View style={styles.respostaItem}>
-            <Text style={styles.respostaLabel}>Recomenda?</Text>
-            <Text
-              style={[
-                styles.respostaValue,
-                {
-                  color:
-                    item.recomendaMedico === 'sim'
-                      ? '#4CAF50'
-                      : item.recomendaMedico === 'nao'
-                        ? '#D9534F'
-                        : '#FF9800',
-                },
-              ]}
-            >
-              {item.recomendaMedico === 'sim'
-                ? '✓ Sim'
-                : item.recomendaMedico === 'nao'
-                  ? '✗ Não'
-                  : '? Talvez'}
-            </Text>
-          </View>
-        </View>
+        )}
 
         {/* Comentário */}
         {item.comentario && (
           <View style={styles.comentarioContainer}>
             <Text style={styles.comentarioLabel}>Sua Avaliação:</Text>
-            <Text style={styles.comentarioText} numberOfLines={2}>
-              "{item.comentario}"
-            </Text>
+            <Text style={styles.comentarioText} numberOfLines={3}>"{item.comentario}"</Text>
           </View>
         )}
 
@@ -224,7 +163,7 @@ export const HistoricoAvaliacoesScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.melhoriasText}>{item.melhorias}</Text>
           </View>
         )}
-      </TouchableOpacity>
+      </View>
     );
   };
 
@@ -241,14 +180,12 @@ export const HistoricoAvaliacoesScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      {/* Lista de Avaliações */}
       {avaliacoes.length > 0 ? (
         <FlatList
           data={avaliacoes}
           renderItem={renderCard}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
-          scrollEnabled
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         />
       ) : (
@@ -259,16 +196,6 @@ export const HistoricoAvaliacoesScreen: React.FC<Props> = ({ navigation }) => {
             Você verá suas avaliações aqui após completar consultas
           </Text>
         </View>
-      )}
-
-      {/* Botão Flutuante para Nova Avaliação */}
-      {avaliacoes.length > 0 && (
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={() => navigation.navigate('Avaliacao')}
-        >
-          <Ionicons name="add" size={28} color="#FFF" />
-        </TouchableOpacity>
       )}
     </SafeAreaView>
   );
@@ -309,19 +236,24 @@ const styles = StyleSheet.create({
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
+  cardHeaderText: { flex: 1, marginRight: 8 },
+  medicoNome: { fontSize: 15, fontWeight: '700', color: '#222' },
+  especialidade: { fontSize: 12, color: '#888', marginTop: 1 },
+  headerRight: { alignItems: 'flex-end' },
   cardDate: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
+    marginBottom: 4,
   },
   cardDateText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#666',
     fontWeight: '500',
   },
@@ -443,21 +375,5 @@ const styles = StyleSheet.create({
     color: '#CCC',
     marginTop: 8,
     textAlign: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#4CAF50',
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 6,
-    shadowColor: '#4CAF50',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
   },
 });

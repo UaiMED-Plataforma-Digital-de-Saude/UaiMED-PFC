@@ -1,6 +1,6 @@
 # 📘 Documentação Completa do Projeto UaiMED
 
-**Versão**: 1.14.0  
+**Versão**: 1.15.0  
 **Data**: 01 de Novembro de 2026  
 **Classificação**: Documentação Técnica de Engenharia de Software  
 **Status**: Projeto em Desenvolvimento Avançado — Seção de Avaliação do Projeto (percurso, decisões técnicas, desafios, resultados e perspectivas) revisada com base no histórico real do Git (135 commits, 63 PRs, Fev–Out/2026)
@@ -236,7 +236,7 @@ Plataforma mobile-first que:
 
 #### RNF05 - Manutenibilidade
 - **RNF05.1**: Padrões TypeScript ✅
-- **RNF05.2**: Cobertura de testes ≥ 253 casos automatizados (29 arquivos) ✅
+- **RNF05.2**: Cobertura de testes ≥ 256 casos automatizados (29 arquivos) ✅
 - **RNF05.3**: Documentação completa ✅
 
 ---
@@ -728,7 +728,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ Artigos de saúde (leitura pública + CRUD administrativo)
 - ✅ Geolocalização (geocodificação de endereço, busca por proximidade)
 - ✅ Chat/Conversas entre usuários (REST, sem WebSocket/tempo real)
-- ✅ **253 casos de teste automatizados** (29 arquivos) cobrindo os endpoints principais
+- ✅ **256 casos de teste automatizados** (29 arquivos) cobrindo os endpoints principais
 - ✅ Logging revisado — Prisma não loga mais SQL com dados de usuário; app não loga payloads fora de ambiente de desenvolvimento
 - ✅ Proteção LGPD — consentimento (+ reconsentimento de contas antigas), auditoria de acesso a dados de pacientes e de operações críticas (`GET /admin/logs-auditoria`), relatório de pacientes anonimizado (`GET /admin/relatorios/pacientes`), exportar/excluir meus dados (`GET`/`DELETE /users/me`), retenção do log de auditoria
 - ✅ Docker Compose para desenvolvimento
@@ -758,13 +758,13 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ **Botão "Avaliar" em consultas concluídas**: `Avaliacao` vinculada a um `agendamentoId` específico; `MinhasConsultasScreen` exibe o botão só quando aplicável (v1.15.0 do Kanban)
 - ✅ **`ResultadosScreen` com busca real na API**: já consumia `GET /medicos` com filtros reais; adicionada nota média, preço da consulta e `amount` na navegação, mais paginação (`skip`/`take`) e agregação de avaliação no backend (v1.16.0 do Kanban)
 - ✅ **`SearchScreen` com filtros funcionais**: já buscava por nome/especialidade/cidade; adicionado filtro de faixa de preço (chips + `precoMin`/`precoMax` em `GET /medicos`). Filtro de plano de saúde aceito movido para o Backlog — não há esse conceito no modelo de dados hoje (v1.17.0 do Kanban)
+- ✅ **`HistoricoAvaliacoesScreen` com dados reais**: modelo `Avaliacao` expandido com o detalhamento completo (4 notas por critério, voltaria, recomenda, sugestões) que o formulário de avaliação já coletava mas nunca persistia — corrigido na raiz, não só na tela de histórico. Atalho "Minhas Avaliações" adicionado em `PerfilScreen` (v1.18.0 do Kanban)
 
 #### ⚠️ Em Desenvolvimento
 
 - ⚠️ Notificações push remotas (requer development build — bloqueado pelo Expo Go SDK 53+)
 - ⚠️ E-mail real de recuperação de senha (backend Nodemailer)
 - ⚠️ E-mail de confirmação de agendamento e pagamento
-- ⚠️ `HistoricoAvaliacoesScreen` com dados reais
 - ⚠️ Relatórios exportáveis de uso geral (já existe um caso específico: relatório de pacientes anonimizado, ver RNF02.3)
 
 #### ❌ Não Implementado (Fase 1)
@@ -777,7 +777,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 ### 8.2 Métricas de Qualidade
 
 #### Cobertura de Testes
-- **Total de casos**: **253 testes automatizados** (29 arquivos) — todos passando ✅
+- **Total de casos**: **256 testes automatizados** (29 arquivos) — todos passando ✅
 - **Adições mais recentes**: `agendamentos_cancelar.test.ts` (6 casos) e `agendamentos_remarcar.test.ts` (8 casos), v1.10.0
 - **Suítes unitárias**: `auth.schema.unit`, `hash.unit`, `jwt.unit` — 39 casos
 - **Frontend**: Testes manuais (fluxo completo verificado) + `cadastroValidation.test.cjs`/`avaliacoesPerfil.test.cjs` (Node `--test`); sem suíte automatizada própria para as telas
@@ -1228,6 +1228,26 @@ O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 ---
 
 ## 14. Changelog
+
+### v1.15.0 — 01 de Novembro de 2026
+
+#### 🟢 Implementado
+
+**`HistoricoAvaliacoesScreen` — consumir API real (revisão achou um problema mais fundo que o card descrevia):**
+- A tela realmente usava 100% dado simulado, mas contra um shape de avaliação (`types/avaliacao.ts`) que **nunca existiu no backend**: 4 notas por critério (atendimento/pontualidade/clínica/comunicação), voltaria/recomenda e sugestões de melhoria
+- `AvaliacaoScreen.tsx` (a tela de envio) já coletava tudo isso no formulário, mas `handleSubmit` só enviava a média das 4 notas + comentário — o resto era descartado silenciosamente. O modelo `Avaliacao` só tinha `nota`+`comentario`
+- **Ou seja**: toda avaliação enviada no app perdia a maior parte do feedback do paciente, não só a tela de histórico estava desatualizada
+- **Decisão do usuário**: resolver na raiz em vez de só simplificar a tela de histórico pra mostrar o pouco que já era salvo
+- Migração expandindo `Avaliacao` com os campos de detalhamento (`notaAtendimento`, `notaPontualidade`, `notaClinica`, `notaComunicacao`, `voltariaClinica`, `recomendaMedico`, `melhorias`) — todos opcionais/nulos para avaliações antigas
+- `POST /avaliacoes` valida e persiste o detalhamento; `GET /avaliacoes/minhas` passa a retorná-lo; `AvaliacaoScreen.handleSubmit` envia tudo, não só a média
+- `HistoricoAvaliacoesScreen` reescrita consumindo dado real, com degradação graciosa: avaliações sem detalhamento (antigas) mostram só nota+comentário, sem seção vazia
+- **Achado adicional**: a tela não tinha nenhum ponto de entrada na navegação (estava no stack mas nada chamava `navigate`); adicionado atalho "Minhas Avaliações" em `PerfilScreen`
+
+**Verificação:** 5 novos casos de teste; suíte de backend 253 → 256 casos (mesmos 29 arquivos). Verificado end-to-end no app rodando: avaliação com detalhamento completo e avaliação antiga simples, lado a lado na mesma lista, cada uma renderizando corretamente.
+
+Ver `KANBAN_MELHORIAS.md` v1.18.0 para o detalhamento completo.
+
+---
 
 ### v1.14.0 — 01 de Novembro de 2026
 

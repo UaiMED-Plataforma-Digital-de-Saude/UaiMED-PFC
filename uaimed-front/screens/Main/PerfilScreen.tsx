@@ -793,6 +793,13 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
               label="Meus Pagamentos"
               sublabel="Histórico financeiro"
               onPress={() => navigation.navigate('Agendamentos', { screen: 'MeusPagamentos' })}
+            />
+            <ActionRow
+              icon="star-outline"
+              iconColor="#FFB800"
+              label="Minhas Avaliações"
+              sublabel="Avaliações que você enviou"
+              onPress={() => navigation.navigate('Agendamentos', { screen: 'HistoricoAvaliacoes' })}
               last
             />
           </View>
