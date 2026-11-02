@@ -1,6 +1,6 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.13.0  
+**Versão**: 1.14.0  
 **Data**: 01 de Novembro de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
@@ -400,6 +400,27 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 
 ---
 
+### ✅ [FEATURE] Status de pagamento visível no agendamento
+**Área**: Frontend + Backend | **Prioridade**: 🟠 Alto | **Esforço**: 3
+
+**Descrição original**: o card descrevia a feature para `AgendamentosScreen`, mostrando status (`confirmado`/`cancelado`/`realizado`) mas não se a consulta foi paga.
+
+**Correção de escopo (revisão antes de implementar)**: `AgendamentosScreen.tsx` é código morto — não é importado por nenhum navigator (a aba real usa `AgendamentoStack` → `MinhasConsultasScreen`) e tem um erro de sintaxe JSX real (`<View ...> />` sem fechar). A implementação foi feita em `MinhasConsultasScreen.tsx`, que é a tela que o paciente de fato usa. Também revisado o critério de aceite: `Pagamento.status` tem default `"pendente"` no schema, mas `processar()` sempre criava o registro já `"concluido"` — não existe de fato um terceiro estado "pendente" produzido pelo fluxo real de pagamento, então o badge ficou com 2 estados (`✅ Pago` / `❌ Não pago`) em vez de 3.
+
+**Resolução**:
+- `GET /agendamentos` (`listar()`) agora inclui `pagamento: { status, valorFinal, metodo } | null`, `valor` (`profissional.precoConsulta`) e `pixKey`
+- `MinhasConsultasScreen.tsx`: badge de pagamento ao lado do status; botão "Pagar agora" (quando não pago e não cancelado) navega para `Pagamento` com os mesmos params que `ConfirmacaoScreen` já usa
+- **Bug colateral encontrado e corrigido durante a verificação manual**: o seed usa valores de status `"aprovado"`/`"pendente"` para `Pagamento` (distintos de `"concluido"`, usado pelo fluxo real). Pagar uma consulta cujo agendamento já tinha uma linha `Pagamento` com status `"pendente"` (dado de demonstração) colidia com a constraint única `agendamentoId` e derrubava `POST /pagamentos` com 500. Corrigido trocando `create` por `upsert` em `PagamentosController.processar()`, com guarda explícita (`409`) para não sobrescrever um pagamento já `"concluido"`
+- 2 novos casos de teste de integração (`agendamentos_listar_pagamento.test.ts`) + 2 em `pagamentos.test.ts` (completa pagamento pendente via upsert; rejeita novo pagamento sobre um já concluído)
+
+**Critério de aceite**:
+- [x] `GET /agendamentos` inclui `pagamento: { status, valorFinal, metodo }` no retorno
+- [x] Card do agendamento exibe badge de pagamento (`✅ Pago` / `❌ Não pago` — ver nota de escopo acima sobre o terceiro estado)
+- [x] Consultas não pagas exibem botão "Pagar agora" → navega para `Pagamento`
+- [x] Verificado end-to-end no app rodando: pagamento via Pix atualiza o badge sem duplicar registro; caso de borda do pagamento `"pendente"` pré-existente também verificado
+
+---
+
 ## 🔵 A FAZER — Próxima Sprint
 
 > Itens refinados e prontos para desenvolvimento.
@@ -430,18 +451,6 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
   - [ ] Tela `PagamentoScreen` exibe tela de sucesso dedicada (não apenas Alert) com resumo e botão de compartilhar comprovante
   - [ ] Comprovante gerado como PDF ou tela formatada (`receiptUrl`)
   - [ ] Status do pagamento atualizado no card de agendamento em `AgendamentosScreen`
-
----
-
-### 🎯 [FEATURE] Status de pagamento visível no agendamento
-- **Área**: Frontend + Backend
-- **Prioridade**: 🟠 Alto
-- **Esforço**: 3
-- **Descrição**: `AgendamentosScreen` mostra status do agendamento (`confirmado`, `cancelado`, `realizado`) mas não exibe se o pagamento foi efetuado. Paciente não sabe se a consulta está paga ou pendente.
-- **Critério de aceite**:
-  - [ ] `GET /agendamentos` inclui `pagamento: { status, valorFinal, metodo }` no retorno
-  - [ ] Card do agendamento exibe badge de pagamento: `✅ Pago`, `⏳ Pendente` ou `❌ Não pago`
-  - [ ] Consultas não pagas exibem botão "Pagar agora" → navega para `Pagamento`
 
 ---
 
@@ -597,9 +606,9 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 | 🟢 Concluído — Sprints Anteriores (até 10/04/2026) | 19 itens |
 | 🟢 Concluído — Mai–Out/2026 (consolidado) | 13 itens |
 | 🟢 Concluído — 30/10/2026 | 6 itens |
-| 🟢 Concluído — 01/11/2026 | 2 itens |
+| 🟢 Concluído — 01/11/2026 | 3 itens |
 | 🔴 Bug Conhecido | 0 itens |
-| 🔵 A Fazer (próxima sprint) | 8 itens |
+| 🔵 A Fazer (próxima sprint) | 7 itens |
 | 🗃️ Backlog | 6 itens |
 | ⏸️ Bloqueado | 2 itens |
 | **Total** | **56 itens** |
@@ -640,6 +649,7 @@ Sprint entrega PFC
 | 30/10/2026 | 1.11.0 | Auditoria também passa a cobrir envio de mensagens (`ENVIAR_MENSAGEM`, nos dois sentidos), fechando o requisito "mensagens trocadas devem permanecer registradas para auditoria". `GET /avaliacoes/minhas` implementado e testado, movido de "A Fazer" para Concluído. **Gaps levantados e documentados como novos itens de Backlog** (não implementados ainda): auditoria não cobre operações críticas de escrita (agendar, pagar, trocar senha, vínculo clínica-médico); 40/40 usuários existentes no banco não têm consentimento LGPD registrado (fluxo só cobre cadastro novo); política de privacidade promete direito de acesso/eliminação de dados sem endpoint correspondente; log de auditoria não tem política de retenção própria. |
 | 30/10/2026 | 1.12.0 | Fechados os 4 gaps levantados na v1.11.0: auditoria estendida para 9 operações críticas de escrita (agendar, pagar, vínculo clínica-médico, trocar senha, dados bancários, consentimento, exportar/excluir dados); reconsentimento pós-login para as 40 contas existentes sem consentimento (`precisaConsentimentoLgpd` + `LgpdConsentGateScreen`); direitos do titular via `GET`/`DELETE /users/me` (exportar dados, excluir conta por anonimização) + tela de Perfil; expurgo de retenção do log de auditoria (`npm run logs:purgar`). Verificado com o driver headless `run-uaimed-front` — achado e corrigido no processo um bug real: telas fora do `NavigationContainer` (como o novo gate) quebravam por falta de `<SafeAreaProvider>` no app (nunca existiu; funcionava só dentro do Navigator, que injeta um). |
 | 01/11/2026 | 1.13.0 | Corrigido o bug crítico de cancelamento documentado desde 13/10 (`PATCH /agendamentos/:id/cancelar` implementado, com validação de dono/status/antecedência de 24h no backend e não só no app). **Encontrado e corrigido no mesmo processo um segundo bug crítico, não documentado anteriormente**: "Remarcar" criava uma consulta nova sem cancelar a original, duplicando o agendamento e cobrando pagamento de novo — resolvido com `PATCH /agendamentos/:id/remarcar`, que atualiza a `dataHora` do mesmo registro. Ambos cobertos por teste de integração (14 casos novos) e verificados end-to-end no app rodando via driver headless `run-uaimed-front`. Coluna "Bug Conhecido" zerada. **Aproveitado para reconciliar `TESTES.md`**, que estava com a contagem desatualizada desde revisões anteriores (não só pelos 14 casos novos): suíte real auditada via `npm test` em 238/238 (26 arquivos), não os 155/169 citados em versões anteriores deste documento e do `DOCUMENTACAO_PROJETO_UAIMED.md`. |
+| 01/11/2026 | 1.14.0 | Implementado "Status de pagamento visível no agendamento", com correção de escopo antes de codar: o card original mirava `AgendamentosScreen.tsx`, que é código morto (não usado por nenhum navigator, com um erro de sintaxe JSX real) — a feature foi implementada em `MinhasConsultasScreen.tsx`, a tela que o app de fato usa. Badge reduzido a 2 estados (Pago/Não pago) em vez dos 3 do card original, porque o fluxo real de pagamento nunca produz o status `"pendente"` do schema. **Bug colateral encontrado na verificação manual**: o seed usa status de pagamento (`"aprovado"`/`"pendente"`) que colidiam com a constraint única `agendamentoId` ao tentar pagar — `POST /pagamentos` derrubava com 500. Corrigido com `upsert` + guarda de `409` para pagamento já concluído. 4 novos casos de teste. |
 
 ---
 

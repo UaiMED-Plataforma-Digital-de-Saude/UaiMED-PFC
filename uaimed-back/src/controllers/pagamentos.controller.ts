@@ -56,6 +56,11 @@ class PagamentosController {
       const usuarioId = (req as any).user?.id;
       if (!usuarioId) return res.status(401).json({ error: "Usuário não autenticado" });
 
+      const pagamentoExistente = await prisma.pagamento.findUnique({ where: { agendamentoId } });
+      if (pagamentoExistente?.status === "concluido") {
+        return res.status(409).json({ error: "Este agendamento já possui um pagamento concluído." });
+      }
+
       let desconto = 0;
       let planDiscount = 0;
       if (cupom) {
@@ -77,8 +82,13 @@ class PagamentosController {
 
       const valorFinal = valor - desconto - planDiscount;
 
-      const pagamento = await prisma.pagamento.create({
-        data: { usuarioId, agendamentoId, valor, desconto, valorFinal, metodo, cupom, status: "concluido" },
+      // upsert: um agendamento pode já ter um pagamento "pendente" (ex.: dados de
+      // demonstração) — completar o pagamento deve atualizar esse registro em vez
+      // de colidir com a constraint única de agendamentoId
+      const pagamento = await prisma.pagamento.upsert({
+        where: { agendamentoId },
+        update: { usuarioId, valor, desconto, valorFinal, metodo, cupom, status: "concluido" },
+        create: { usuarioId, agendamentoId, valor, desconto, valorFinal, metodo, cupom, status: "concluido" },
         include: { usuario: { select: { nome: true } } },
       });
       logger.success(`Pagamento processado: ${pagamento.id}`);

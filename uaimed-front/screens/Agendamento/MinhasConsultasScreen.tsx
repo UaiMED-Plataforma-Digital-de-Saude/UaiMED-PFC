@@ -35,6 +35,9 @@ interface Consulta {
   estado?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  valor?: number | null;
+  pixKey?: string | null;
+  pagamento?: { status: string; valorFinal: number; metodo: string } | null;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
@@ -150,6 +153,22 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
     });
   };
 
+  // ── Pagar consulta pendente ─────────────────────────────────────────────────
+  const handlePagarAgora = (item: Consulta) => {
+    if (!item.medicoId) {
+      showModal('Erro', 'Não foi possível identificar o profissional para pagamento.', { type: 'error' });
+      return;
+    }
+
+    navigation.navigate('Pagamento', {
+      amount: item.valor ?? 0,
+      agendamentoId: item.id,
+      medicoId: item.medicoId,
+      pixKey: item.pixKey ?? `${item.medicoId}@uaimed.com.br`,
+      nomeProfissional: item.medico ?? 'Profissional UaiMED',
+    });
+  };
+
   const agora = new Date();
 
   const filtradas = consultas.filter((c) => {
@@ -173,6 +192,9 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
     const podeAgir  = isFutura && (item.status === 'agendado' || item.status === 'confirmado');
     const isCancelando = cancelando === item.id;
 
+    const pago = item.pagamento?.status === 'concluido';
+    const podePagar = item.status !== 'cancelado' && !pago;
+
     return (
       <View style={styles.card}>
         {/* Header do card */}
@@ -184,9 +206,17 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.medicoNome} numberOfLines={1}>{medicoNome}</Text>
             {especialidade ? <Text style={styles.especialidade}>{especialidade}</Text> : null}
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: cfg.color + '1A' }]}>
-            <Ionicons name={cfg.icon as any} size={12} color={cfg.color} style={{ marginRight: 4 }} />
-            <Text style={[styles.statusText, { color: cfg.color }]}>{cfg.label}</Text>
+          <View style={styles.badgesCol}>
+            <View style={[styles.statusBadge, { backgroundColor: cfg.color + '1A' }]}>
+              <Ionicons name={cfg.icon as any} size={12} color={cfg.color} style={{ marginRight: 4 }} />
+              <Text style={[styles.statusText, { color: cfg.color }]}>{cfg.label}</Text>
+            </View>
+            {item.status !== 'cancelado' && (
+              <View style={[styles.statusBadge, { backgroundColor: pago ? '#4CAF501A' : '#FB8C001A', marginTop: 4 }]}>
+                <Ionicons name={pago ? 'checkmark-circle-outline' : 'alert-circle-outline'} size={12} color={pago ? '#4CAF50' : '#FB8C00'} style={{ marginRight: 4 }} />
+                <Text style={[styles.statusText, { color: pago ? '#4CAF50' : '#FB8C00' }]}>{pago ? 'Pago' : 'Não pago'}</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -216,34 +246,49 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         )}
 
-        {/* Ações (apenas para consultas futuras agendadas/confirmadas) */}
-        {podeAgir && (
+        {/* Ações */}
+        {(podeAgir || podePagar) && (
           <View style={styles.actionsRow}>
-            <TouchableOpacity
-              style={[styles.btnAcao, styles.btnRemarcar]}
-              onPress={() => handleRemarcar(item)}
-              disabled={isCancelando}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="calendar-outline" size={15} color="#4B73B2" />
-              <Text style={[styles.btnAcaoText, { color: '#4B73B2' }]}>Remarcar</Text>
-            </TouchableOpacity>
+            {podeAgir && (
+              <TouchableOpacity
+                style={[styles.btnAcao, styles.btnRemarcar]}
+                onPress={() => handleRemarcar(item)}
+                disabled={isCancelando}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="calendar-outline" size={15} color="#4B73B2" />
+                <Text style={[styles.btnAcaoText, { color: '#4B73B2' }]}>Remarcar</Text>
+              </TouchableOpacity>
+            )}
 
-            <TouchableOpacity
-              style={[styles.btnAcao, styles.btnCancelar]}
-              onPress={() => handleCancelar(item)}
-              disabled={isCancelando}
-              activeOpacity={0.8}
-            >
-              {isCancelando ? (
-                <ActivityIndicator size="small" color="#E53935" />
-              ) : (
-                <>
-                  <Ionicons name="close-circle-outline" size={15} color="#E53935" />
-                  <Text style={[styles.btnAcaoText, { color: '#E53935' }]}>Cancelar</Text>
-                </>
-              )}
-            </TouchableOpacity>
+            {podeAgir && (
+              <TouchableOpacity
+                style={[styles.btnAcao, styles.btnCancelar]}
+                onPress={() => handleCancelar(item)}
+                disabled={isCancelando}
+                activeOpacity={0.8}
+              >
+                {isCancelando ? (
+                  <ActivityIndicator size="small" color="#E53935" />
+                ) : (
+                  <>
+                    <Ionicons name="close-circle-outline" size={15} color="#E53935" />
+                    <Text style={[styles.btnAcaoText, { color: '#E53935' }]}>Cancelar</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+
+            {podePagar && (
+              <TouchableOpacity
+                style={[styles.btnAcao, styles.btnPagar]}
+                onPress={() => handlePagarAgora(item)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="card-outline" size={15} color="#4CAF50" />
+                <Text style={[styles.btnAcaoText, { color: '#4CAF50' }]}>Pagar agora</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>
@@ -392,9 +437,10 @@ const styles = StyleSheet.create({
   },
   cardHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 10,
   },
+  badgesCol: { alignItems: 'flex-end' },
   iconCircle: {
     width: 42,
     height: 42,
@@ -439,11 +485,13 @@ const styles = StyleSheet.create({
 
   actionsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
     marginTop: 10,
   },
   btnAcao: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: '45%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -459,6 +507,10 @@ const styles = StyleSheet.create({
   btnCancelar: {
     borderColor: '#E53935',
     backgroundColor: '#FFF5F5',
+  },
+  btnPagar: {
+    borderColor: '#4CAF50',
+    backgroundColor: '#F0FFF4',
   },
   btnAcaoText: { fontSize: 13, fontWeight: '700' },
 });

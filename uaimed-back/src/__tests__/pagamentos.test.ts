@@ -124,6 +124,55 @@ describe('Pagamentos endpoints', () => {
     expect(res.body.length).toBeGreaterThan(0);
   });
 
+  it('completa um pagamento pendente existente em vez de falhar na constraint única', async () => {
+    const ag3 = await prisma.agendamento.create({
+      data: {
+        usuarioId: user.id,
+        profissionalId: profissional.id,
+        dataHora: new Date(Date.now() + 3 * 86400000),
+        duracao: 30,
+        status: 'confirmado',
+      },
+    });
+    const pendente = await prisma.pagamento.create({
+      data: { usuarioId: user.id, agendamentoId: ag3.id, valor: 150, desconto: 0, valorFinal: 150, metodo: 'pix', status: 'pendente' },
+    });
+
+    const res = await request(app)
+      .post('/api/pagamentos')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ agendamentoId: ag3.id, valor: 150, metodo: 'pix' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.id).toBe(pendente.id);
+    expect(res.body.status).toBe('concluido');
+
+    const total = await prisma.pagamento.count({ where: { agendamentoId: ag3.id } });
+    expect(total).toBe(1);
+  });
+
+  it('rejeita novo pagamento quando já existe um concluído para o agendamento', async () => {
+    const ag4 = await prisma.agendamento.create({
+      data: {
+        usuarioId: user.id,
+        profissionalId: profissional.id,
+        dataHora: new Date(Date.now() + 4 * 86400000),
+        duracao: 30,
+        status: 'confirmado',
+      },
+    });
+    await prisma.pagamento.create({
+      data: { usuarioId: user.id, agendamentoId: ag4.id, valor: 150, desconto: 0, valorFinal: 150, metodo: 'pix', status: 'concluido' },
+    });
+
+    const res = await request(app)
+      .post('/api/pagamentos')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ agendamentoId: ag4.id, valor: 150, metodo: 'pix' });
+
+    expect(res.status).toBe(409);
+  });
+
   it('rejeita processamento de pagamento sem campos obrigatórios', async () => {
     const res = await request(app)
       .post('/api/pagamentos')

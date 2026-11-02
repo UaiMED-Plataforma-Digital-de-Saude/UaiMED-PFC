@@ -1,6 +1,6 @@
 # 📘 Documentação Completa do Projeto UaiMED
 
-**Versão**: 1.10.0  
+**Versão**: 1.11.0  
 **Data**: 01 de Novembro de 2026  
 **Classificação**: Documentação Técnica de Engenharia de Software  
 **Status**: Projeto em Desenvolvimento Avançado — Seção de Avaliação do Projeto (percurso, decisões técnicas, desafios, resultados e perspectivas) revisada com base no histórico real do Git (135 commits, 63 PRs, Fev–Out/2026)
@@ -139,7 +139,7 @@ Plataforma mobile-first que:
 | RF04.4 | Aplicação de cupons | Alta | ✅ Implementado |
 | RF04.5 | Cobertura de plano de saúde | Alta | ✅ Implementado |
 | RF04.6 | Meus Pagamentos (lista dedicada) | Alta | ✅ Implementado |
-| RF04.7 | Status de pagamento visível no agendamento | Alta | ⚠️ Pendente (KANBAN) |
+| RF04.7 | Status de pagamento visível no agendamento | Alta | ✅ Implementado (badge + "Pagar agora" em `MinhasConsultasScreen`, v1.14.0 do Kanban) |
 
 #### RF05 - Sistema de Avaliações
 | ID | Requisito | Prioridade | Status |
@@ -236,7 +236,7 @@ Plataforma mobile-first que:
 
 #### RNF05 - Manutenibilidade
 - **RNF05.1**: Padrões TypeScript ✅
-- **RNF05.2**: Cobertura de testes ≥ 238 casos automatizados (26 arquivos) ✅
+- **RNF05.2**: Cobertura de testes ≥ 242 casos automatizados (27 arquivos) ✅
 - **RNF05.3**: Documentação completa ✅
 
 ---
@@ -728,7 +728,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ Artigos de saúde (leitura pública + CRUD administrativo)
 - ✅ Geolocalização (geocodificação de endereço, busca por proximidade)
 - ✅ Chat/Conversas entre usuários (REST, sem WebSocket/tempo real)
-- ✅ **238 casos de teste automatizados** (26 arquivos) cobrindo os endpoints principais
+- ✅ **242 casos de teste automatizados** (27 arquivos) cobrindo os endpoints principais
 - ✅ Logging revisado — Prisma não loga mais SQL com dados de usuário; app não loga payloads fora de ambiente de desenvolvimento
 - ✅ Proteção LGPD — consentimento (+ reconsentimento de contas antigas), auditoria de acesso a dados de pacientes e de operações críticas (`GET /admin/logs-auditoria`), relatório de pacientes anonimizado (`GET /admin/relatorios/pacientes`), exportar/excluir meus dados (`GET`/`DELETE /users/me`), retenção do log de auditoria
 - ✅ Docker Compose para desenvolvimento
@@ -754,13 +754,13 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ Carousel de profissionais em destaque na Home
 - ✅ Filtro de localização (estado/município) na Home e na busca
 - ✅ **Cancelamento e remarcação de consulta**: `PATCH /agendamentos/:id/cancelar` e `/remarcar`, com regra de 24h de antecedência validada também no backend; remarcar atualiza a consulta existente em vez de duplicá-la (v1.13.0 do Kanban)
+- ✅ **Status de pagamento visível na lista de consultas**: `GET /agendamentos` retorna `pagamento`/`valor`/`pixKey`; `MinhasConsultasScreen` exibe badge Pago/Não pago e botão "Pagar agora" (v1.14.0 do Kanban)
 
 #### ⚠️ Em Desenvolvimento
 
 - ⚠️ Notificações push remotas (requer development build — bloqueado pelo Expo Go SDK 53+)
 - ⚠️ E-mail real de recuperação de senha (backend Nodemailer)
 - ⚠️ E-mail de confirmação de agendamento e pagamento
-- ⚠️ Status de pagamento visível na lista de agendamentos
 - ⚠️ `ResultadosScreen` com busca real na API
 - ⚠️ `HistoricoAvaliacoesScreen` com dados reais
 - ⚠️ Relatórios exportáveis de uso geral (já existe um caso específico: relatório de pacientes anonimizado, ver RNF02.3)
@@ -775,7 +775,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 ### 8.2 Métricas de Qualidade
 
 #### Cobertura de Testes
-- **Total de casos**: **238 testes automatizados** (26 arquivos) — todos passando ✅
+- **Total de casos**: **242 testes automatizados** (27 arquivos) — todos passando ✅
 - **Adições mais recentes**: `agendamentos_cancelar.test.ts` (6 casos) e `agendamentos_remarcar.test.ts` (8 casos), v1.10.0
 - **Suítes unitárias**: `auth.schema.unit`, `hash.unit`, `jwt.unit` — 39 casos
 - **Frontend**: Testes manuais (fluxo completo verificado) + `cadastroValidation.test.cjs`/`avaliacoesPerfil.test.cjs` (Node `--test`); sem suíte automatizada própria para as telas
@@ -1226,6 +1226,25 @@ O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 ---
 
 ## 14. Changelog
+
+### v1.11.0 — 01 de Novembro de 2026
+
+#### 🟢 Implementado
+
+**Status de pagamento visível no agendamento (com correção de escopo antes de implementar):**
+- O card do Kanban mirava `AgendamentosScreen.tsx`, que é código morto — não é importado por nenhum navigator (a aba real usa `AgendamentoStack` → `MinhasConsultasScreen`) e tem um erro de sintaxe JSX real (`<View ...> />` sem fechar). Implementado em `MinhasConsultasScreen.tsx`, a tela que o app de fato usa
+- `GET /api/agendamentos` passa a incluir `pagamento: { status, valorFinal, metodo } | null`, `valor` (preço da consulta) e `pixKey`
+- Badge "Pago"/"Não pago" por consulta e botão "Pagar agora" (quando não pago e não cancelado), navegando para `Pagamento` com os mesmos parâmetros que `ConfirmacaoScreen` já usa — sem cobrar de novo quem já pagou
+- Badge reduzido a 2 estados em vez dos 3 do card original: o fluxo real de pagamento nunca produz o status `"pendente"` do schema (`processar()` sempre gravava `"concluido"` diretamente)
+
+**Bug colateral encontrado na verificação manual:**
+- O script de seed usa valores de status de pagamento (`"aprovado"`/`"pendente"`) distintos do que o fluxo real produz (`"concluido"`). Pagar uma consulta cujo agendamento já tinha uma linha `Pagamento` de demonstração colidia com a constraint única `agendamentoId` e derrubava `POST /pagamentos` com 500 — reproduzido e corrigido trocando `create` por `upsert`, com guarda de `409` para não sobrescrever um pagamento já `concluido`
+
+**Verificação:** 4 novos casos de teste (`agendamentos_listar_pagamento.test.ts` + 2 em `pagamentos.test.ts`); suíte de backend 238 → 242 casos (26 → 27 arquivos). Fluxo completo verificado no app rodando via driver headless `run-uaimed-front`: pagamento via Pix atualiza o badge sem duplicar registro no banco, e o caso de borda do pagamento `"pendente"` pré-existente também foi testado manualmente.
+
+Ver `KANBAN_MELHORIAS.md` v1.14.0 para o detalhamento completo.
+
+---
 
 ### v1.10.0 — 01 de Novembro de 2026
 

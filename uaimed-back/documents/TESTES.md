@@ -29,7 +29,7 @@ O UaiMED adota uma estratégia de testes em camadas, priorizando **testes de int
 - **Isolamento**: cada suíte cria e limpa seus próprios dados por ID
 - **Repetibilidade**: UUIDs únicos garantem que testes paralelos não colidam
 - **Confiabilidade**: banco de teste isolado (`uaimed_test`) com schema migrado automaticamente via `globalSetup`
-- **Velocidade**: 238 casos (unitários + integração), em 26 arquivos, rodam em menos de 9 segundos no total (`Duration 8.94s` na última execução)
+- **Velocidade**: 242 casos (unitários + integração), em 27 arquivos, rodam em menos de 10 segundos no total (`Duration 9.46s` na última execução)
 
 ---
 
@@ -43,7 +43,7 @@ O UaiMED adota uma estratégia de testes em camadas, priorizando **testes de int
         └──────────────────┬──────────────────┘
                            │
         ┌──────────────────▼──────────────────┐
-        │      Integração (API)               │  ← Principal camada automatizada (145 casos, 23 arquivos)
+        │      Integração (API)               │  ← Principal camada automatizada (149 casos, 24 arquivos)
         │      Vitest + Supertest             │    Testa controllers, services e banco real
         └──────────────────┬──────────────────┘
                            │
@@ -158,14 +158,15 @@ Os testes de integração são a **camada principal** de validação automatizad
 | 1 | Processa pagamento com dados válidos | `POST /api/pagamentos` | 201 `{ status: 'concluido', valorFinal: 200 }` |
 | 2 | Processa pagamento com cupom (10% off) | `POST /api/pagamentos` | 201 `{ valorFinal: 90 }` |
 | 3 | Lista pagamentos do usuário | `GET /api/pagamentos` | 200 array não vazio |
-| 4 | Rejeita sem campos obrigatórios | `POST /api/pagamentos` | 400 Bad Request |
-| 5 | Rejeita listagem sem autenticação | `GET /api/pagamentos` | 401 Unauthorized |
-| 5 | Rejeita pagamento com valor negativo | `POST /api/pagamentos` | 400 Bad Request |
-| 6 | Rejeita `insuranceCoveragePercent` fora de 0–100 | `POST /api/pagamentos` | 400 Bad Request |
-| 7 | Rejeita listagem sem autenticação | `GET /api/pagamentos` | 401 Unauthorized |
-| 8 | Valida cupom válido | `POST /api/cupons/validar` | 200 `{ valido: true }` |
-| 9 | Rejeita cupom inexistente | `POST /api/cupons/validar` | 400 `{ valido: false }` |
-| 10 | Rejeita validação sem código | `POST /api/cupons/validar` | 400 Bad Request |
+| 4 | Completa um pagamento `pendente` existente (upsert) em vez de falhar na constraint única de `agendamentoId` | `POST /api/pagamentos` | 201, mesmo `id`, `status: 'concluido'` |
+| 5 | Rejeita novo pagamento quando já existe um `concluido` para o agendamento | `POST /api/pagamentos` | 409 Conflict |
+| 6 | Rejeita sem campos obrigatórios | `POST /api/pagamentos` | 400 Bad Request |
+| 7 | Rejeita pagamento com valor negativo | `POST /api/pagamentos` | 400 Bad Request |
+| 8 | Rejeita `insuranceCoveragePercent` fora de 0–100 | `POST /api/pagamentos` | 400 Bad Request |
+| 9 | Rejeita listagem sem autenticação | `GET /api/pagamentos` | 401 Unauthorized |
+| 10 | Valida cupom válido | `POST /api/cupons/validar` | 200 `{ valido: true }` |
+| 11 | Rejeita cupom inexistente | `POST /api/cupons/validar` | 400 `{ valido: false }` |
+| 12 | Rejeita validação sem código | `POST /api/cupons/validar` | 400 Bad Request |
 
 ---
 
@@ -388,6 +389,16 @@ Os testes de integração são a **camada principal** de validação automatizad
 
 ---
 
+### 3.24 `agendamentos_listar_pagamento.test.ts`
+**Localização**: `src/__tests__/agendamentos_listar_pagamento.test.ts`
+
+| # | Caso de Teste | Endpoint | Resultado Esperado |
+|---|---------------|----------|--------------------|
+| 1 | Inclui pagamento concluído, `valor` e `pixKey` para um agendamento pago | `GET /api/agendamentos` | 200, `pagamento: { status: 'concluido', valorFinal, metodo }` |
+| 2 | Retorna `pagamento: null` para um agendamento sem pagamento | `GET /api/agendamentos` | 200, `pagamento: null`, `valor` presente |
+
+---
+
 ## 4. Testes Unitários
 
 Os testes unitários validam lógica isolada **sem necessidade de banco de dados**. São rápidos, focados e não dependem do Docker ou do PostgreSQL.
@@ -573,7 +584,7 @@ npx vitest run --coverage
 | `medicos_agendamentos.test.ts` | 2 | Integração | ✅ Passando |
 | `agendamentos_criar.test.ts` | 7 | Integração | ✅ Passando |
 | `avaliacoes.test.ts` | 8 | Integração | ✅ Passando |
-| `pagamentos.test.ts` | 10 | Integração | ✅ Passando |
+| `pagamentos.test.ts` | 12 | Integração | ✅ Passando |
 | `admin.test.ts` | 1 | Integração | ✅ Passando |
 | `professional.test.ts` | 8 | Integração | ✅ Passando |
 | `professionals.test.ts` | 3 | Integração | ✅ Passando |
@@ -589,7 +600,8 @@ npx vitest run --coverage
 | `perfil_profissional.test.ts` | 12 | Integração | ✅ Passando |
 | `agendamentos_cancelar.test.ts` | 6 | Integração | ✅ Passando |
 | `agendamentos_remarcar.test.ts` | 8 | Integração | ✅ Passando |
-| **Subtotal** | **145** | | **✅ 145/145** |
+| `agendamentos_listar_pagamento.test.ts` | 2 | Integração | ✅ Passando |
+| **Subtotal** | **149** | | **✅ 149/149** |
 
 #### Testes Unitários
 
@@ -606,10 +618,10 @@ npx vitest run --coverage
 
 | Tipo | Casos | Status |
 |------|-------|--------|
-| Integração (API) | 145 | ✅ |
+| Integração (API) | 149 | ✅ |
 | Unitários | 93 | ✅ |
 | E2E automatizado | 0 | ⚠️ Planejado |
-| **Total** | **238** | **✅ 238/238** (executado em 01/11/2026, `Duration 8.94s`) |
+| **Total** | **242** | **✅ 242/242** (executado em 01/11/2026, `Duration 9.46s`) |
 
 ### Endpoints Cobertos
 
