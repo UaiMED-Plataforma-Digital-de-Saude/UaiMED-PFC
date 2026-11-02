@@ -133,6 +133,7 @@ model Agendamento {
   profissional   Profissional @relation(fields: [profissionalId], references: [id], onDelete: Cascade)
   usuario        Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   pagamento      Pagamento?
+  avaliacao      Avaliacao?
 
   @@map("agendamentos")
 }
@@ -141,12 +142,14 @@ model Avaliacao {
   id             String       @id @default(uuid())
   usuarioId      String
   profissionalId String
+  agendamentoId  String?      @unique
   nota           Int
   comentario     String?
   criado_em      DateTime     @default(now())
   atualizado_em  DateTime     @updatedAt
   profissional   Profissional @relation(fields: [profissionalId], references: [id], onDelete: Cascade)
   usuario        Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  agendamento    Agendamento? @relation(fields: [agendamentoId], references: [id], onDelete: SetNull)
 
   @@map("avaliacoes")
 }

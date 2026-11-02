@@ -1,6 +1,6 @@
 # 🧪 Estratégia e Documentação de Testes — UaiMED Backend
 
-**Versão**: 1.4.0  
+**Versão**: 1.5.0  
 **Data**: 01 de Novembro de 2026  
 **Framework**: Vitest 1.4 + Supertest 6.3  
 **Banco de Teste**: PostgreSQL (`uaimed_test`) — isolado do banco de desenvolvimento
@@ -29,7 +29,7 @@ O UaiMED adota uma estratégia de testes em camadas, priorizando **testes de int
 - **Isolamento**: cada suíte cria e limpa seus próprios dados por ID
 - **Repetibilidade**: UUIDs únicos garantem que testes paralelos não colidam
 - **Confiabilidade**: banco de teste isolado (`uaimed_test`) com schema migrado automaticamente via `globalSetup`
-- **Velocidade**: 242 casos (unitários + integração), em 27 arquivos, rodam em menos de 10 segundos no total (`Duration 9.46s` na última execução)
+- **Velocidade**: 249 casos (unitários + integração), em 28 arquivos, rodam em menos de 10 segundos no total (`Duration 9.45s` na última execução)
 
 ---
 
@@ -43,7 +43,7 @@ O UaiMED adota uma estratégia de testes em camadas, priorizando **testes de int
         └──────────────────┬──────────────────┘
                            │
         ┌──────────────────▼──────────────────┐
-        │      Integração (API)               │  ← Principal camada automatizada (149 casos, 24 arquivos)
+        │      Integração (API)               │  ← Principal camada automatizada (156 casos, 25 arquivos)
         │      Vitest + Supertest             │    Testa controllers, services e banco real
         └──────────────────┬──────────────────┘
                            │
@@ -399,6 +399,21 @@ Os testes de integração são a **camada principal** de validação automatizad
 
 ---
 
+### 3.25 `avaliacoes_agendamento.test.ts`
+**Localização**: `src/__tests__/avaliacoes_agendamento.test.ts`
+
+| # | Caso de Teste | Endpoint | Resultado Esperado |
+|---|---------------|----------|--------------------|
+| 1 | Avalia uma consulta concluída e marca `avaliado: true` em `GET /agendamentos` | `POST /api/avaliacoes` | 201 `{ agendamentoId }` |
+| 2 | Retorna `avaliado: false` para consulta concluída sem avaliação | `GET /api/agendamentos` | 200 `{ avaliado: false }` |
+| 3 | Rejeita avaliar agendamento de outro paciente | `POST /api/avaliacoes` | 403 Forbidden |
+| 4 | Rejeita avaliar consulta que ainda não foi realizada | `POST /api/avaliacoes` | 422 Unprocessable Entity |
+| 5 | Rejeita avaliação duplicada para o mesmo agendamento | `POST /api/avaliacoes` | 409 Conflict |
+| 6 | Rejeita quando `profissionalId` não corresponde ao profissional do agendamento | `POST /api/avaliacoes` | 400 Bad Request |
+| 7 | Retorna 404 para `agendamentoId` inexistente | `POST /api/avaliacoes` | 404 Not Found |
+
+---
+
 ## 4. Testes Unitários
 
 Os testes unitários validam lógica isolada **sem necessidade de banco de dados**. São rápidos, focados e não dependem do Docker ou do PostgreSQL.
@@ -601,7 +616,8 @@ npx vitest run --coverage
 | `agendamentos_cancelar.test.ts` | 6 | Integração | ✅ Passando |
 | `agendamentos_remarcar.test.ts` | 8 | Integração | ✅ Passando |
 | `agendamentos_listar_pagamento.test.ts` | 2 | Integração | ✅ Passando |
-| **Subtotal** | **149** | | **✅ 149/149** |
+| `avaliacoes_agendamento.test.ts` | 7 | Integração | ✅ Passando |
+| **Subtotal** | **156** | | **✅ 156/156** |
 
 #### Testes Unitários
 
@@ -618,10 +634,10 @@ npx vitest run --coverage
 
 | Tipo | Casos | Status |
 |------|-------|--------|
-| Integração (API) | 149 | ✅ |
+| Integração (API) | 156 | ✅ |
 | Unitários | 93 | ✅ |
 | E2E automatizado | 0 | ⚠️ Planejado |
-| **Total** | **242** | **✅ 242/242** (executado em 01/11/2026, `Duration 9.46s`) |
+| **Total** | **249** | **✅ 249/249** (executado em 01/11/2026, `Duration 9.45s`) |
 
 ### Endpoints Cobertos
 
@@ -724,7 +740,7 @@ hookTimeout: 30000,  // 30s para beforeAll/afterAll
 ---
 
 **Documento criado em**: 17 de Abril de 2026  
-**Última atualização**: 01 de Novembro de 2026 — contagem real re-auditada via `npm test` (não apenas somada a partir da versão anterior do documento, que já estava desatualizada em alguns pontos: `auth.schema.unit.test.ts` e `auth_signup_signin.test.ts` haviam crescido em revisões anteriores sem atualizar esta tabela, e `perfil_profissional.test.ts` nunca havia sido documentado). 155 → 238 casos, 23 → 26 arquivos no total; dessa diferença, 14 casos (`agendamentos_cancelar.test.ts` + `agendamentos_remarcar.test.ts`) são da correção dos bugs de cancelamento/remarcação desta sessão — ver `KANBAN_MELHORIAS.md` v1.13.0 — e o restante é débito de documentação de sessões anteriores, agora reconciliado.  
+**Última atualização**: 01 de Novembro de 2026 — contagem real re-auditada via `npm test` (não apenas somada a partir da versão anterior do documento, que já estava desatualizada em alguns pontos: `auth.schema.unit.test.ts` e `auth_signup_signin.test.ts` haviam crescido em revisões anteriores sem atualizar esta tabela, e `perfil_profissional.test.ts` nunca havia sido documentado). 155 → 249 casos, 23 → 28 arquivos no total ao longo da sessão de 01/11 (cancelamento/remarcação, status de pagamento e botão de avaliar agendamentos) — ver `KANBAN_MELHORIAS.md` v1.15.0.  
 **Autor**: Equipe de Desenvolvimento UaiMED  
 **Referência**: [`vitest.config.ts`](../vitest.config.ts) · [`src/__tests__/`](../src/__tests__/) · [`DOCUMENTACAO_PROJETO_UAIMED.md`](../../DOCUMENTACAO_PROJETO_UAIMED.md)
 

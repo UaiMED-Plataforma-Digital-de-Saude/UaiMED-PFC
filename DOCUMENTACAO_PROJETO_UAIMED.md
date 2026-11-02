@@ -1,6 +1,6 @@
 # 📘 Documentação Completa do Projeto UaiMED
 
-**Versão**: 1.11.0  
+**Versão**: 1.12.0  
 **Data**: 01 de Novembro de 2026  
 **Classificação**: Documentação Técnica de Engenharia de Software  
 **Status**: Projeto em Desenvolvimento Avançado — Seção de Avaliação do Projeto (percurso, decisões técnicas, desafios, resultados e perspectivas) revisada com base no histórico real do Git (135 commits, 63 PRs, Fev–Out/2026)
@@ -236,7 +236,7 @@ Plataforma mobile-first que:
 
 #### RNF05 - Manutenibilidade
 - **RNF05.1**: Padrões TypeScript ✅
-- **RNF05.2**: Cobertura de testes ≥ 242 casos automatizados (27 arquivos) ✅
+- **RNF05.2**: Cobertura de testes ≥ 249 casos automatizados (28 arquivos) ✅
 - **RNF05.3**: Documentação completa ✅
 
 ---
@@ -728,7 +728,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ Artigos de saúde (leitura pública + CRUD administrativo)
 - ✅ Geolocalização (geocodificação de endereço, busca por proximidade)
 - ✅ Chat/Conversas entre usuários (REST, sem WebSocket/tempo real)
-- ✅ **242 casos de teste automatizados** (27 arquivos) cobrindo os endpoints principais
+- ✅ **249 casos de teste automatizados** (28 arquivos) cobrindo os endpoints principais
 - ✅ Logging revisado — Prisma não loga mais SQL com dados de usuário; app não loga payloads fora de ambiente de desenvolvimento
 - ✅ Proteção LGPD — consentimento (+ reconsentimento de contas antigas), auditoria de acesso a dados de pacientes e de operações críticas (`GET /admin/logs-auditoria`), relatório de pacientes anonimizado (`GET /admin/relatorios/pacientes`), exportar/excluir meus dados (`GET`/`DELETE /users/me`), retenção do log de auditoria
 - ✅ Docker Compose para desenvolvimento
@@ -775,7 +775,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 ### 8.2 Métricas de Qualidade
 
 #### Cobertura de Testes
-- **Total de casos**: **242 testes automatizados** (27 arquivos) — todos passando ✅
+- **Total de casos**: **249 testes automatizados** (28 arquivos) — todos passando ✅
 - **Adições mais recentes**: `agendamentos_cancelar.test.ts` (6 casos) e `agendamentos_remarcar.test.ts` (8 casos), v1.10.0
 - **Suítes unitárias**: `auth.schema.unit`, `hash.unit`, `jwt.unit` — 39 casos
 - **Frontend**: Testes manuais (fluxo completo verificado) + `cadastroValidation.test.cjs`/`avaliacoesPerfil.test.cjs` (Node `--test`); sem suíte automatizada própria para as telas
@@ -1226,6 +1226,23 @@ O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 ---
 
 ## 14. Changelog
+
+### v1.12.0 — 01 de Novembro de 2026
+
+#### 🟢 Implementado
+
+**Botão "Avaliar" em consultas concluídas (mais uma correção de escopo — mesmo card mirando `AgendamentosScreen.tsx` morta dos dois itens anteriores):**
+- Implementado em `MinhasConsultasScreen.tsx`
+- **Gap de schema encontrado na revisão, antes de implementar**: `Avaliacao` não tinha nenhuma relação com `Agendamento` (só `usuarioId` + `profissionalId`), o que tornava "agendamentos já avaliados não exibem o botão" impossível de cumprir por consulta específica — só dava para saber se o paciente já avaliou aquele médico alguma vez, não qual consulta. `AvaliacaoScreen.tsx` já recebia `agendamentoId` por parâmetro de navegação (vindo de `PagamentoScreen`) mas descartava o valor sem enviá-lo à API, sinal de que o vínculo foi planejado e nunca finalizado
+- Migração adicionando `agendamentoId String? @unique` em `Avaliacao` (+ relação reversa em `Agendamento`)
+- `POST /api/avaliacoes` passa a aceitar `agendamentoId` opcional, validando dono (`403`), profissional correspondente (`400`), status `concluido` (`422`) e ausência de avaliação prévia para aquele agendamento (`409`)
+- `GET /api/agendamentos` retorna `avaliado: boolean`; `MinhasConsultasScreen` exibe o botão "Avaliar" só quando aplicável
+
+**Verificação:** 7 novos casos de teste (`avaliacoes_agendamento.test.ts`); suíte de backend 242 → 249 casos (27 → 28 arquivos). Verificado end-to-end no app rodando: avaliação criada via API vinculada ao `agendamentoId` correto, botão "Avaliar" desaparece da lista após recarregar.
+
+Ver `KANBAN_MELHORIAS.md` v1.15.0 para o detalhamento completo.
+
+---
 
 ### v1.11.0 — 01 de Novembro de 2026
 

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const criarAvaliacaoSchema = z.object({
   profissionalId: z.string().min(1, "profissionalId é obrigatório"),
+  agendamentoId: z.string().min(1).optional(),
   nota: z.number().int().min(1, "nota deve ser entre 1 e 5").max(5, "nota deve ser entre 1 e 5"),
   comentario: z.string().optional(),
 });

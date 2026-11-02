@@ -5,11 +5,29 @@ import logger from "../utils/logger";
 class AvaliacoesController {
   async criar(req: Request, res: Response) {
     try {
-      const { profissionalId, nota, comentario } = req.body;
+      const { profissionalId, agendamentoId, nota, comentario } = req.body;
       const usuarioId = (req as any).user?.id;
       if (!usuarioId) return res.status(401).json({ error: "Usuário não autenticado" });
 
-      const avaliacao = await prisma.avaliacao.create({ data: { usuarioId, profissionalId, nota, comentario } });
+      if (agendamentoId) {
+        const agendamento = await prisma.agendamento.findUnique({ where: { id: agendamentoId } });
+        if (!agendamento) return res.status(404).json({ error: "Agendamento não encontrado" });
+        if (agendamento.usuarioId !== usuarioId) {
+          return res.status(403).json({ error: "Você não tem permissão para avaliar este agendamento" });
+        }
+        if (agendamento.profissionalId !== profissionalId) {
+          return res.status(400).json({ error: "O agendamento não pertence ao profissional informado" });
+        }
+        if (agendamento.status !== "concluido") {
+          return res.status(422).json({ error: "Só é possível avaliar consultas já realizadas" });
+        }
+        const avaliacaoExistente = await prisma.avaliacao.findUnique({ where: { agendamentoId } });
+        if (avaliacaoExistente) {
+          return res.status(409).json({ error: "Este agendamento já foi avaliado" });
+        }
+      }
+
+      const avaliacao = await prisma.avaliacao.create({ data: { usuarioId, profissionalId, agendamentoId: agendamentoId ?? null, nota, comentario } });
       logger.success(`Avaliação criada: ${avaliacao.id}`);
       return res.status(201).json(avaliacao);
     } catch (err) {

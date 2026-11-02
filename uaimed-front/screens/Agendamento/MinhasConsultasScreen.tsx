@@ -38,6 +38,7 @@ interface Consulta {
   valor?: number | null;
   pixKey?: string | null;
   pagamento?: { status: string; valorFinal: number; metodo: string } | null;
+  avaliado?: boolean;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
@@ -169,6 +170,19 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
     });
   };
 
+  // ── Avaliar consulta concluída ───────────────────────────────────────────────
+  const handleAvaliar = (item: Consulta) => {
+    if (!item.medicoId) {
+      showModal('Erro', 'Não foi possível identificar o profissional para avaliação.', { type: 'error' });
+      return;
+    }
+
+    navigation.navigate('Avaliacao', {
+      agendamentoId: item.id,
+      medicoId: item.medicoId,
+    });
+  };
+
   const agora = new Date();
 
   const filtradas = consultas.filter((c) => {
@@ -194,6 +208,7 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
 
     const pago = item.pagamento?.status === 'concluido';
     const podePagar = item.status !== 'cancelado' && !pago;
+    const podeAvaliar = item.status === 'concluido' && !item.avaliado;
 
     return (
       <View style={styles.card}>
@@ -247,7 +262,7 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
         )}
 
         {/* Ações */}
-        {(podeAgir || podePagar) && (
+        {(podeAgir || podePagar || podeAvaliar) && (
           <View style={styles.actionsRow}>
             {podeAgir && (
               <TouchableOpacity
@@ -287,6 +302,17 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
               >
                 <Ionicons name="card-outline" size={15} color="#4CAF50" />
                 <Text style={[styles.btnAcaoText, { color: '#4CAF50' }]}>Pagar agora</Text>
+              </TouchableOpacity>
+            )}
+
+            {podeAvaliar && (
+              <TouchableOpacity
+                style={[styles.btnAcao, styles.btnAvaliar]}
+                onPress={() => handleAvaliar(item)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="star-outline" size={15} color="#FFB800" />
+                <Text style={[styles.btnAcaoText, { color: '#B88600' }]}>Avaliar</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -511,6 +537,10 @@ const styles = StyleSheet.create({
   btnPagar: {
     borderColor: '#4CAF50',
     backgroundColor: '#F0FFF4',
+  },
+  btnAvaliar: {
+    borderColor: '#FFB800',
+    backgroundColor: '#FFFBEF',
   },
   btnAcaoText: { fontSize: 13, fontWeight: '700' },
 });

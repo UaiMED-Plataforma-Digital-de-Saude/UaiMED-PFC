@@ -109,7 +109,7 @@ class AgendamentosController {
 
       const agendamentos = await prisma.agendamento.findMany({
         where: { usuarioId: userId },
-        include: { profissional: { include: { usuario: true } }, pagamento: true },
+        include: { profissional: { include: { usuario: true } }, pagamento: true, avaliacao: { select: { id: true } } },
         orderBy: { dataHora: 'desc' },
       });
 
@@ -130,6 +130,7 @@ class AgendamentosController {
         pagamento: a.pagamento
           ? { status: a.pagamento.status, valorFinal: a.pagamento.valorFinal, metodo: a.pagamento.metodo }
           : null,
+        avaliado: !!a.avaliacao,
       }));
 
       return res.json(mapped);
