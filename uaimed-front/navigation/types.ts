@@ -40,6 +40,8 @@ export type AgendamentoStackParamList = {
     query?: string;
     cidade?: string;
     estado?: string;
+    precoMin?: number;
+    precoMax?: number;
   };
   DetalhesMedico?: { medicoId: string; amount?: number; pixKey?: string; nomeProfissional?: string };
   ClinicaPerfil?: { clinicaId: string; nomeClinica?: string };

@@ -8,7 +8,7 @@ import uaiMedApi from '../../api/uaiMedApi';
 type Props = StackScreenProps<AgendamentoStackParamList, 'Resultados'>;
 
 const ResultadosScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { query, especialidade, cidade, estado } = route.params ?? {};
+  const { query, especialidade, cidade, estado, precoMin, precoMax } = route.params ?? {};
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<any[]>([]);
   const [iniciandoConversaId, setIniciandoConversaId] = useState<string | null>(null);
@@ -51,11 +51,13 @@ const ResultadosScreen: React.FC<Props> = ({ route, navigation }) => {
     const fetchResults = async () => {
       setLoading(true);
       try {
-        const params: Record<string, string> = {};
+        const params: Record<string, string | number> = {};
         if (query) params.query = query;
         if (especialidade) params.especialidade = especialidade;
         if (estado) params.estado = estado;
         if (cidade) params.cidade = cidade;
+        if (precoMin !== undefined) params.precoMin = precoMin;
+        if (precoMax !== undefined) params.precoMax = precoMax;
 
         const res = await uaiMedApi.get('/medicos', { params });
         setResults(res.data);
@@ -68,7 +70,7 @@ const ResultadosScreen: React.FC<Props> = ({ route, navigation }) => {
     };
 
     fetchResults();
-  }, [query, especialidade, cidade, estado]);
+  }, [query, especialidade, cidade, estado, precoMin, precoMax]);
 
   const renderItem = ({ item }: any) => (
     <TouchableOpacity

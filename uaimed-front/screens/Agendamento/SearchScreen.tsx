@@ -33,12 +33,25 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation }) => {
 
   const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
 
-  const buildParams = () => ({
-    ...(location.uf ? { estado: location.uf } : {}),
-    ...(location.cidade ? { cidade: location.cidade } : {}),
-    ...(selectedSpecialty ? { especialidade: selectedSpecialty } : {}),
-    ...(searchQuery.trim() ? { query: searchQuery.trim() } : {}),
-  });
+  const PRICE_RANGES: { id: string; label: string; precoMin?: number; precoMax?: number }[] = [
+    { id: 'any', label: 'Qualquer valor' },
+    { id: 'low', label: 'Até R$ 150', precoMax: 150 },
+    { id: 'mid', label: 'R$ 150 a 300', precoMin: 150, precoMax: 300 },
+    { id: 'high', label: 'Acima de R$ 300', precoMin: 300 },
+  ];
+  const [selectedPriceRange, setSelectedPriceRange] = useState('any');
+
+  const buildParams = () => {
+    const priceRange = PRICE_RANGES.find(r => r.id === selectedPriceRange);
+    return {
+      ...(location.uf ? { estado: location.uf } : {}),
+      ...(location.cidade ? { cidade: location.cidade } : {}),
+      ...(selectedSpecialty ? { especialidade: selectedSpecialty } : {}),
+      ...(searchQuery.trim() ? { query: searchQuery.trim() } : {}),
+      ...(priceRange?.precoMin !== undefined ? { precoMin: priceRange.precoMin } : {}),
+      ...(priceRange?.precoMax !== undefined ? { precoMax: priceRange.precoMax } : {}),
+    };
+  };
 
   const handleFinalSearch = () => {
     navigation.navigate('Resultados', buildParams());
@@ -99,6 +112,26 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation }) => {
             color={hasLocation ? '#2E7D32' : '#999'}
           />
         </TouchableOpacity>
+
+        {/* 3.5 Faixa de preço */}
+        <Text style={styles.inputLabel}>Valor da consulta</Text>
+        <View style={styles.priceRow}>
+          {PRICE_RANGES.map((range) => {
+            const active = selectedPriceRange === range.id;
+            return (
+              <TouchableOpacity
+                key={range.id}
+                style={[styles.priceChip, active && styles.priceChipActive]}
+                onPress={() => setSelectedPriceRange(range.id)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.priceChipText, active && styles.priceChipTextActive]}>
+                  {range.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
 
         {/* 4. Botão Buscar */}
         <TouchableOpacity
@@ -203,6 +236,32 @@ const styles = StyleSheet.create({
   locationTextActive: {
     color: '#2E7D32',
     fontWeight: '600',
+  },
+  priceRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  priceChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F7F7F7',
+    borderWidth: 1,
+    borderColor: '#EEE',
+  },
+  priceChipActive: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#A5D6A7',
+  },
+  priceChipText: {
+    fontSize: 13,
+    color: '#555',
+    fontWeight: '600',
+  },
+  priceChipTextActive: {
+    color: '#2E7D32',
   },
   searchActionButton: {
     flexDirection: 'row',

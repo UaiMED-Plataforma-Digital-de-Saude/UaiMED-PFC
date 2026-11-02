@@ -52,7 +52,8 @@ O formulário limita a digitação/colagem dos campos e filtra caracteres não n
 
 ## Busca de profissionais
 
-- `GET /api/medicos` aceita `query` (nome), `especialidade`, `cidade`, `estado`, e paginação via `skip`/`take` (`take` máx. 100, padrão 50). Cada item retorna também `notaMedia`/`totalAvaliacoes` (agregados via `avaliacao.groupBy`, sem N+1) e `precoConsulta`. A resposta continua um array — o total de resultados (ignorando `skip`/`take`) vai no header `X-Total-Count`, para preservar o contrato existente dos consumidores atuais.
+- `GET /api/medicos` aceita `query` (nome), `especialidade`, `cidade`, `estado`, `precoMin`/`precoMax` (faixa de `precoConsulta`), e paginação via `skip`/`take` (`take` máx. 100, padrão 50). Cada item retorna também `notaMedia`/`totalAvaliacoes` (agregados via `avaliacao.groupBy`, sem N+1) e `precoConsulta`. A resposta continua um array — o total de resultados (ignorando `skip`/`take`) vai no header `X-Total-Count`, para preservar o contrato existente dos consumidores atuais.
+- Não há filtro por "plano de saúde aceito": o modelo `Profissional` não tem nenhum campo de convênio — ver `KANBAN_MELHORIAS.md` (Backlog) para o que falta ser desenhado.
 
 ## Perfil profissional — CRM e avaliações
 

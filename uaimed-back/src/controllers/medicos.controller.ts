@@ -52,12 +52,16 @@ class MedicosController {
       };
       const skip = Number(req.query.skip) || 0;
       const take = Math.min(Number(req.query.take) || 50, 100);
+      const precoMin = req.query.precoMin !== undefined ? Number(req.query.precoMin) : undefined;
+      const precoMax = req.query.precoMax !== undefined ? Number(req.query.precoMax) : undefined;
 
       const where: any = {};
       if (especialidade) where.especialidade = { contains: especialidade, mode: 'insensitive' };
       if (estado)        where.estado        = { contains: estado,        mode: 'insensitive' };
       if (cidade)        where.cidade        = { contains: cidade,        mode: 'insensitive' };
       if (query)         where.usuario       = { nome: { contains: query, mode: 'insensitive' } };
+      if (precoMin !== undefined && !Number.isNaN(precoMin)) where.precoConsulta = { ...where.precoConsulta, gte: precoMin };
+      if (precoMax !== undefined && !Number.isNaN(precoMax)) where.precoConsulta = { ...where.precoConsulta, lte: precoMax };
 
       const [profs, total] = await Promise.all([
         prisma.profissional.findMany({ where, include: { usuario: true }, skip, take }),

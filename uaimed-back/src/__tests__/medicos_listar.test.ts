@@ -46,6 +46,7 @@ describe('GET /medicos — avaliação média e paginação', () => {
         cidade: 'BH',
         estado: 'MG',
         cep: '30000-000',
+        precoConsulta: 100,
       },
     });
     profUsuarioB = await prisma.usuario.create({
@@ -68,6 +69,7 @@ describe('GET /medicos — avaliação média e paginação', () => {
         cidade: 'BH',
         estado: 'MG',
         cep: '30100-000',
+        precoConsulta: 300,
       },
     });
 
@@ -108,5 +110,13 @@ describe('GET /medicos — avaliação média e paginação', () => {
     const res = await request(app).get('/api/medicos').query({ especialidade: 'Lista Geral', take: 9999 });
     expect(res.status).toBe(200);
     expect(res.body.length).toBeLessThanOrEqual(100);
+  });
+
+  it('filtra por faixa de preço (precoMin/precoMax)', async () => {
+    const res = await request(app).get('/api/medicos').query({ especialidade: 'Lista Geral', precoMin: 200, precoMax: 350 });
+    expect(res.status).toBe(200);
+    const ids = res.body.map((p: any) => p.id);
+    expect(ids).toContain(profissionalB.id);
+    expect(ids).not.toContain(profissionalA.id);
   });
 });

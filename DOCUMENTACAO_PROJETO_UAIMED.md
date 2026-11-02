@@ -1,6 +1,6 @@
 # 📘 Documentação Completa do Projeto UaiMED
 
-**Versão**: 1.13.0  
+**Versão**: 1.14.0  
 **Data**: 01 de Novembro de 2026  
 **Classificação**: Documentação Técnica de Engenharia de Software  
 **Status**: Projeto em Desenvolvimento Avançado — Seção de Avaliação do Projeto (percurso, decisões técnicas, desafios, resultados e perspectivas) revisada com base no histórico real do Git (135 commits, 63 PRs, Fev–Out/2026)
@@ -236,7 +236,7 @@ Plataforma mobile-first que:
 
 #### RNF05 - Manutenibilidade
 - **RNF05.1**: Padrões TypeScript ✅
-- **RNF05.2**: Cobertura de testes ≥ 252 casos automatizados (29 arquivos) ✅
+- **RNF05.2**: Cobertura de testes ≥ 253 casos automatizados (29 arquivos) ✅
 - **RNF05.3**: Documentação completa ✅
 
 ---
@@ -728,7 +728,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ Artigos de saúde (leitura pública + CRUD administrativo)
 - ✅ Geolocalização (geocodificação de endereço, busca por proximidade)
 - ✅ Chat/Conversas entre usuários (REST, sem WebSocket/tempo real)
-- ✅ **252 casos de teste automatizados** (29 arquivos) cobrindo os endpoints principais
+- ✅ **253 casos de teste automatizados** (29 arquivos) cobrindo os endpoints principais
 - ✅ Logging revisado — Prisma não loga mais SQL com dados de usuário; app não loga payloads fora de ambiente de desenvolvimento
 - ✅ Proteção LGPD — consentimento (+ reconsentimento de contas antigas), auditoria de acesso a dados de pacientes e de operações críticas (`GET /admin/logs-auditoria`), relatório de pacientes anonimizado (`GET /admin/relatorios/pacientes`), exportar/excluir meus dados (`GET`/`DELETE /users/me`), retenção do log de auditoria
 - ✅ Docker Compose para desenvolvimento
@@ -757,6 +757,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ **Status de pagamento visível na lista de consultas**: `GET /agendamentos` retorna `pagamento`/`valor`/`pixKey`; `MinhasConsultasScreen` exibe badge Pago/Não pago e botão "Pagar agora" (v1.14.0 do Kanban)
 - ✅ **Botão "Avaliar" em consultas concluídas**: `Avaliacao` vinculada a um `agendamentoId` específico; `MinhasConsultasScreen` exibe o botão só quando aplicável (v1.15.0 do Kanban)
 - ✅ **`ResultadosScreen` com busca real na API**: já consumia `GET /medicos` com filtros reais; adicionada nota média, preço da consulta e `amount` na navegação, mais paginação (`skip`/`take`) e agregação de avaliação no backend (v1.16.0 do Kanban)
+- ✅ **`SearchScreen` com filtros funcionais**: já buscava por nome/especialidade/cidade; adicionado filtro de faixa de preço (chips + `precoMin`/`precoMax` em `GET /medicos`). Filtro de plano de saúde aceito movido para o Backlog — não há esse conceito no modelo de dados hoje (v1.17.0 do Kanban)
 
 #### ⚠️ Em Desenvolvimento
 
@@ -776,7 +777,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 ### 8.2 Métricas de Qualidade
 
 #### Cobertura de Testes
-- **Total de casos**: **252 testes automatizados** (29 arquivos) — todos passando ✅
+- **Total de casos**: **253 testes automatizados** (29 arquivos) — todos passando ✅
 - **Adições mais recentes**: `agendamentos_cancelar.test.ts` (6 casos) e `agendamentos_remarcar.test.ts` (8 casos), v1.10.0
 - **Suítes unitárias**: `auth.schema.unit`, `hash.unit`, `jwt.unit` — 39 casos
 - **Frontend**: Testes manuais (fluxo completo verificado) + `cadastroValidation.test.cjs`/`avaliacoesPerfil.test.cjs` (Node `--test`); sem suíte automatizada própria para as telas
@@ -1227,6 +1228,21 @@ O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 ---
 
 ## 14. Changelog
+
+### v1.14.0 — 01 de Novembro de 2026
+
+#### 🟢 Implementado
+
+**`SearchScreen` — filtro de faixa de preço (card mais uma vez desatualizado):**
+- A descrição dizia que `SearchScreen` não tinha integração real com a API — também não era verdade: já buscava por nome/especialidade, já tinha filtro de cidade/estado e já navegava para `Resultados` com parâmetros reais
+- Único filtro genuinamente ausente do critério de aceite: faixa de preço — implementado agora (`precoMin`/`precoMax` em `GET /medicos`, chips de faixa em `SearchScreen`)
+- **"Plano de saúde aceito" não implementado**: não existe esse conceito no modelo `Profissional` — o único campo relacionado é um desconto genérico de 15% que o paciente ativa no pagamento, sem relação com convênios específicos por médico. Implementar de verdade exigiria um modelo de dados novo (catálogo de convênios, relação N:N, fluxo de cadastro pelo médico). Movido para item próprio no Backlog em vez de construir um filtro decorativo sem dado real
+
+**Verificação:** 1 novo caso de teste; suíte de backend 252 → 253 casos (mesmos 29 arquivos). Verificado end-to-end no app rodando: filtro "Acima de R$300" corretamente zera os resultados no dataset atual.
+
+Ver `KANBAN_MELHORIAS.md` v1.17.0 para o detalhamento completo.
+
+---
 
 ### v1.13.0 — 01 de Novembro de 2026
 

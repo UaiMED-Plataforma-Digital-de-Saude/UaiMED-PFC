@@ -1,6 +1,6 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.16.0  
+**Versão**: 1.17.0  
 **Data**: 01 de Novembro de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
@@ -460,6 +460,26 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 
 ---
 
+### ✅ [FEATURE] `SearchScreen` — busca real com filtros funcionais
+**Área**: Frontend + Backend | **Prioridade**: 🟡 Médio | **Esforço**: 3
+
+**Descrição original**: dizia que `SearchScreen` não tinha integração real com a API.
+
+**Correção de escopo (revisão antes de implementar)**: também desatualizada — `SearchScreen.tsx` já buscava por nome (`query`) e especialidade (dropdown), já tinha filtro de cidade/estado (`LocationModal`) e já navegava para `Resultados` com os parâmetros reais. O único filtro do critério de aceite genuinamente ausente era faixa de preço — implementado agora. **"Plano de saúde aceito" não foi implementado**: não existe nenhum campo relacionado a convênios/planos de saúde no modelo `Profissional` (o único conceito próximo no sistema é o desconto genérico de 15% que o paciente escolhe ativar no pagamento, não uma lista de convênios aceitos por médico) — implementar esse filtro de verdade exige desenhar um modelo de dados novo, não só adicionar um dropdown; movido para o Backlog como item próprio em vez de construir um filtro sem dado real por trás.
+
+**Resolução**: `GET /medicos` aceita `precoMin`/`precoMax`. `SearchScreen` ganhou chips de faixa de preço ("Até R$150", "R$150 a 300", "Acima de R$300"), incluídos em `buildParams()` (usado tanto pela busca quanto pelos chips de especialidade rápida). `ResultadosScreen` repassa os novos parâmetros para a API.
+
+**Critério de aceite**:
+- [x] Campo de busca por especialidade ou nome do médico
+- [x] Filtro de cidade
+- [x] Filtro de faixa de preço
+- [ ] Filtro de plano de saúde aceito — **movido para o Backlog**, requer modelo de dados novo
+- [x] Ao pesquisar, navega para `Resultados` com os parâmetros
+- [x] 1 novo caso de teste (`medicos_listar.test.ts`, filtro de preço)
+- [x] Verificado end-to-end no app rodando: filtro "Acima de R$300" corretamente retorna zero resultados no dataset atual
+
+---
+
 ## 🔵 A FAZER — Próxima Sprint
 
 > Itens refinados e prontos para desenvolvimento.
@@ -493,15 +513,6 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 
 ---
 
-### 🎯 [FEATURE] `SearchScreen` — busca real com filtros funcionais
-- **Área**: Frontend
-- **Prioridade**: 🟡 Médio
-- **Esforço**: 3
-- **Descrição**: `SearchScreen` é a entrada do fluxo de agendamento mas não possui integração real com a API.
-- **Critério de aceite**:
-  - [ ] Campo de busca por especialidade ou nome do médico
-  - [ ] Filtros: cidade, plano de saúde aceito, faixa de preço
-  - [ ] Ao pesquisar, navega para `Resultados` com os parâmetros
 
 ---
 
@@ -540,6 +551,23 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 - **Esforço**: 8
 - **Descrição**: `expo-notifications` não suporta push remoto no Expo Go SDK 53+. Para push funcionar é necessário gerar um **development build** com `npx expo run:android`. Requer configuração do Expo Push Service ou Firebase Cloud Messaging (FCM).
 - **Dependência**: Geração do APK/build de desenvolvimento
+
+---
+
+### 📌 [FEATURE] Filtro de busca por plano de saúde aceito
+- **Área**: Backend + Frontend
+- **Prioridade**: 🟡 Médio
+- **Esforço**: 5
+- **Descrição**: Levantado ao revisar o card "SearchScreen — busca real com filtros funcionais" (01/11/2026): o modelo `Profissional` não tem nenhum campo relacionado a convênios/planos de saúde aceitos. O único conceito próximo hoje é um desconto genérico de 15% que o paciente escolhe ativar em `PagamentoScreen` ("Plano de saúde"), sem relação com convênios específicos por médico. Implementar o filtro de verdade exige modelar isso — não é só adicionar um dropdown.
+- **Decisões de design em aberto**:
+  - Catálogo fixo de convênios (como `especialidade`) ou texto livre por profissional?
+  - Relação N:N (`Profissional` ↔ `Convenio`) ou lista de strings?
+  - Quem cadastra: o próprio médico no perfil, ou só admin?
+- **Critério de aceite** (a refinar):
+  - [ ] Modelo de dados para convênios aceitos por profissional
+  - [ ] Médico consegue selecionar/editar seus convênios no perfil
+  - [ ] `GET /medicos` aceita filtro por convênio
+  - [ ] `SearchScreen` exibe o filtro
 
 ---
 
@@ -621,12 +649,12 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 | 🟢 Concluído — Sprints Anteriores (até 10/04/2026) | 19 itens |
 | 🟢 Concluído — Mai–Out/2026 (consolidado) | 13 itens |
 | 🟢 Concluído — 30/10/2026 | 6 itens |
-| 🟢 Concluído — 01/11/2026 | 5 itens |
+| 🟢 Concluído — 01/11/2026 | 6 itens |
 | 🔴 Bug Conhecido | 0 itens |
-| 🔵 A Fazer (próxima sprint) | 5 itens |
-| 🗃️ Backlog | 6 itens |
+| 🔵 A Fazer (próxima sprint) | 4 itens |
+| 🗃️ Backlog | 7 itens |
 | ⏸️ Bloqueado | 2 itens |
-| **Total** | **56 itens** |
+| **Total** | **57 itens** |
 
 ---
 
@@ -667,6 +695,7 @@ Sprint entrega PFC
 | 01/11/2026 | 1.14.0 | Implementado "Status de pagamento visível no agendamento", com correção de escopo antes de codar: o card original mirava `AgendamentosScreen.tsx`, que é código morto (não usado por nenhum navigator, com um erro de sintaxe JSX real) — a feature foi implementada em `MinhasConsultasScreen.tsx`, a tela que o app de fato usa. Badge reduzido a 2 estados (Pago/Não pago) em vez dos 3 do card original, porque o fluxo real de pagamento nunca produz o status `"pendente"` do schema. **Bug colateral encontrado na verificação manual**: o seed usa status de pagamento (`"aprovado"`/`"pendente"`) que colidiam com a constraint única `agendamentoId` ao tentar pagar — `POST /pagamentos` derrubava com 500. Corrigido com `upsert` + guarda de `409` para pagamento já concluído. 4 novos casos de teste. |
 | 01/11/2026 | 1.15.0 | Implementado botão "Avaliar" em consultas concluídas (mais uma vez corrigindo o card para `MinhasConsultasScreen.tsx`, não `AgendamentosScreen.tsx`). **Gap de schema encontrado na revisão**: `Avaliacao` não tinha relação com `Agendamento`, tornando "agendamentos já avaliados não exibem o botão" impossível de cumprir por consulta específica — só dava pra saber se o paciente já avaliou aquele médico alguma vez. `AvaliacaoScreen.tsx` já recebia `agendamentoId` por navegação mas descartava o valor, sinal de que o campo foi planejado e nunca finalizado. Resolvido com migração `agendamentoId String? @unique` em `Avaliacao`; `POST /avaliacoes` valida dono/profissional/status/duplicidade; `GET /agendamentos` retorna `avaliado: boolean`. 7 novos casos de teste, verificado end-to-end (avaliação some da lista após ser enviada). |
 | 01/11/2026 | 1.16.0 | Implementado "ResultadosScreen — exibir lista real de médicos da API", com correção de escopo: a descrição do card estava desatualizada, `ResultadosScreen.tsx` já consumia `GET /medicos` com filtros reais, sem dados simulados. O gap real era menor — faltava nota média/preço no card, `amount` na navegação para `DetalhesMedico`, e paginação/agregação de avaliação no backend. `GET /medicos` passa a aceitar `skip`/`take` e retorna `notaMedia`/`totalAvaliacoes` via `groupBy` (sem N+1), mantendo o contrato de resposta como array (total vai no header `X-Total-Count`, para não quebrar os 2 consumidores existentes). Decisão consciente de não construir UI de "carregar mais" agora — dataset tem ~10-14 profissionais, sem necessidade real hoje. 3 novos casos de teste, verificado end-to-end no app rodando. |
+| 01/11/2026 | 1.17.0 | Implementado "SearchScreen — busca real com filtros funcionais", mais uma vez com card desatualizado: a tela já buscava por nome/especialidade/cidade e já navegava para `Resultados` com parâmetros reais. Único gap genuíno era faixa de preço, agora implementado (`precoMin`/`precoMax` em `GET /medicos`, chips de faixa em `SearchScreen`). **Filtro de "plano de saúde aceito" não implementado**: não existe esse conceito no modelo `Profissional` hoje (só um desconto genérico de 15% escolhido pelo paciente no pagamento, sem relação com convênios específicos) — implementar de verdade exige desenhar um modelo de dados novo; movido para item próprio no Backlog em vez de construir um filtro decorativo sem dado real por trás. 1 novo caso de teste, verificado end-to-end. |
 
 ---
 
