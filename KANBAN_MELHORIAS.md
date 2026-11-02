@@ -1,6 +1,6 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.15.0  
+**Versão**: 1.16.0  
 **Data**: 01 de Novembro de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
@@ -439,6 +439,27 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 
 ---
 
+### ✅ [FEATURE] `ResultadosScreen` — exibir lista real de médicos da API
+**Área**: Frontend + Backend | **Prioridade**: 🟠 Alto | **Esforço**: 5
+
+**Descrição original**: dizia que `ResultadosScreen` não consumia a API real.
+
+**Correção de escopo (revisão antes de implementar)**: a descrição estava desatualizada — `ResultadosScreen.tsx` **já** chamava `GET /medicos` com os filtros reais (`query`/`especialidade`/`cidade`/`estado`), sem dados simulados. O que realmente faltava, comparado ao critério de aceite, era bem menor: o card não exibia avaliação média nem valor da consulta (apesar de `precoConsulta` já vir na resposta da API), a navegação para `DetalhesMedico` não passava `amount`, e `GET /medicos` não tinha paginação nem média de avaliação agregada.
+
+**Resolução**:
+- Backend: `GET /medicos` passa a aceitar `skip`/`take` (teto 100) e retorna `notaMedia`/`totalAvaliacoes` por profissional via uma única query agregada (`avaliacao.groupBy`, evita N+1). **Contrato preservado**: a resposta continua um array (não foi envelopada em `{ data, total }`) para não quebrar os 2 consumidores existentes (`ResultadosScreen` e os testes `destaques.test.ts`/`medicos_agendamentos.test.ts`) — o total vai no header `X-Total-Count`
+- Frontend: card de `ResultadosScreen` exibe nota média (ou "Sem avaliações") e preço; navegação para `DetalhesMedico` agora inclui `amount`
+- **Não implementado**: UI de "carregar mais"/paginação visual no front — com ~10-14 profissionais cadastrados hoje, não há necessidade real, e construir isso exigiria decisões de design (scroll infinito vs. botão vs. páginas) não pedidas explicitamente; o backend já suporta `skip`/`take` para quando for necessário
+
+**Critério de aceite**:
+- [x] `GET /medicos?especialidade=xxx&nome=yyy` com paginação (`skip`/`take`, total no header)
+- [x] Card do médico exibe nome, especialidade, avaliação média e valor da consulta
+- [x] Navegar para `DetalhesMedico` passando `medicoId` e `amount`
+- [x] 3 novos casos de teste (`medicos_listar.test.ts`)
+- [x] Verificado end-to-end no app rodando: nota média e preço aparecem no card, `DetalhesMedico` carrega corretamente
+
+---
+
 ## 🔵 A FAZER — Próxima Sprint
 
 > Itens refinados e prontos para desenvolvimento.
@@ -469,18 +490,6 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
   - [ ] Tela `PagamentoScreen` exibe tela de sucesso dedicada (não apenas Alert) com resumo e botão de compartilhar comprovante
   - [ ] Comprovante gerado como PDF ou tela formatada (`receiptUrl`)
   - [ ] Status do pagamento atualizado no card de agendamento em `AgendamentosScreen`
-
----
-
-### 🎯 [FEATURE] `ResultadosScreen` — exibir lista real de médicos da API
-- **Área**: Frontend + Backend
-- **Prioridade**: 🟠 Alto
-- **Esforço**: 5
-- **Descrição**: Tela de resultados de busca não consome a API real. Deve chamar `GET /medicos` com filtros de especialidade e nome.
-- **Critério de aceite**:
-  - [ ] `GET /medicos?especialidade=xxx&nome=yyy` com paginação
-  - [ ] Card do médico exibe nome, especialidade, avaliação média e valor da consulta
-  - [ ] Navegar para `DetalhesMedico` passando `medicoId` e `amount`
 
 ---
 
@@ -612,9 +621,9 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 | 🟢 Concluído — Sprints Anteriores (até 10/04/2026) | 19 itens |
 | 🟢 Concluído — Mai–Out/2026 (consolidado) | 13 itens |
 | 🟢 Concluído — 30/10/2026 | 6 itens |
-| 🟢 Concluído — 01/11/2026 | 4 itens |
+| 🟢 Concluído — 01/11/2026 | 5 itens |
 | 🔴 Bug Conhecido | 0 itens |
-| 🔵 A Fazer (próxima sprint) | 6 itens |
+| 🔵 A Fazer (próxima sprint) | 5 itens |
 | 🗃️ Backlog | 6 itens |
 | ⏸️ Bloqueado | 2 itens |
 | **Total** | **56 itens** |
@@ -657,6 +666,7 @@ Sprint entrega PFC
 | 01/11/2026 | 1.13.0 | Corrigido o bug crítico de cancelamento documentado desde 13/10 (`PATCH /agendamentos/:id/cancelar` implementado, com validação de dono/status/antecedência de 24h no backend e não só no app). **Encontrado e corrigido no mesmo processo um segundo bug crítico, não documentado anteriormente**: "Remarcar" criava uma consulta nova sem cancelar a original, duplicando o agendamento e cobrando pagamento de novo — resolvido com `PATCH /agendamentos/:id/remarcar`, que atualiza a `dataHora` do mesmo registro. Ambos cobertos por teste de integração (14 casos novos) e verificados end-to-end no app rodando via driver headless `run-uaimed-front`. Coluna "Bug Conhecido" zerada. **Aproveitado para reconciliar `TESTES.md`**, que estava com a contagem desatualizada desde revisões anteriores (não só pelos 14 casos novos): suíte real auditada via `npm test` em 238/238 (26 arquivos), não os 155/169 citados em versões anteriores deste documento e do `DOCUMENTACAO_PROJETO_UAIMED.md`. |
 | 01/11/2026 | 1.14.0 | Implementado "Status de pagamento visível no agendamento", com correção de escopo antes de codar: o card original mirava `AgendamentosScreen.tsx`, que é código morto (não usado por nenhum navigator, com um erro de sintaxe JSX real) — a feature foi implementada em `MinhasConsultasScreen.tsx`, a tela que o app de fato usa. Badge reduzido a 2 estados (Pago/Não pago) em vez dos 3 do card original, porque o fluxo real de pagamento nunca produz o status `"pendente"` do schema. **Bug colateral encontrado na verificação manual**: o seed usa status de pagamento (`"aprovado"`/`"pendente"`) que colidiam com a constraint única `agendamentoId` ao tentar pagar — `POST /pagamentos` derrubava com 500. Corrigido com `upsert` + guarda de `409` para pagamento já concluído. 4 novos casos de teste. |
 | 01/11/2026 | 1.15.0 | Implementado botão "Avaliar" em consultas concluídas (mais uma vez corrigindo o card para `MinhasConsultasScreen.tsx`, não `AgendamentosScreen.tsx`). **Gap de schema encontrado na revisão**: `Avaliacao` não tinha relação com `Agendamento`, tornando "agendamentos já avaliados não exibem o botão" impossível de cumprir por consulta específica — só dava pra saber se o paciente já avaliou aquele médico alguma vez. `AvaliacaoScreen.tsx` já recebia `agendamentoId` por navegação mas descartava o valor, sinal de que o campo foi planejado e nunca finalizado. Resolvido com migração `agendamentoId String? @unique` em `Avaliacao`; `POST /avaliacoes` valida dono/profissional/status/duplicidade; `GET /agendamentos` retorna `avaliado: boolean`. 7 novos casos de teste, verificado end-to-end (avaliação some da lista após ser enviada). |
+| 01/11/2026 | 1.16.0 | Implementado "ResultadosScreen — exibir lista real de médicos da API", com correção de escopo: a descrição do card estava desatualizada, `ResultadosScreen.tsx` já consumia `GET /medicos` com filtros reais, sem dados simulados. O gap real era menor — faltava nota média/preço no card, `amount` na navegação para `DetalhesMedico`, e paginação/agregação de avaliação no backend. `GET /medicos` passa a aceitar `skip`/`take` e retorna `notaMedia`/`totalAvaliacoes` via `groupBy` (sem N+1), mantendo o contrato de resposta como array (total vai no header `X-Total-Count`, para não quebrar os 2 consumidores existentes). Decisão consciente de não construir UI de "carregar mais" agora — dataset tem ~10-14 profissionais, sem necessidade real hoje. 3 novos casos de teste, verificado end-to-end no app rodando. |
 
 ---
 

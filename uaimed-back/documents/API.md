@@ -50,6 +50,10 @@ O formulário limita a digitação/colagem dos campos e filtra caracteres não n
 - `GET /api/agendamentos` também retorna `avaliado: boolean` (se já existe uma `Avaliacao` vinculada àquele agendamento específico — não apenas ao profissional). No app, **Minhas Consultas** exibe um botão "Avaliar" em consultas `concluido` sem avaliação.
 - `POST /api/avaliacoes` aceita `agendamentoId` opcional. Quando informado: `404` se o agendamento não existir, `403` se não pertencer ao usuário autenticado, `400` se `profissionalId` não corresponder ao profissional do agendamento, `422` se o agendamento não estiver `concluido`, `409` se esse agendamento já tiver sido avaliado (constraint única `agendamentoId` em `Avaliacao`). Sem `agendamentoId`, o comportamento antigo é preservado (avaliação solta, vinculada só ao profissional).
 
+## Busca de profissionais
+
+- `GET /api/medicos` aceita `query` (nome), `especialidade`, `cidade`, `estado`, e paginação via `skip`/`take` (`take` máx. 100, padrão 50). Cada item retorna também `notaMedia`/`totalAvaliacoes` (agregados via `avaliacao.groupBy`, sem N+1) e `precoConsulta`. A resposta continua um array — o total de resultados (ignorando `skip`/`take`) vai no header `X-Total-Count`, para preservar o contrato existente dos consumidores atuais.
+
 ## Perfil profissional — CRM e avaliações
 
 - `PUT /api/users/me` aceita `crm` para contas médicas autenticadas. O valor é aparado e convertido para maiúsculas, usa a mesma validação do cadastro (3 a 20 caracteres, pelo menos um número, letras/números/hífen/barra) e só altera o profissional associado ao usuário autenticado. CRM de outro profissional retorna `409`, inclusive quando muda apenas a capitalização. Atualização do nome/telefone e do CRM ocorre em uma transação; falhas não deixam esses dados parcialmente salvos. A resposta inclui `user.profissional: { id, crm }` quando o CRM foi informado, sem dados bancários. Pacientes/clínicas não podem enviar `crm` (`403`); conta médica sem perfil profissional recebe `404`.

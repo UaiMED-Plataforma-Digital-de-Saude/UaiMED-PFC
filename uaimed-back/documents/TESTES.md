@@ -1,6 +1,6 @@
 # 🧪 Estratégia e Documentação de Testes — UaiMED Backend
 
-**Versão**: 1.5.0  
+**Versão**: 1.6.0  
 **Data**: 01 de Novembro de 2026  
 **Framework**: Vitest 1.4 + Supertest 6.3  
 **Banco de Teste**: PostgreSQL (`uaimed_test`) — isolado do banco de desenvolvimento
@@ -29,7 +29,7 @@ O UaiMED adota uma estratégia de testes em camadas, priorizando **testes de int
 - **Isolamento**: cada suíte cria e limpa seus próprios dados por ID
 - **Repetibilidade**: UUIDs únicos garantem que testes paralelos não colidam
 - **Confiabilidade**: banco de teste isolado (`uaimed_test`) com schema migrado automaticamente via `globalSetup`
-- **Velocidade**: 249 casos (unitários + integração), em 28 arquivos, rodam em menos de 10 segundos no total (`Duration 9.45s` na última execução)
+- **Velocidade**: 252 casos (unitários + integração), em 29 arquivos, rodam em menos de 10 segundos no total (`Duration 9.47s` na última execução)
 
 ---
 
@@ -43,7 +43,7 @@ O UaiMED adota uma estratégia de testes em camadas, priorizando **testes de int
         └──────────────────┬──────────────────┘
                            │
         ┌──────────────────▼──────────────────┐
-        │      Integração (API)               │  ← Principal camada automatizada (156 casos, 25 arquivos)
+        │      Integração (API)               │  ← Principal camada automatizada (159 casos, 26 arquivos)
         │      Vitest + Supertest             │    Testa controllers, services e banco real
         └──────────────────┬──────────────────┘
                            │
@@ -414,6 +414,17 @@ Os testes de integração são a **camada principal** de validação automatizad
 
 ---
 
+### 3.26 `medicos_listar.test.ts`
+**Localização**: `src/__tests__/medicos_listar.test.ts`
+
+| # | Caso de Teste | Endpoint | Resultado Esperado |
+|---|---------------|----------|--------------------|
+| 1 | Retorna `notaMedia` e `totalAvaliacoes` agregados por profissional | `GET /api/medicos` | 200, valores corretos por profissional (`null`/0 quando sem avaliação) |
+| 2 | Respeita `skip`/`take` e expõe o total no header `X-Total-Count` | `GET /api/medicos` | 200, array paginado + header |
+| 3 | Limita `take` ao teto de 100 | `GET /api/medicos` | 200, array com no máximo 100 itens |
+
+---
+
 ## 4. Testes Unitários
 
 Os testes unitários validam lógica isolada **sem necessidade de banco de dados**. São rápidos, focados e não dependem do Docker ou do PostgreSQL.
@@ -617,7 +628,8 @@ npx vitest run --coverage
 | `agendamentos_remarcar.test.ts` | 8 | Integração | ✅ Passando |
 | `agendamentos_listar_pagamento.test.ts` | 2 | Integração | ✅ Passando |
 | `avaliacoes_agendamento.test.ts` | 7 | Integração | ✅ Passando |
-| **Subtotal** | **156** | | **✅ 156/156** |
+| `medicos_listar.test.ts` | 3 | Integração | ✅ Passando |
+| **Subtotal** | **159** | | **✅ 159/159** |
 
 #### Testes Unitários
 
@@ -634,10 +646,10 @@ npx vitest run --coverage
 
 | Tipo | Casos | Status |
 |------|-------|--------|
-| Integração (API) | 156 | ✅ |
+| Integração (API) | 159 | ✅ |
 | Unitários | 93 | ✅ |
 | E2E automatizado | 0 | ⚠️ Planejado |
-| **Total** | **249** | **✅ 249/249** (executado em 01/11/2026, `Duration 9.45s`) |
+| **Total** | **252** | **✅ 252/252** (executado em 01/11/2026, `Duration 9.47s`) |
 
 ### Endpoints Cobertos
 
@@ -740,7 +752,7 @@ hookTimeout: 30000,  // 30s para beforeAll/afterAll
 ---
 
 **Documento criado em**: 17 de Abril de 2026  
-**Última atualização**: 01 de Novembro de 2026 — contagem real re-auditada via `npm test` (não apenas somada a partir da versão anterior do documento, que já estava desatualizada em alguns pontos: `auth.schema.unit.test.ts` e `auth_signup_signin.test.ts` haviam crescido em revisões anteriores sem atualizar esta tabela, e `perfil_profissional.test.ts` nunca havia sido documentado). 155 → 249 casos, 23 → 28 arquivos no total ao longo da sessão de 01/11 (cancelamento/remarcação, status de pagamento e botão de avaliar agendamentos) — ver `KANBAN_MELHORIAS.md` v1.15.0.  
+**Última atualização**: 01 de Novembro de 2026 — contagem real re-auditada via `npm test` (não apenas somada a partir da versão anterior do documento, que já estava desatualizada em alguns pontos: `auth.schema.unit.test.ts` e `auth_signup_signin.test.ts` haviam crescido em revisões anteriores sem atualizar esta tabela, e `perfil_profissional.test.ts` nunca havia sido documentado). 155 → 252 casos, 23 → 29 arquivos no total ao longo da sessão de 01/11 (cancelamento/remarcação, status de pagamento, botão de avaliar agendamentos e busca real de médicos) — ver `KANBAN_MELHORIAS.md` v1.16.0.  
 **Autor**: Equipe de Desenvolvimento UaiMED  
 **Referência**: [`vitest.config.ts`](../vitest.config.ts) · [`src/__tests__/`](../src/__tests__/) · [`DOCUMENTACAO_PROJETO_UAIMED.md`](../../DOCUMENTACAO_PROJETO_UAIMED.md)
 

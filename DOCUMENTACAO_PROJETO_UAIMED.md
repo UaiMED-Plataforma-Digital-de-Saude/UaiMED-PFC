@@ -1,6 +1,6 @@
 # 📘 Documentação Completa do Projeto UaiMED
 
-**Versão**: 1.12.0  
+**Versão**: 1.13.0  
 **Data**: 01 de Novembro de 2026  
 **Classificação**: Documentação Técnica de Engenharia de Software  
 **Status**: Projeto em Desenvolvimento Avançado — Seção de Avaliação do Projeto (percurso, decisões técnicas, desafios, resultados e perspectivas) revisada com base no histórico real do Git (135 commits, 63 PRs, Fev–Out/2026)
@@ -236,7 +236,7 @@ Plataforma mobile-first que:
 
 #### RNF05 - Manutenibilidade
 - **RNF05.1**: Padrões TypeScript ✅
-- **RNF05.2**: Cobertura de testes ≥ 249 casos automatizados (28 arquivos) ✅
+- **RNF05.2**: Cobertura de testes ≥ 252 casos automatizados (29 arquivos) ✅
 - **RNF05.3**: Documentação completa ✅
 
 ---
@@ -728,7 +728,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ Artigos de saúde (leitura pública + CRUD administrativo)
 - ✅ Geolocalização (geocodificação de endereço, busca por proximidade)
 - ✅ Chat/Conversas entre usuários (REST, sem WebSocket/tempo real)
-- ✅ **249 casos de teste automatizados** (28 arquivos) cobrindo os endpoints principais
+- ✅ **252 casos de teste automatizados** (29 arquivos) cobrindo os endpoints principais
 - ✅ Logging revisado — Prisma não loga mais SQL com dados de usuário; app não loga payloads fora de ambiente de desenvolvimento
 - ✅ Proteção LGPD — consentimento (+ reconsentimento de contas antigas), auditoria de acesso a dados de pacientes e de operações críticas (`GET /admin/logs-auditoria`), relatório de pacientes anonimizado (`GET /admin/relatorios/pacientes`), exportar/excluir meus dados (`GET`/`DELETE /users/me`), retenção do log de auditoria
 - ✅ Docker Compose para desenvolvimento
@@ -755,13 +755,14 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ Filtro de localização (estado/município) na Home e na busca
 - ✅ **Cancelamento e remarcação de consulta**: `PATCH /agendamentos/:id/cancelar` e `/remarcar`, com regra de 24h de antecedência validada também no backend; remarcar atualiza a consulta existente em vez de duplicá-la (v1.13.0 do Kanban)
 - ✅ **Status de pagamento visível na lista de consultas**: `GET /agendamentos` retorna `pagamento`/`valor`/`pixKey`; `MinhasConsultasScreen` exibe badge Pago/Não pago e botão "Pagar agora" (v1.14.0 do Kanban)
+- ✅ **Botão "Avaliar" em consultas concluídas**: `Avaliacao` vinculada a um `agendamentoId` específico; `MinhasConsultasScreen` exibe o botão só quando aplicável (v1.15.0 do Kanban)
+- ✅ **`ResultadosScreen` com busca real na API**: já consumia `GET /medicos` com filtros reais; adicionada nota média, preço da consulta e `amount` na navegação, mais paginação (`skip`/`take`) e agregação de avaliação no backend (v1.16.0 do Kanban)
 
 #### ⚠️ Em Desenvolvimento
 
 - ⚠️ Notificações push remotas (requer development build — bloqueado pelo Expo Go SDK 53+)
 - ⚠️ E-mail real de recuperação de senha (backend Nodemailer)
 - ⚠️ E-mail de confirmação de agendamento e pagamento
-- ⚠️ `ResultadosScreen` com busca real na API
 - ⚠️ `HistoricoAvaliacoesScreen` com dados reais
 - ⚠️ Relatórios exportáveis de uso geral (já existe um caso específico: relatório de pacientes anonimizado, ver RNF02.3)
 
@@ -775,7 +776,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 ### 8.2 Métricas de Qualidade
 
 #### Cobertura de Testes
-- **Total de casos**: **249 testes automatizados** (28 arquivos) — todos passando ✅
+- **Total de casos**: **252 testes automatizados** (29 arquivos) — todos passando ✅
 - **Adições mais recentes**: `agendamentos_cancelar.test.ts` (6 casos) e `agendamentos_remarcar.test.ts` (8 casos), v1.10.0
 - **Suítes unitárias**: `auth.schema.unit`, `hash.unit`, `jwt.unit` — 39 casos
 - **Frontend**: Testes manuais (fluxo completo verificado) + `cadastroValidation.test.cjs`/`avaliacoesPerfil.test.cjs` (Node `--test`); sem suíte automatizada própria para as telas
@@ -1226,6 +1227,23 @@ O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 ---
 
 ## 14. Changelog
+
+### v1.13.0 — 01 de Novembro de 2026
+
+#### 🟢 Implementado
+
+**`ResultadosScreen` — busca real de médicos (correção de escopo antes de implementar):**
+- A descrição do card estava desatualizada: `ResultadosScreen.tsx` **já** consumia `GET /medicos` com filtros reais (`query`/`especialidade`/`cidade`/`estado`), sem dados simulados. O gap real era menor: card sem nota média/preço, navegação para `DetalhesMedico` sem `amount`, e backend sem paginação/agregação de avaliação
+- `GET /medicos` passa a aceitar `skip`/`take` (teto 100) e retorna `notaMedia`/`totalAvaliacoes` por profissional via `avaliacao.groupBy` (uma única query agregada, sem N+1)
+- **Contrato preservado**: a resposta continua um array — não foi envelopada em `{ data, total }` para não quebrar os 2 consumidores existentes (`ResultadosScreen` e os testes de `destaques`/`medicos_agendamentos`); o total de resultados vai no header `X-Total-Count`
+- Frontend: card exibe nota média (ou "Sem avaliações") e preço da consulta; navegação para `DetalhesMedico` agora inclui `amount`
+- **Decisão consciente de não implementar**: UI de "carregar mais"/paginação visual — com ~10-14 profissionais cadastrados hoje, não há necessidade real, e construir isso exigiria decisões de design não pedidas explicitamente
+
+**Verificação:** 3 novos casos de teste (`medicos_listar.test.ts`); suíte de backend 249 → 252 casos (28 → 29 arquivos). Verificado end-to-end no app rodando: nota média e preço aparecem corretamente no card, navegação para `DetalhesMedico` funciona sem erros.
+
+Ver `KANBAN_MELHORIAS.md` v1.16.0 para o detalhamento completo.
+
+---
 
 ### v1.12.0 — 01 de Novembro de 2026
 
