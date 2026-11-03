@@ -25,7 +25,7 @@ describe('geocoding.service — geocodeEndereco', () => {
   });
 
   it('monta a query com endereço, cidade, estado e "Brasil", com User-Agent identificável', async () => {
-    const fetchMock = vi.fn(() => jsonResponse([{ lat: '1', lon: '2' }]));
+    const fetchMock = vi.fn((_url: string, _init: RequestInit) => jsonResponse([{ lat: '1', lon: '2' }]));
     vi.stubGlobal('fetch', fetchMock);
 
     await geocodeEndereco(input);
