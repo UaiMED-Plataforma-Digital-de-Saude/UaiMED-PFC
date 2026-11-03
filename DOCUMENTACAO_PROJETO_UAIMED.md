@@ -1,7 +1,7 @@
 # 📘 Documentação Completa do Projeto UaiMED
 
-**Versão**: 1.15.0  
-**Data**: 01 de Novembro de 2026  
+**Versão**: 1.16.0  
+**Data**: 03 de Novembro de 2026  
 **Classificação**: Documentação Técnica de Engenharia de Software  
 **Status**: Projeto em Desenvolvimento Avançado — Seção de Avaliação do Projeto (percurso, decisões técnicas, desafios, resultados e perspectivas) revisada com base no histórico real do Git (135 commits, 63 PRs, Fev–Out/2026)
 
@@ -236,7 +236,7 @@ Plataforma mobile-first que:
 
 #### RNF05 - Manutenibilidade
 - **RNF05.1**: Padrões TypeScript ✅
-- **RNF05.2**: Cobertura de testes ≥ 256 casos automatizados (29 arquivos) ✅
+- **RNF05.2**: Cobertura de testes ≥ 275 casos automatizados (32 arquivos); cobertura de código medida em 03/11/2026 — 87.18% statements excluindo infraestrutura não testável (ver `uaimed-back/documents/TESTES.md`) ✅
 - **RNF05.3**: Documentação completa ✅
 
 ---
@@ -728,7 +728,8 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ Artigos de saúde (leitura pública + CRUD administrativo)
 - ✅ Geolocalização (geocodificação de endereço, busca por proximidade)
 - ✅ Chat/Conversas entre usuários (REST, sem WebSocket/tempo real)
-- ✅ **256 casos de teste automatizados** (29 arquivos) cobrindo os endpoints principais
+- ✅ **275 casos de teste automatizados** (32 arquivos) cobrindo os endpoints principais
+- ✅ Confirmação de agendamento por e-mail (Resend) e lembrete local 1h antes da consulta
 - ✅ Logging revisado — Prisma não loga mais SQL com dados de usuário; app não loga payloads fora de ambiente de desenvolvimento
 - ✅ Proteção LGPD — consentimento (+ reconsentimento de contas antigas), auditoria de acesso a dados de pacientes e de operações críticas (`GET /admin/logs-auditoria`), relatório de pacientes anonimizado (`GET /admin/relatorios/pacientes`), exportar/excluir meus dados (`GET`/`DELETE /users/me`), retenção do log de auditoria
 - ✅ Docker Compose para desenvolvimento
@@ -777,9 +778,10 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 ### 8.2 Métricas de Qualidade
 
 #### Cobertura de Testes
-- **Total de casos**: **256 testes automatizados** (29 arquivos) — todos passando ✅
-- **Adições mais recentes**: `agendamentos_cancelar.test.ts` (6 casos) e `agendamentos_remarcar.test.ts` (8 casos), v1.10.0
-- **Suítes unitárias**: `auth.schema.unit`, `hash.unit`, `jwt.unit` — 39 casos
+- **Total de casos**: **275 testes automatizados** (32 arquivos) — todos passando ✅
+- **Cobertura de código**: medida formalmente pela primeira vez em 03/11/2026 — 87.18% statements / 90.48% funções, excluindo infraestrutura não testável por desenho (seed, scripts, bootstrap) — ver `TESTES.md` seção 7
+- **Adições mais recentes**: `unit/email.unit.test.ts` (3 casos, confirmação por e-mail), `unit/geocoding.unit.test.ts` (6 casos), `especialidades.test.ts` (2 casos), `conta-bancaria.test.ts` ampliado (3→11 casos)
+- **Suítes unitárias**: `auth.schema.unit`, `hash.unit`, `jwt.unit`, `geocoding.unit`, `email.unit` — 102 casos
 - **Frontend**: Testes manuais (fluxo completo verificado) + `cadastroValidation.test.cjs`/`avaliacoesPerfil.test.cjs` (Node `--test`); sem suíte automatizada própria para as telas
 - **Detalhamento completo, suíte por suíte**: [`uaimed-back/documents/TESTES.md`](./uaimed-back/documents/TESTES.md) (fonte da verdade — mantido atualizado a cada sessão; os números aqui podem ficar defasados entre atualizações)
 
@@ -1186,7 +1188,7 @@ Ao todo, o percurso soma **135 commits e 63 pull requests** revisados e mesclado
 
 ### 13.4 Resultados Alcançados
 
-- Backend: API REST completa com autenticação JWT + refresh token, validação Zod em todos os endpoints, rate limiting contra brute-force, **32+ testes automatizados (100% passando)** e CI executando a cada push/PR.
+- Backend: API REST completa com autenticação JWT + refresh token, validação Zod em todos os endpoints, rate limiting contra brute-force, **275 testes automatizados (100% passando, ~87% de cobertura de código)** e CI executando a cada push/PR.
 - Frontend: fluxo ponta-a-ponta de agendamento, telas de clínicas, profissionais, artigos de saúde, chat, geolocalização, recuperação de senha, central de ajuda e, mais recentemente, dashboard do médico (contatos, preço/disponibilidade) e tela de administração.
 - **63 pull requests** mesclados ao longo de ~8 meses de desenvolvimento ativo (Fev–Out/2026).
 - Postura de segurança evoluiu de forma incremental: de um MVP funcional (Abril) para um backend com rate limiting, refresh token e validação completa (Setembro–Outubro).
@@ -1204,7 +1206,7 @@ Ao todo, o percurso soma **135 commits e 63 pull requests** revisados e mesclado
 O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 - ✅ Backend completo e funcional
 - ✅ Frontend mobile implementado e integrado
-- ✅ **32 testes automatizados** cobrindo os endpoints críticos — todos passando
+- ✅ **275 testes automatizados** cobrindo os endpoints críticos — todos passando, ~87% de cobertura de código
 - ✅ **Fluxo de agendamento ponta-a-ponta**: busca → calendário → horário → confirmação → pagamento → avaliação
 - ✅ CI/CD com GitHub Actions configurado
 - ✅ Banco de dados migrado e populado com dados reais
@@ -1228,6 +1230,28 @@ O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 ---
 
 ## 14. Changelog
+
+### v1.16.0 — 03 de Novembro de 2026
+
+#### 🟢 Implementado
+
+**Cobertura de código medida formalmente pela primeira vez, e os pontos fracos reais fechados:**
+- Instalado `@vitest/coverage-v8` (nenhum provider de cobertura existia até então). Resultado inicial: 71.4% statements / 82.07% funções em todos os arquivos (84.51%/86.14% excluindo infraestrutura não testável por desenho — seed, scripts, bootstrap do servidor)
+- Identificados 3 arquivos com cobertura genuinamente baixa (não ruído de infraestrutura): `especialidades.controller.ts` (endpoint sem nenhum teste), `conta-bancaria.controller.ts` (método `obter()` nunca testado) e `geocoding.service.ts` (função nunca chamada em nenhum teste, por depender de uma API externa real — resolvido mockando `fetch`). Todos levados a 100% statements / ≥81% branch
+- **Achado colateral**: a guarda `if (!query.trim()) return null` em `geocoding.service.ts` era código morto (a query sempre incluía o literal `"Brasil"`, nunca podia ficar vazia) — removida
+- **Achado adicional, investigando o fluxo de pagamento**: `PagamentosController.processar()` aceita `insuranceProvider`/`insuranceCoveragePercent` no corpo da requisição, mas nenhum caller real os envia — parâmetros mortos; mesmo que fossem enviados, não seriam persistidos (sem campo correspondente no model `Pagamento`). Registrado como gap no Backlog do Kanban
+
+**Confirmação de horário por notificação/e-mail** (fecha o último item 🔴 Crítico pendente no Kanban):
+- Backend: `email.service.ts` novo, integrado via Resend — envia e-mail HTML com logo ao paciente ("Consulta confirmada!") e ao médico ("Nova consulta agendada") na criação do agendamento, sem nunca bloquear a resposta da API se o envio falhar ou a chave não estiver configurada
+- Frontend: `utils/notificacoesConsulta.ts` novo — agenda notificação local 1h antes da consulta (criar/remarcar) e cancela ao cancelar
+- **Bug real corrigido no processo**: `App.tsx` pulava a solicitação de permissão de notificação inteira quando rodando no Expo Go, mas notificações *locais* (diferente de push remota) funcionam normalmente nele — sem a correção, o lembrete de 1h nunca apareceria em quem testa via Expo Go
+- Decisão de provedor (Resend) tomada em conjunto com o usuário antes de implementar, por não exigir configuração de SMTP
+
+**Verificação:** 9 novos casos de teste ao longo da sessão; suíte de backend 256 → 275 casos (29 → 32 arquivos). Verificado end-to-end no app rodando via driver headless contra o backend real com a chave do Resend de verdade: agendamento criado, e-mails efetivamente enviados ao paciente e ao médico (confirmado nos logs do container), zero erros de console.
+
+Ver `KANBAN_MELHORIAS.md` v1.19.0 → v1.22.0 e `uaimed-back/documents/TESTES.md` v1.11.0 para o detalhamento completo.
+
+---
 
 ### v1.15.0 — 01 de Novembro de 2026
 

@@ -17,6 +17,8 @@ const envSchema = z.object({
   REFRESH_TOKEN_EXPIRE_IN: z.string().default("30d"),
   BCRYPT_ROUNDS: z.string().optional().default("10"),
   FRONTEND_URL: z.string().optional().default("http://localhost:19000"),
+  // Opcional: sem a chave, o envio de e-mail é pulado (logado), não falha o fluxo.
+  RESEND_API_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.parse(process.env);
@@ -31,6 +33,7 @@ export const ENV = {
   REFRESH_TOKEN_EXPIRE_IN: parsed.REFRESH_TOKEN_EXPIRE_IN,
   BCRYPT_ROUNDS: Number(parsed.BCRYPT_ROUNDS),
   FRONTEND_URL: parsed.FRONTEND_URL,
+  RESEND_API_KEY: parsed.RESEND_API_KEY,
 };
 
 export default ENV;

@@ -25,8 +25,6 @@ export async function geocodeEndereco(input: EnderecoInput): Promise<Coordenadas
     .filter(Boolean)
     .join(", ");
 
-  if (!query.trim()) return null;
-
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), GEOCODING_TIMEOUT_MS);
 

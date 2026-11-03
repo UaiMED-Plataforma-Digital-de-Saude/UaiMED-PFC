@@ -40,17 +40,19 @@ const App: React.FC = () => {
         });
       }
 
-      // Push notifications remotas só funcionam em development build ou production
+      // Push notifications remotas só funcionam em development build ou production —
+      // mas a permissão abaixo também cobre notificações LOCAIS (ex.: lembrete de
+      // consulta), que funcionam mesmo no Expo Go. Por isso ela é sempre solicitada,
+      // independente de isExpoGo.
       if (isExpoGo) {
         console.info(
-          '[Notifications] Expo Go detectado — push notifications remotas desabilitadas.\n' +
-          'Use um development build para ativar notificações completas.\n' +
+          '[Notifications] Expo Go detectado — push notifications remotas desabilitadas ' +
+          '(notificações locais continuam funcionando normalmente).\n' +
+          'Use um development build para ativar push remota.\n' +
           'Saiba mais: https://docs.expo.dev/develop/development-builds/introduction/'
         );
-        return;
       }
 
-      // Em desenvolvimento ou produção, solicita permissão de push
       try {
         const { status } = await Notifications.requestPermissionsAsync();
         if (status !== 'granted') {

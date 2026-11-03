@@ -1,6 +1,6 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.20.0  
+**Versão**: 1.22.0  
 **Data**: 03 de Novembro de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
@@ -535,9 +535,9 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 - `conta-bancaria.controller.ts` → **93.75% / 81.8% branch** — `conta-bancaria.test.ts` ampliado de 3 para 11 casos: `obter()` como médico (dados do `Profissional`), como clínica e como paciente (dados do `Usuario`), `403` de usuário inválido em `atualizar()`, `404` de usuário inexistente em ambos os métodos, e `PUT` como médico (nunca testado antes)
 - `geocoding.service.ts` → **100% / 83.33% branch** — `unit/geocoding.unit.test.ts` (6 casos), mockando `fetch` global (`vi.stubGlobal`) para cobrir sucesso, resposta não-ok, sem resultados, coordenadas inválidas e exceção de rede sem depender da API real do Nominatim (OpenStreetMap)
 
-**Achados durante a escrita dos testes** (não corrigidos nesta sessão, só documentados):
-- Os blocos `catch`/500 de `conta-bancaria.controller.ts` continuam sem teste — exigiriam mockar o Prisma para forçar erro, padrão que o projeto não usa em nenhum outro controller
-- Em `geocoding.service.ts`, a guarda `if (!query.trim()) return null;` é **código morto**: a query sempre inclui o literal `"Brasil"` antes do `filter(Boolean)`, então nunca pode ficar vazia — o branch restante (83.33%, não 100%) é inalcançável por qualquer teste possível, não falta de cobertura
+**Achados durante a escrita dos testes**:
+- Os blocos `catch`/500 de `conta-bancaria.controller.ts` continuam sem teste — exigiriam mockar o Prisma para forçar erro, padrão que o projeto não usa em nenhum outro controller (não corrigido, só documentado)
+- Em `geocoding.service.ts`, a guarda `if (!query.trim()) return null;` era **código morto**: a query sempre inclui o literal `"Brasil"` antes do `filter(Boolean)`, então nunca podia ficar vazia. **Removida em 03/11/2026** — a função passou de 83.33% para 90.9% branch (100% statements/funções, mantidos). O branch restante (90.9%, não 100%) é um artefato de instrumentação do V8 para o bloco `finally` (conclusão abrupta da função), não uma lacuna de teste real.
 
 Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36% statements / 82.07% → 85.84% funções (86.83%/90.1% excluindo infraestrutura não testável). Detalhes em [`uaimed-back/documents/TESTES.md`](./uaimed-back/documents/TESTES.md#cobertura-de-código-vitest-run---coverage-provider-v8).
 
@@ -548,23 +548,33 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 
 ---
 
-## 🔵 A FAZER — Próxima Sprint
+### ✅ [FEATURE] Confirmação de horário por notificação/e-mail
+**Área**: Backend + Frontend | **Prioridade**: 🔴 Crítico | **Esforço**: 5
 
-> Itens refinados e prontos para desenvolvimento.
+**Descrição original**: após criar um agendamento (`POST /agendamentos`), o paciente e o médico não recebiam nenhuma confirmação formal — nem push notification, nem e-mail. O app apenas redirecionava para `ConfirmacaoScreen` localmente.
+
+**Decisão de provedor** (com o usuário, antes de codar): Resend, por não exigir configuração de SMTP. Chave gerada pelo usuário em resend.com e adicionada ao `.env` local (`RESEND_API_KEY`); remetente usa o sandbox `onboarding@resend.dev`, que não exige verificação de domínio.
+
+**Resolução**:
+- **Backend**: `src/services/email.service.ts` novo — monta um template HTML (com o logo do UaiMED embutido em base64, copiado para `src/assets/logo-email.png`) e envia, via Resend, um e-mail ao paciente ("Consulta confirmada!", com nome do médico/especialidade/data) e outro ao médico ("Nova consulta agendada", com nome e data do paciente). Integrado em `AgendamentosController.criar()` logo após a criação do agendamento (incluindo `usuario: { nome, email }` na consulta do `profissional`, que antes não vinha). **Nunca bloqueia a criação do agendamento**: sem `RESEND_API_KEY` configurada (ex.: ambiente de teste), apenas loga e pula; se o envio falhar, loga o erro e segue — a resposta `201` do `POST /agendamentos` não depende do e-mail.
+- **Frontend**: `utils/notificacoesConsulta.ts` novo — `agendarLembreteConsulta()` agenda uma notificação local (`expo-notifications`) para 1h antes da consulta, com `identifier` estável (`consulta-${agendamentoId}`) para permitir cancelar/reagendar; não agenda nada se a consulta já estiver a menos de 1h de distância. Conectado em `SelecaoHorariosDiaScreen.tsx` (ao criar e ao remarcar) e `cancelarLembreteConsulta()` em `MinhasConsultasScreen.tsx` (ao cancelar).
+- **Bug real encontrado e corrigido no processo**: `App.tsx` pulava `requestPermissionsAsync()` inteiramente quando rodando no Expo Go, pensando (pelo comentário no próprio código) que a permissão só servia para push remota — mas notificações *locais* (que funcionam normalmente no Expo Go, diferente de push remota) também dependem dessa mesma permissão. Sem a correção, o lembrete de 1h nunca apareceria para quem testa via Expo Go. Permissão agora é sempre solicitada; só o aviso informativo sobre push remota desabilitada continua condicionado a `isExpoGo`.
+- 3 novos casos de teste (`unit/email.unit.test.ts`), mockando o módulo `resend`: envio bem-sucedido com dados corretos para os dois destinatários, skip gracioso sem `RESEND_API_KEY`, resiliência a falha de envio (não lança nem bloqueia).
+
+**Verificado end-to-end no app rodando** (driver headless, `uaimed-front/.claude/skills/run-uaimed-front`, contra o backend real via `docker compose up -d` com a chave real do Resend no `.env`): login como paciente (`joao@example.com`) → busca por especialidade → seleção de médico → seleção de data/horário → confirmação → agendamento criado (`POST /agendamentos` retornou 201) → tela `ConfirmacaoScreen` exibida corretamente. **E-mails realmente enviados**, confirmado nos logs do container: `[email] Confirmação enviada para joao@example.com` e `[email] Confirmação enviada para carlos.mendes@uaimed.com`. Zero erros de console durante todo o fluxo.
+
+**Critério de aceite**:
+- [x] Backend dispara e-mail de confirmação para o paciente com data, hora e nome do médico
+- [x] Backend dispara e-mail para o médico com os dados do novo paciente (optou-se por e-mail em vez de push para o médico — push remota depende de development build, item já listado como Bloqueado neste Kanban)
+- [x] Template de e-mail HTML com logo do UaiMED
+- [x] Integração com serviço de e-mail (Resend)
+- [x] Notificação push local agendada para 1h antes da consulta
 
 ---
 
-### 🎯 [FEATURE] Confirmação de horário por notificação/e-mail
-- **Área**: Backend + Frontend
-- **Prioridade**: 🔴 Crítico
-- **Esforço**: 5
-- **Descrição**: Após criar um agendamento (`POST /agendamentos`), o paciente e o médico não recebem nenhuma confirmação formal — nem push notification, nem e-mail. O app apenas redireciona para `ConfirmacaoScreen` localmente.
-- **Critério de aceite**:
-  - [ ] Backend dispara e-mail de confirmação para o paciente com data, hora e nome do médico
-  - [ ] Backend dispara e-mail ou push para o médico com os dados do novo paciente
-  - [ ] Template de e-mail HTML com logo do UaiMED
-  - [ ] Integração com serviço de e-mail (ex: Nodemailer + Gmail SMTP ou Resend)
-  - [ ] Notificação push local agendada para 1h antes da consulta
+## 🔵 A FAZER — Próxima Sprint
+
+> Itens refinados e prontos para desenvolvimento.
 
 ---
 
@@ -627,6 +637,14 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
   - [ ] Médico consegue selecionar/editar seus convênios no perfil
   - [ ] `GET /medicos` aceita filtro por convênio
   - [ ] `SearchScreen` exibe o filtro
+
+**Achado adicional (03/11/2026)** — investigando o fluxo de pagamento do "Plano de saúde" (não é o filtro de busca acima, é um problema separado e menor no lado do pagamento):
+- `PagamentosController.processar()` (`uaimed-back/src/controllers/pagamentos.controller.ts:55`) desestrutura `insuranceProvider` e `insuranceCoveragePercent` do corpo da requisição, mas **nenhum caller real envia esses campos** — `PagamentoScreen.tsx` só envia `usingPlan: boolean` (toggle on/off). São parâmetros mortos no backend, provavelmente de uma versão mais detalhada do fluxo de convênio que nunca foi finalizada no front.
+- Mesmo que fossem enviados, `insuranceProvider` **não seria persistido** — o model `Pagamento` não tem nenhum campo para isso, só `cupom: String?`.
+- O desconto do plano (`planDiscount`, 15% fixo hoje) é somado dentro de `valorFinal` mas **nunca salvo separadamente** — depois de processado, não há como auditar quanto do desconto total veio do cupom e quanto veio do plano de saúde.
+- **Critério de aceite** (a refinar, item separado do filtro de busca):
+  - [ ] Remover `insuranceProvider`/`insuranceCoveragePercent` do controller (dead params) **ou** implementar de fato o envio pelo front, decidindo primeiro o modelo de convênio acima
+  - [ ] Persistir o desconto do plano de saúde separado do desconto de cupom, para fins de auditoria/relatório financeiro
 
 ---
 
@@ -699,9 +717,9 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 | 🟢 Concluído — Mai–Out/2026 (consolidado) | 13 itens |
 | 🟢 Concluído — 30/10/2026 | 6 itens |
 | 🟢 Concluído — 01/11/2026 | 7 itens |
-| 🟢 Concluído — 03/11/2026 | 2 itens |
+| 🟢 Concluído — 03/11/2026 | 3 itens |
 | 🔴 Bug Conhecido | 0 itens |
-| 🔵 A Fazer (próxima sprint) | 3 itens |
+| 🔵 A Fazer (próxima sprint) | 2 itens |
 | 🗃️ Backlog | 6 itens |
 | ⏸️ Bloqueado | 2 itens |
 | **Total** | **58 itens** |
@@ -749,6 +767,8 @@ Sprint entrega PFC
 | 01/11/2026 | 1.18.0 | Implementado "HistoricoAvaliacoesScreen — consumir API real". Revisão antes de codar achou um problema bem mais fundo que "trocar mock por fetch": a tela foi construída contra um shape de avaliação (4 notas por critério, voltaria, recomenda, sugestões) que **nunca existiu no backend** — `AvaliacaoScreen` já coletava tudo isso no formulário mas `handleSubmit` só enviava a média das notas + comentário, descartando o resto silenciosamente; o modelo `Avaliacao` só tinha `nota`+`comentario`. Ou seja, toda avaliação enviada no app perdia a maior parte do feedback, não só a tela de histórico estava desatualizada. **Decisão do usuário: resolver na raiz.** Migração expandindo `Avaliacao` com os campos de detalhamento (opcionais, nulos para avaliações antigas); `POST /avaliacoes` e `AvaliacaoScreen.handleSubmit` passam a persistir tudo; `HistoricoAvaliacoesScreen` reescrita consumindo dado real, com degradação graciosa pra avaliações antigas sem detalhe. Achado adicional: a tela não tinha ponto de entrada nenhum na navegação — adicionado atalho em `PerfilScreen`. 5 novos casos de teste, verificado end-to-end (avaliação nova com detalhamento completo e avaliação antiga simples, lado a lado, cada uma renderizando certo). |
 | 03/11/2026 | 1.19.0 | Medida formalmente a cobertura de código pela primeira vez (`@vitest/coverage-v8` instalado — não havia provider configurado). Resultado: 71.4% statements/lines, 63.26% branch, 82.07% funções em todos os arquivos; 84.51% statements / 86.14% funções excluindo 5 arquivos de infraestrutura não testável por desenho (bootstrap do servidor, seed, script de purga de logs, setup global de teste, script de validação manual). Já supera a meta informal de 80%. **3 arquivos com lacuna real** (não ruído de infraestrutura) movidos para item próprio no Backlog: `geocoding.service.ts` (30.5%), `conta-bancaria.controller.ts` (54.2% statements/11.1% branch), `especialidades.controller.ts` (57.1%). Número completo registrado em `TESTES.md` v1.9.0. |
 | 03/11/2026 | 1.20.0 | Fechados os 3 arquivos de cobertura fraca levantados na v1.19.0. `especialidades.controller.ts` → 100%/100% (endpoint não tinha teste nenhum); `conta-bancaria.controller.ts` → 93.75%/81.8% branch (`obter()` nunca tinha sido testado; cobertos médico/clínica/paciente, `403`, `404` e `PUT` como médico); `geocoding.service.ts` → 100%/83.33% branch (mock de `fetch` global via `vi.stubGlobal`, cobrindo sucesso/erro HTTP/sem resultados/coordenadas inválidas/exceção de rede, sem bater na API real do Nominatim). **Achado**: a guarda de query vazia em `geocoding.service.ts` é código morto (a query sempre inclui o literal `"Brasil"`, nunca fica vazia) — documentado, não corrigido. Suíte: 256 → 272 casos, 29 → 31 arquivos; cobertura total 71.4% → 73.36% statements / 82.07% → 85.84% funções. Detalhes em `TESTES.md` v1.10.0. |
+| 03/11/2026 | 1.21.0 | Removida a guarda de código morto em `geocoding.service.ts` (levantada na v1.20.0) — branch do arquivo 83.33% → 90.9% (o restante é artefato de instrumentação do `finally`, não lacuna real). **Novo achado**, investigando o fluxo de pagamento com "Plano de saúde": `PagamentosController.processar()` aceita `insuranceProvider`/`insuranceCoveragePercent` no corpo da requisição, mas nenhum caller real (o front só envia `usingPlan: boolean`) os envia — parâmetros mortos no backend. Mesmo que fossem enviados, `insuranceProvider` não seria persistido (sem campo correspondente no model `Pagamento`), e o desconto do plano de saúde é somado em `valorFinal` sem ficar auditável separado do desconto de cupom. Registrado como achado adicional no card "Filtro de busca por plano de saúde aceito" (Backlog), com 2 critérios de aceite novos. |
+| 03/11/2026 | 1.22.0 | Implementado "Confirmação de horário por notificação/e-mail" (único item 🔴 Crítico restante em "A Fazer"). Backend: `email.service.ts` novo, integrado via Resend (chave gerada pelo usuário, decisão tomada em conjunto antes de codar) — envia e-mail HTML com logo ao paciente e ao médico na criação do agendamento, sem nunca bloquear a resposta da API se o envio falhar ou a chave não estiver configurada. Frontend: `utils/notificacoesConsulta.ts` novo — agenda notificação local 1h antes da consulta (criar/remarcar) e cancela ao cancelar. **Bug real corrigido no processo**: `App.tsx` pulava a solicitação de permissão de notificação inteira no Expo Go, mas notificações *locais* (diferente de push remota) funcionam normalmente nele — sem a correção, o lembrete de 1h nunca apareceria em quem testa via Expo Go. 3 novos casos de teste (`unit/email.unit.test.ts`). Verificado end-to-end no app rodando via driver headless contra o backend real com a chave do Resend de verdade: agendamento criado, e-mails efetivamente enviados (confirmado nos logs do container), zero erros de console. Suíte: 272 → 275 casos, 31 → 32 arquivos. Detalhes em `TESTES.md` v1.11.0. |
 
 ---
 

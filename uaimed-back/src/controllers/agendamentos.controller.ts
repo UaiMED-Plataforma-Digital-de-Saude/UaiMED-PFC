@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/database";
 import AuditoriaService from "../services/auditoria.service";
+import { enviarEmailConfirmacaoAgendamento } from "../services/email.service";
 import logger from "../utils/logger";
 
 // Antecedência mínima em horas para cancelar ou remarcar um agendamento (mantido em sincronia com o front).
@@ -44,7 +45,10 @@ class AgendamentosController {
       }
 
       // Verifica se o profissional existe
-      const profissional = await prisma.profissional.findUnique({ where: { id: String(medicoId) } });
+      const profissional = await prisma.profissional.findUnique({
+        where: { id: String(medicoId) },
+        include: { usuario: { select: { nome: true, email: true } } },
+      });
       if (!profissional) return res.status(404).json({ error: 'Profissional não encontrado' });
 
       // Verifica conflito de horário
@@ -77,6 +81,19 @@ class AgendamentosController {
         pacientes: [{ id: usuarioId, nome: usuarioExiste.nome }],
         ip: req.ip,
       });
+
+      // E-mail de confirmação é um efeito colateral — não deve derrubar a criação
+      // do agendamento se o envio falhar (enviarEmailConfirmacaoAgendamento já
+      // nunca lança, mas o try/catch aqui é uma segunda camada de segurança).
+      try {
+        await enviarEmailConfirmacaoAgendamento({
+          paciente: { nome: usuarioExiste.nome, email: usuarioExiste.email },
+          medico: { nome: profissional.usuario.nome, email: profissional.usuario.email, especialidade: profissional.especialidade },
+          dataHora: agendamento.dataHora,
+        });
+      } catch (emailErr) {
+        logger.error('Falha ao enviar e-mail de confirmação de agendamento', emailErr);
+      }
 
       return res.status(201).json({
         id: agendamento.id,

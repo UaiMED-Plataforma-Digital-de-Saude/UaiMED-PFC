@@ -1,6 +1,6 @@
 # 🧪 Estratégia e Documentação de Testes — UaiMED Backend
 
-**Versão**: 1.10.0  
+**Versão**: 1.11.0  
 **Data**: 03 de Novembro de 2026  
 **Framework**: Vitest 1.4 + Supertest 6.3  
 **Banco de Teste**: PostgreSQL (`uaimed_test`) — isolado do banco de desenvolvimento
@@ -644,7 +644,8 @@ npx vitest run --coverage
 | `unit/hash.unit.test.ts` | 8 | Unitário | ✅ Passando |
 | `unit/auth.schema.unit.test.ts` | 77 | Unitário | ✅ Passando |
 | `unit/geocoding.unit.test.ts` | 6 | Unitário | ✅ Passando |
-| **Subtotal** | **99** | | **✅ 99/99** |
+| `unit/email.unit.test.ts` | 3 | Unitário | ✅ Passando |
+| **Subtotal** | **102** | | **✅ 102/102** |
 
 > `auth.schema.unit.test.ts` cresceu de 23 para 77 casos ao longo de revisões anteriores (não documentadas aqui individualmente) com blocos `it.each` cobrindo variações de nome com acento, telefone em formatos diferentes, senha no limite de 72 bytes, CRM e CNPJ inválidos — ver seção 4.3 para os grupos, não cada valor testado.
 
@@ -653,20 +654,22 @@ npx vitest run --coverage
 | Tipo | Casos | Status |
 |------|-------|--------|
 | Integração (API) | 173 | ✅ |
-| Unitários | 99 | ✅ |
+| Unitários | 102 | ✅ |
 | E2E automatizado | 0 | ⚠️ Planejado |
-| **Total** | **272** | **✅ 272/272** (executado em 03/11/2026, 31 arquivos) |
+| **Total** | **275** | **✅ 275/275** (executado em 03/11/2026, 32 arquivos) |
 
 ### Cobertura de Código (`vitest run --coverage`, provider v8)
 
-> Medida formalmente em 03/11/2026 — resolve o item de Backlog "Testes automatizados — cobertura residual" do `KANBAN_MELHORIAS.md`. Não havia provider de cobertura instalado até então; `@vitest/coverage-v8@1.6.1` adicionado como dev dependency (a versão declarada em `package.json`, `^1.4.4`, já rodava de fato em `1.6.1` por resolução de peer dependency). Número inicial (71.4%/84.51%) revisado no mesmo dia após fechar os 3 arquivos fracos identificados (ver abaixo).
+> Medida formalmente em 03/11/2026 — resolve o item de Backlog "Testes automatizados — cobertura residual" do `KANBAN_MELHORIAS.md`. Não havia provider de cobertura instalado até então; `@vitest/coverage-v8@1.6.1` adicionado como dev dependency (a versão declarada em `package.json`, `^1.4.4`, já rodava de fato em `1.6.1` por resolução de peer dependency). Número inicial (71.4%/84.51%) revisado no mesmo dia após fechar os 3 arquivos fracos identificados (ver abaixo), e novamente após `email.service.ts` (confirmação de agendamento por e-mail, ver `KANBAN_MELHORIAS.md` "Confirmação de horário por notificação/e-mail").
 
 | Métrica | Todos os arquivos | Excluindo infraestrutura não testável¹ |
 |---|---|---|
-| Statements | 73.36% | **86.83%** |
-| Branches | 65.27% | — |
-| Functions | 85.84% | **90.1%** |
-| Lines | 73.36% | — |
+| Statements | 74.04% | **87.18%** |
+| Branches | 65.76% | — |
+| Functions | 86.36% | **90.48%** |
+| Lines | 74.04% | — |
+
+`src/services/email.service.ts` (novo): **99.16% statements / 86.66% branch / 100% funções** — único ramo não coberto é o `catch` interno de `getClient()`, equivalente aos outros blocos de erro-500 já documentados como não testados no projeto.
 
 ¹ `server.ts` (bootstrap), `src/prisma/seed.ts`, `src/scripts/purgar-logs-auditoria.ts`, `src/tests/globalSetup.ts` e `scripts/validacao-funcional.cjs` — todos em 0% por não serem exercitados por testes de unidade/integração por desenho (scripts manuais, seed de dados, bootstrap do servidor), não por lacuna de teste.
 
@@ -797,7 +800,7 @@ hookTimeout: 30000,  // 30s para beforeAll/afterAll
 ---
 
 **Documento criado em**: 17 de Abril de 2026  
-**Última atualização**: 03 de Novembro de 2026 — fechados os 3 arquivos com cobertura genuinamente baixa identificados na medição inicial do mesmo dia (`especialidades.controller.ts`, `conta-bancaria.controller.ts`, `geocoding.service.ts`), todos levados a ≥81% branch / 100% statements. 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36% statements / 82.07% → 85.84% funções (84.51% → 86.83% / 86.14% → 90.1% excluindo infraestrutura não testável). Ver seção 7, "Cobertura de Código", e `KANBAN_MELHORIAS.md` v1.20.0. Atualização anterior, mais cedo em 03 de Novembro de 2026: cobertura de código medida formalmente pela primeira vez (`@vitest/coverage-v8` instalado). Atualização anterior a essa, 01 de Novembro de 2026: contagem real re-auditada via `npm test` (não apenas somada a partir da versão anterior do documento, que já estava desatualizada em alguns pontos: `auth.schema.unit.test.ts` e `auth_signup_signin.test.ts` haviam crescido em revisões anteriores sem atualizar esta tabela, e `perfil_profissional.test.ts` nunca havia sido documentado). 155 → 256 casos, 23 → 29 arquivos no total ao longo da sessão de 01/11 (cancelamento/remarcação, status de pagamento, botão de avaliar agendamentos, busca real de médicos, filtro de preço e detalhamento completo de avaliações) — ver `KANBAN_MELHORIAS.md` v1.18.0.  
+**Última atualização**: 03 de Novembro de 2026 — adicionado `unit/email.unit.test.ts` (3 casos) cobrindo `email.service.ts`, o novo serviço de confirmação de agendamento por e-mail (Resend): sucesso enviando para paciente e médico, skip gracioso sem `RESEND_API_KEY`, e resiliência a falha de envio (não lança). 272 → 275 casos, 31 → 32 arquivos. Verificado end-to-end no app rodando (driver headless, ver `uaimed-front/.claude/skills/run-uaimed-front`): agendamento criado via UI disparou e-mails reais para paciente e médico, confirmado nos logs do container (`[email] Confirmação enviada para ...`), sem nenhum erro de console no front. Ver `KANBAN_MELHORIAS.md` v1.22.0. Atualização anterior, mais cedo em 03 de Novembro de 2026: fechados os 3 arquivos com cobertura genuinamente baixa identificados na medição inicial do mesmo dia (`especialidades.controller.ts`, `conta-bancaria.controller.ts`, `geocoding.service.ts`), todos levados a ≥81% branch / 100% statements. 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36% statements / 82.07% → 85.84% funções (84.51% → 86.83% / 86.14% → 90.1% excluindo infraestrutura não testável). Ver seção 7, "Cobertura de Código", e `KANBAN_MELHORIAS.md` v1.20.0. Atualização anterior, mais cedo em 03 de Novembro de 2026: cobertura de código medida formalmente pela primeira vez (`@vitest/coverage-v8` instalado). Atualização anterior a essa, 01 de Novembro de 2026: contagem real re-auditada via `npm test` (não apenas somada a partir da versão anterior do documento, que já estava desatualizada em alguns pontos: `auth.schema.unit.test.ts` e `auth_signup_signin.test.ts` haviam crescido em revisões anteriores sem atualizar esta tabela, e `perfil_profissional.test.ts` nunca havia sido documentado). 155 → 256 casos, 23 → 29 arquivos no total ao longo da sessão de 01/11 (cancelamento/remarcação, status de pagamento, botão de avaliar agendamentos, busca real de médicos, filtro de preço e detalhamento completo de avaliações) — ver `KANBAN_MELHORIAS.md` v1.18.0.  
 **Autor**: Equipe de Desenvolvimento UaiMED  
 **Referência**: [`vitest.config.ts`](../vitest.config.ts) · [`src/__tests__/`](../src/__tests__/) · [`DOCUMENTACAO_PROJETO_UAIMED.md`](../../DOCUMENTACAO_PROJETO_UAIMED.md)
 
