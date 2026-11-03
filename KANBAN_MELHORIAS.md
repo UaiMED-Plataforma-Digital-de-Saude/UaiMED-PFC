@@ -1,6 +1,6 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.23.0  
+**Versão**: 1.24.0  
 **Data**: 03 de Novembro de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
@@ -600,6 +600,32 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 
 ---
 
+### ✅ [FEATURE] Filtro de busca por plano de saúde aceito (convênio)
+**Área**: Backend + Frontend | **Prioridade**: 🟡 Médio | **Esforço**: 5
+
+**Descrição original**: o modelo `Profissional` não tinha nenhum campo relacionado a convênios/planos de saúde aceitos. O único conceito próximo era o desconto genérico de 15% do toggle "Plano de saúde" em `PagamentoScreen`, sem relação com convênios específicos por médico.
+
+**Decisões de design** (estavam em aberto no card, resolvidas antes de implementar):
+- **Catálogo fixo** de 9 convênios (`src/constants/convenios.ts`, mesmo padrão de `especialidades.ts`) em vez de texto livre — evita inconsistência de grafia quebrando o filtro exato (ex.: "unimed" vs "Unimed" vs "UNIMED").
+- **`Profissional.convenios: String[]`** (array nativo do Postgres via Prisma) em vez de relação N:N com uma entidade `Convenio` — mais simples, migração de uma linha, suficiente pro caso de uso (não há necessidade de metadados por convênio além do nome).
+- **Médico se autogerencia**, mesmo padrão já estabelecido para `precoConsulta`/disponibilidade (`GET`/`PUT /professionals/me/convenios`) — não fica restrito a admin.
+
+**Resolução**:
+- Backend: `GET /convenios` (catálogo público, mesmo padrão de `GET /especialidades`); `GET`/`PUT /professionals/me/convenios` (médico vê/edita os seus, com dedupe e validação contra o catálogo); `GET /medicos` aceita `?convenio=` (filtro exato via `has` no array); `convenios` incluído na resposta de `listar()` e `detalhe()`.
+- Frontend: `ConvenioDropdown.tsx` novo (clone de `EspecialidadeDropdown.tsx`); filtro adicionado em `SearchScreen.tsx`; nova tela `MedicoConveniosScreen.tsx` (checklist multi-seleção) com atalho em `PerfilScreen` ao lado de "Horários de Atendimento"; convênios exibidos no card de `ResultadosScreen` e na tela `MedicoDetalhesScreen` (paciente vê quais convênios o médico aceita, não só filtra por eles).
+- Migração `20261103213141_add_convenios_to_profissional`; seed populado com convênios realistas nos médicos fixos e aleatórios (0-3) nos médicos extras via Faker, para o filtro já nascer demonstrável.
+- 17 novos casos de teste: `convenios.test.ts` (2), `professionals_convenios.test.ts` (9, cobrindo autenticação/papel/substituição/lista vazia/dedupe/convênio inválido), `medicos_listar.test.ts` ampliado (+2, filtro e campo na resposta).
+
+**Verificado end-to-end no app rodando**: paciente filtrou por "Unimed" em `SearchScreen` e `Resultados` retornou exatamente os 5 médicos com esse convênio no seed, cada card exibindo a lista de convênios aceitos; médico (`carlos.mendes@uaimed.com`) abriu "Convênios Aceitos" em Perfil, viu os 3 convênios do seed já marcados, alternou um convênio e salvou — persistência confirmada no log do backend (`Convênios atualizados: profissional ...`) e recarregando a tela. Zero erros de console.
+
+**Critério de aceite**:
+- [x] Modelo de dados para convênios aceitos por profissional
+- [x] Médico consegue selecionar/editar seus convênios no perfil
+- [x] `GET /medicos` aceita filtro por convênio
+- [x] `SearchScreen` exibe o filtro
+
+---
+
 ## 🔵 A FAZER — Próxima Sprint
 
 > Itens refinados e prontos para desenvolvimento.
@@ -623,6 +649,18 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 
 ---
 
+### 📌 [IMPROVEMENT] Código morto residual em `useAvaliacoes.ts`/`CardAvaliacao.tsx`/`types/avaliacao.ts`
+- **Área**: Frontend
+- **Prioridade**: 🟢 Baixo
+- **Esforço**: 1
+- **Descrição**: Achado em 03/11/2026 ao verificar o estado geral da feature de avaliações (sem pendências — model completo, vinculado a agendamento, 3 telas consumindo dados reais). Correção a um registro anterior deste Kanban: `useAvaliacoes.ts` não é 100% código morto como ficou registrado quando `HistoricoAvaliacoesScreen` foi reescrita (01/11/2026) — `PerfilScreen.tsx` ainda importa e usa `carregarMediaAvaliacoes`/`notaMedia`/`totalAvaliacoes` do hook (real, bate em `GET /avaliacoes/medico/:id/media`). O que de fato é código morto: `loadAvaliacoes` (tem um `// TODO: Integrar com API real` e retorna array vazio sempre), `calcularEstatisticas`, `avaliacoesMedico` e `criarAvaliacao` dentro do mesmo hook (nenhuma tela chama), além de `CardAvaliacao.tsx` (sem nenhum import em lugar nenhum) e as partes de `types/avaliacao.ts` usadas só por esse código morto.
+- **Critério de aceite**:
+  - [ ] Remover `loadAvaliacoes`/`calcularEstatisticas`/`avaliacoesMedico`/`criarAvaliacao` de `useAvaliacoes.ts`, mantendo só a parte real (`carregarMediaAvaliacoes`)
+  - [ ] Remover `CardAvaliacao.tsx`
+  - [ ] Revisar `types/avaliacao.ts` — manter só o que sobrar em uso
+
+---
+
 ### 📌 [FEATURE] Notificações push reais (Development Build)
 - **Área**: Frontend + DevOps
 - **Prioridade**: 🟠 Alto
@@ -632,28 +670,13 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 
 ---
 
-### 📌 [FEATURE] Filtro de busca por plano de saúde aceito
-- **Área**: Backend + Frontend
-- **Prioridade**: 🟡 Médio
-- **Esforço**: 5
-- **Descrição**: Levantado ao revisar o card "SearchScreen — busca real com filtros funcionais" (01/11/2026): o modelo `Profissional` não tem nenhum campo relacionado a convênios/planos de saúde aceitos. O único conceito próximo hoje é um desconto genérico de 15% que o paciente escolhe ativar em `PagamentoScreen` ("Plano de saúde"), sem relação com convênios específicos por médico. Implementar o filtro de verdade exige modelar isso — não é só adicionar um dropdown.
-- **Decisões de design em aberto**:
-  - Catálogo fixo de convênios (como `especialidade`) ou texto livre por profissional?
-  - Relação N:N (`Profissional` ↔ `Convenio`) ou lista de strings?
-  - Quem cadastra: o próprio médico no perfil, ou só admin?
+### 📌 [FIX] Parâmetros mortos `insuranceProvider`/`insuranceCoveragePercent` em `PagamentosController`
+- **Área**: Backend
+- **Prioridade**: 🟢 Baixo
+- **Esforço**: 2
+- **Descrição**: Achado em 03/11/2026 investigando o fluxo de pagamento do toggle "Plano de saúde" (desconto fixo de 15%, sem relação com o filtro de convênios implementado — ver Concluído 03/11/2026). `PagamentosController.processar()` (`uaimed-back/src/controllers/pagamentos.controller.ts`) desestrutura `insuranceProvider` e `insuranceCoveragePercent` do corpo da requisição, mas **nenhum caller real envia esses campos** — `PagamentoScreen.tsx` só envia `usingPlan: boolean`. São parâmetros mortos, provavelmente de uma versão mais detalhada do fluxo de "plano de saúde" (distinto de convênio) que nunca foi finalizada no front. `insuranceCoveragePercent` ainda é lido e usado se enviado (define o % de desconto em vez do padrão de 15%), mas `insuranceProvider` não seria persistido de qualquer forma — o model `Pagamento` não tem campo para isso.
 - **Critério de aceite** (a refinar):
-  - [ ] Modelo de dados para convênios aceitos por profissional
-  - [ ] Médico consegue selecionar/editar seus convênios no perfil
-  - [ ] `GET /medicos` aceita filtro por convênio
-  - [ ] `SearchScreen` exibe o filtro
-
-**Achado adicional (03/11/2026)** — investigando o fluxo de pagamento do "Plano de saúde" (não é o filtro de busca acima, é um problema separado e menor no lado do pagamento):
-- `PagamentosController.processar()` (`uaimed-back/src/controllers/pagamentos.controller.ts:55`) desestrutura `insuranceProvider` e `insuranceCoveragePercent` do corpo da requisição, mas **nenhum caller real envia esses campos** — `PagamentoScreen.tsx` só envia `usingPlan: boolean` (toggle on/off). São parâmetros mortos no backend, provavelmente de uma versão mais detalhada do fluxo de convênio que nunca foi finalizada no front.
-- Mesmo que fossem enviados, `insuranceProvider` **não seria persistido** — o model `Pagamento` não tem nenhum campo para isso, só `cupom: String?`.
-- O desconto do plano (`planDiscount`, 15% fixo hoje) é somado dentro de `valorFinal` mas **nunca salvo separadamente** — depois de processado, não há como auditar quanto do desconto total veio do cupom e quanto veio do plano de saúde.
-- **Critério de aceite** (a refinar, item separado do filtro de busca):
-  - [ ] Remover `insuranceProvider`/`insuranceCoveragePercent` do controller (dead params) **ou** implementar de fato o envio pelo front, decidindo primeiro o modelo de convênio acima
-  - [ ] Persistir o desconto do plano de saúde separado do desconto de cupom, para fins de auditoria/relatório financeiro
+  - [ ] Remover `insuranceProvider` do controller (dead param), ou implementar de fato o envio pelo front se fizer sentido guardar qual seguradora cobriu o desconto
 
 ---
 
@@ -726,12 +749,12 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 | 🟢 Concluído — Mai–Out/2026 (consolidado) | 13 itens |
 | 🟢 Concluído — 30/10/2026 | 6 itens |
 | 🟢 Concluído — 01/11/2026 | 7 itens |
-| 🟢 Concluído — 03/11/2026 | 4 itens |
+| 🟢 Concluído — 03/11/2026 | 5 itens |
 | 🔴 Bug Conhecido | 0 itens |
 | 🔵 A Fazer (próxima sprint) | 1 item |
-| 🗃️ Backlog | 6 itens |
+| 🗃️ Backlog | 7 itens |
 | ⏸️ Bloqueado | 2 itens |
-| **Total** | **58 itens** |
+| **Total** | **60 itens** |
 
 ---
 
@@ -779,6 +802,7 @@ Sprint entrega PFC
 | 03/11/2026 | 1.21.0 | Removida a guarda de código morto em `geocoding.service.ts` (levantada na v1.20.0) — branch do arquivo 83.33% → 90.9% (o restante é artefato de instrumentação do `finally`, não lacuna real). **Novo achado**, investigando o fluxo de pagamento com "Plano de saúde": `PagamentosController.processar()` aceita `insuranceProvider`/`insuranceCoveragePercent` no corpo da requisição, mas nenhum caller real (o front só envia `usingPlan: boolean`) os envia — parâmetros mortos no backend. Mesmo que fossem enviados, `insuranceProvider` não seria persistido (sem campo correspondente no model `Pagamento`), e o desconto do plano de saúde é somado em `valorFinal` sem ficar auditável separado do desconto de cupom. Registrado como achado adicional no card "Filtro de busca por plano de saúde aceito" (Backlog), com 2 critérios de aceite novos. |
 | 03/11/2026 | 1.22.0 | Implementado "Confirmação de horário por notificação/e-mail" (único item 🔴 Crítico restante em "A Fazer"). Backend: `email.service.ts` novo, integrado via Resend (chave gerada pelo usuário, decisão tomada em conjunto antes de codar) — envia e-mail HTML com logo ao paciente e ao médico na criação do agendamento, sem nunca bloquear a resposta da API se o envio falhar ou a chave não estiver configurada. Frontend: `utils/notificacoesConsulta.ts` novo — agenda notificação local 1h antes da consulta (criar/remarcar) e cancela ao cancelar. **Bug real corrigido no processo**: `App.tsx` pulava a solicitação de permissão de notificação inteira no Expo Go, mas notificações *locais* (diferente de push remota) funcionam normalmente nele — sem a correção, o lembrete de 1h nunca apareceria em quem testa via Expo Go. 3 novos casos de teste (`unit/email.unit.test.ts`). Verificado end-to-end no app rodando via driver headless contra o backend real com a chave do Resend de verdade: agendamento criado, e-mails efetivamente enviados (confirmado nos logs do container), zero erros de console. Suíte: 272 → 275 casos, 31 → 32 arquivos. Detalhes em `TESTES.md` v1.11.0. |
 | 03/11/2026 | 1.23.0 | Implementado "Confirmação de pagamento — comprovante e e-mail" (último item em "A Fazer"). Correção de escopo: o critério "status do pagamento no card de agendamento" já estava satisfeito desde 01/11 (`MinhasConsultasScreen.tsx`); optado por tela formatada em vez de PDF (ambas válidas no critério original, PDF exigiria dependência nova sem necessidade real). Backend: `enviarEmailComprovantePagamento()` em `email.service.ts`. Frontend: nova tela `PagamentoSucessoScreen.tsx` com botão de compartilhar (API `Share` nativa, já usada em outro ponto do mesmo arquivo). **2 achados reais**: (1) rodar `npm test` localmente com uma `RESEND_API_KEY` real no `.env` disparava e-mails de verdade durante os testes — `.env.test` não define a variável, e o carregamento em cascata de `env.ts` preenchia a partir do `.env` real; corrigido com trava explícita por `NODE_ENV === 'test'`, com teste de regressão; (2) na própria verificação end-to-end, o desconto de "plano de saúde" não aparecia no comprovante (só o de cupom), deixando valor cobrado/pago sem explicação — corrigido expondo `descontoPlano` separado na API, e-mail e tela. 6 novos casos de teste (`unit/email.unit.test.ts`, 3 → 9). Verificado end-to-end no app rodando (achado adicional: Metro precisou reiniciar com `--clear` para pegar os edits do front, gotcha já documentado na skill `run-uaimed-front`): pagamento com plano de saúde ativo exibiu o desconto corretamente e o e-mail foi enviado de verdade. Suíte: 275 → 281 casos, mesmos 32 arquivos. Detalhes em `TESTES.md` v1.12.0. |
+| 03/11/2026 | 1.24.0 | Implementado "Filtro de busca por plano de saúde aceito" (convênio), resolvendo as 3 decisões de design que estavam em aberto: catálogo fixo (`src/constants/convenios.ts`), campo `Profissional.convenios: String[]` (array nativo, sem N:N) e autogestão pelo médico (`GET`/`PUT /professionals/me/convenios`, mesmo padrão de preço/disponibilidade). `GET /medicos?convenio=` filtra; `SearchScreen` ganhou `ConvenioDropdown`; nova tela `MedicoConveniosScreen` (checklist) com atalho em Perfil; convênios exibidos no card de resultado e na tela de detalhes do médico. Migração + seed com convênios realistas. Verificação do estado da feature de avaliações (sem pedido de implementação, já completa) corrigiu um registro anterior deste Kanban: `useAvaliacoes.ts` não é 100% código morto — a parte de `notaMedia` é usada de verdade por `PerfilScreen`; só `loadAvaliacoes`/`calcularEstatisticas`/`avaliacoesMedico`/`criarAvaliacao` são mortos, movidos para item de limpeza no Backlog. 17 novos casos de teste. Verificado end-to-end no app rodando: filtro por "Unimed" retornou os médicos certos; médico alternou e salvou convênios com persistência confirmada. Suíte: 281 → 294 casos, 32 → 34 arquivos. Detalhes em `TESTES.md` v1.13.0. |
 
 ---
 

@@ -77,6 +77,7 @@ model Profissional {
   conta         String?
   tipoConta     String?
   precoConsulta Float                 @default(150.00)
+  convenios     String[]              @default([])
   destaque      Boolean               @default(false)
   criado_em     DateTime              @default(now())
   atualizado_em DateTime              @updatedAt

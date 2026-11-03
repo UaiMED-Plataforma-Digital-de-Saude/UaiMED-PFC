@@ -183,6 +183,7 @@ const MedicoDetalhesScreen: React.FC<Props> = ({ route, navigation }) => {
               <InfoRow icon="school-outline"   label="Formação"    value={anoFormacao ? `Formado em ${anoFormacao}` : 'Não informado'} />
               <InfoRow icon="ribbon-outline"   label="CRM"         value={perfil.crm || 'Não informado'} />
               <InfoRow icon="cash-outline"     label="Consulta"    value={`R$ ${perfil.precoConsulta.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+              <InfoRow icon="shield-checkmark-outline" label="Convênios" value={perfil.convenios?.length ? perfil.convenios.join(', ') : 'Não informado'} />
               <InfoRow icon="location-outline" label="Localização" value={[perfil.cidade, perfil.estado].filter(Boolean).join(', ') || 'Não informado'} />
               <InfoRow icon="home-outline"     label="Endereço"    value={perfil.endereco || 'Não informado'} />
               <InfoRow

@@ -12,6 +12,7 @@ import { AgendamentoStackParamList } from '../../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
 import LocationModal, { LocationValue } from '../../components/LocationModal';
 import EspecialidadeDropdown from '../../components/EspecialidadeDropdown';
+import ConvenioDropdown from '../../components/ConvenioDropdown';
 
 type SearchScreenProps = StackScreenProps<AgendamentoStackParamList, 'Busca'>;
 
@@ -32,6 +33,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation }) => {
   ];
 
   const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
+  const [selectedConvenio, setSelectedConvenio] = useState<string | null>(null);
 
   const PRICE_RANGES: { id: string; label: string; precoMin?: number; precoMax?: number }[] = [
     { id: 'any', label: 'Qualquer valor' },
@@ -47,6 +49,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation }) => {
       ...(location.uf ? { estado: location.uf } : {}),
       ...(location.cidade ? { cidade: location.cidade } : {}),
       ...(selectedSpecialty ? { especialidade: selectedSpecialty } : {}),
+      ...(selectedConvenio ? { convenio: selectedConvenio } : {}),
       ...(searchQuery.trim() ? { query: searchQuery.trim() } : {}),
       ...(priceRange?.precoMin !== undefined ? { precoMin: priceRange.precoMin } : {}),
       ...(priceRange?.precoMax !== undefined ? { precoMax: priceRange.precoMax } : {}),
@@ -87,6 +90,14 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation }) => {
         <EspecialidadeDropdown
           value={selectedSpecialty}
           onChange={setSelectedSpecialty}
+          permitirLimpar
+        />
+
+        {/* 2.5 Seleção de Convênio (Dropdown) */}
+        <Text style={styles.inputLabel}>Convênio</Text>
+        <ConvenioDropdown
+          value={selectedConvenio}
+          onChange={setSelectedConvenio}
           permitirLimpar
         />
 

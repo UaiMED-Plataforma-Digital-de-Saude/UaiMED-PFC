@@ -20,6 +20,7 @@ export type MainTabParamList = {
   MedicoDashboard?: undefined;
   MedicoContatos?: undefined;
   MedicoDisponibilidade?: undefined;
+  MedicoConvenios?: undefined;
   ClinicDashboard?: undefined;
   ClinicaMedicos?: undefined;
   Perfil: undefined;
@@ -42,6 +43,7 @@ export type AgendamentoStackParamList = {
     estado?: string;
     precoMin?: number;
     precoMax?: number;
+    convenio?: string;
   };
   DetalhesMedico?: { medicoId: string; amount?: number; pixKey?: string; nomeProfissional?: string };
   ClinicaPerfil?: { clinicaId: string; nomeClinica?: string };

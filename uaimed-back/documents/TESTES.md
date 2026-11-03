@@ -1,6 +1,6 @@
 # 🧪 Estratégia e Documentação de Testes — UaiMED Backend
 
-**Versão**: 1.12.0  
+**Versão**: 1.13.0  
 **Data**: 03 de Novembro de 2026  
 **Framework**: Vitest 1.4 + Supertest 6.3  
 **Banco de Teste**: PostgreSQL (`uaimed_test`) — isolado do banco de desenvolvimento
@@ -624,6 +624,8 @@ npx vitest run --coverage
 | `destaques.test.ts` | 9 | Integração | ✅ Passando |
 | `conta-bancaria.test.ts` | 11 | Integração | ✅ Passando |
 | `especialidades.test.ts` | 2 | Integração | ✅ Passando |
+| `convenios.test.ts` | 2 | Integração | ✅ Passando |
+| `professionals_convenios.test.ts` | 9 | Integração | ✅ Passando |
 | `users.test.ts` | 4 | Integração | ✅ Passando |
 | `auditoria.test.ts` | 2 | Integração | ✅ Passando |
 | `relatorios.test.ts` | 2 | Integração | ✅ Passando |
@@ -633,8 +635,8 @@ npx vitest run --coverage
 | `agendamentos_remarcar.test.ts` | 8 | Integração | ✅ Passando |
 | `agendamentos_listar_pagamento.test.ts` | 2 | Integração | ✅ Passando |
 | `avaliacoes_agendamento.test.ts` | 7 | Integração | ✅ Passando |
-| `medicos_listar.test.ts` | 4 | Integração | ✅ Passando |
-| **Subtotal** | **173** | | **✅ 173/173** |
+| `medicos_listar.test.ts` | 6 | Integração | ✅ Passando |
+| **Subtotal** | **186** | | **✅ 186/186** |
 
 #### Testes Unitários
 
@@ -653,23 +655,23 @@ npx vitest run --coverage
 
 | Tipo | Casos | Status |
 |------|-------|--------|
-| Integração (API) | 173 | ✅ |
+| Integração (API) | 186 | ✅ |
 | Unitários | 108 | ✅ |
 | E2E automatizado | 0 | ⚠️ Planejado |
-| **Total** | **281** | **✅ 281/281** (executado em 03/11/2026, 32 arquivos) |
+| **Total** | **294** | **✅ 294/294** (executado em 03/11/2026, 34 arquivos) |
 
 ### Cobertura de Código (`vitest run --coverage`, provider v8)
 
-> Medida formalmente em 03/11/2026 — resolve o item de Backlog "Testes automatizados — cobertura residual" do `KANBAN_MELHORIAS.md`. Não havia provider de cobertura instalado até então; `@vitest/coverage-v8@1.6.1` adicionado como dev dependency (a versão declarada em `package.json`, `^1.4.4`, já rodava de fato em `1.6.1` por resolução de peer dependency). Número inicial (71.4%/84.51%) revisado no mesmo dia após fechar os 3 arquivos fracos identificados (ver abaixo), novamente após `email.service.ts` (confirmação de agendamento por e-mail) e mais uma vez após o comprovante de pagamento (`enviarEmailComprovantePagamento`, ver `KANBAN_MELHORIAS.md`).
+> Medida formalmente em 03/11/2026 — resolve o item de Backlog "Testes automatizados — cobertura residual" do `KANBAN_MELHORIAS.md`. Não havia provider de cobertura instalado até então; `@vitest/coverage-v8@1.6.1` adicionado como dev dependency (a versão declarada em `package.json`, `^1.4.4`, já rodava de fato em `1.6.1` por resolução de peer dependency). Número inicial (71.4%/84.51%) revisado ao longo do mesmo dia após fechar os 3 arquivos fracos identificados, `email.service.ts` (confirmação de agendamento + comprovante de pagamento) e, por fim, o filtro de convênios (ver `KANBAN_MELHORIAS.md`).
 
 | Métrica | Todos os arquivos | Excluindo infraestrutura não testável¹ |
 |---|---|---|
-| Statements | 74.47% | **87.41%** |
-| Branches | 66.17% | — |
-| Functions | 86.72% | **90.74%** |
-| Lines | 74.47% | — |
+| Statements | 74.81% | **87.55%** |
+| Branches | 66.04% | — |
+| Functions | 87.17% | **91.07%** |
+| Lines | 74.81% | — |
 
-`src/services/email.service.ts`: **99.45% statements / 88.88% branch / 100% funções** — único ramo não coberto é o `catch` interno de `getClient()`, equivalente aos outros blocos de erro-500 já documentados como não testados no projeto. `src/controllers/pagamentos.controller.ts`: **88.19% statements / 60% branch / 100% funções**.
+`src/services/email.service.ts`: **99.45% statements / 88.88% branch / 100% funções** — único ramo não coberto é o `catch` interno de `getClient()`, equivalente aos outros blocos de erro-500 já documentados como não testados no projeto. `src/controllers/pagamentos.controller.ts`: **88.19% statements / 60% branch / 100% funções**. `src/constants/convenios.ts`, `src/controllers/convenios.controller.ts` e `src/routes/convenios.routes.ts` (novos): **100%**.
 
 ¹ `server.ts` (bootstrap), `src/prisma/seed.ts`, `src/scripts/purgar-logs-auditoria.ts`, `src/tests/globalSetup.ts` e `scripts/validacao-funcional.cjs` — todos em 0% por não serem exercitados por testes de unidade/integração por desenho (scripts manuais, seed de dados, bootstrap do servidor), não por lacuna de teste.
 
@@ -800,7 +802,7 @@ hookTimeout: 30000,  // 30s para beforeAll/afterAll
 ---
 
 **Documento criado em**: 17 de Abril de 2026  
-**Última atualização**: 03 de Novembro de 2026 — ampliado `unit/email.unit.test.ts` de 3 para 9 casos: `enviarEmailComprovantePagamento()` (comprovante de pagamento, novo), incluindo um caso de regressão para um vazamento real encontrado nesta sessão — rodar `npm test` localmente com uma `RESEND_API_KEY` real configurada no `.env` disparava e-mails de verdade, porque `.env.test` não define a variável e o carregamento em cascata de `env.ts` preenchia a partir do `.env` real; corrigido com trava explícita por `NODE_ENV === 'test'` em `email.service.ts`. 275 → 281 casos, mesmos 32 arquivos. **Achado end-to-end**: o desconto de "plano de saúde" (15%) não aparecia no comprovante (só o desconto de cupom era exposto) — `valor cobrado` e `valor pago` ficavam sem explicar a diferença; corrigido expondo `descontoPlano` separadamente na resposta da API, no e-mail e na tela `PagamentoSucessoScreen`. Verificado end-to-end no app rodando: agendamento → pagamento via Pix com plano de saúde ativo → tela de comprovante com o desconto correto → e-mail real enviado (confirmado nos logs do container). Ver `KANBAN_MELHORIAS.md` v1.23.0. Atualização anterior, mais cedo em 03 de Novembro de 2026: adicionado `unit/email.unit.test.ts` (3 casos) cobrindo `email.service.ts`, o serviço de confirmação de agendamento por e-mail (Resend). 272 → 275 casos, 31 → 32 arquivos. Ver `KANBAN_MELHORIAS.md` v1.22.0. Atualização anterior a essa, mais cedo em 03 de Novembro de 2026: fechados os 3 arquivos com cobertura genuinamente baixa identificados na medição inicial do mesmo dia (`especialidades.controller.ts`, `conta-bancaria.controller.ts`, `geocoding.service.ts`), todos levados a ≥81% branch / 100% statements. 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36% statements / 82.07% → 85.84% funções (84.51% → 86.83% / 86.14% → 90.1% excluindo infraestrutura não testável). Ver seção 7, "Cobertura de Código", e `KANBAN_MELHORIAS.md` v1.20.0. Atualização anterior, mais cedo em 03 de Novembro de 2026: cobertura de código medida formalmente pela primeira vez (`@vitest/coverage-v8` instalado). Atualização anterior a essa, 01 de Novembro de 2026: contagem real re-auditada via `npm test` (não apenas somada a partir da versão anterior do documento, que já estava desatualizada em alguns pontos: `auth.schema.unit.test.ts` e `auth_signup_signin.test.ts` haviam crescido em revisões anteriores sem atualizar esta tabela, e `perfil_profissional.test.ts` nunca havia sido documentado). 155 → 256 casos, 23 → 29 arquivos no total ao longo da sessão de 01/11 (cancelamento/remarcação, status de pagamento, botão de avaliar agendamentos, busca real de médicos, filtro de preço e detalhamento completo de avaliações) — ver `KANBAN_MELHORIAS.md` v1.18.0.  
+**Última atualização**: 03 de Novembro de 2026 — implementado o filtro de busca por plano de saúde/convênio aceito: `convenios.test.ts` (2 casos, catálogo público), `professionals_convenios.test.ts` (9 casos, GET/PUT `/professionals/me/convenios` — autenticação, papel médico, substituição, lista vazia, deduplicação, convênio fora do catálogo) e `medicos_listar.test.ts` ampliado (4 → 6 casos, filtro por convênio e array `convenios` na resposta). 281 → 294 casos, 32 → 34 arquivos. Decisões de design que estavam em aberto no Backlog resolvidas: catálogo fixo (`src/constants/convenios.ts`, mesmo padrão de `especialidades.ts`), campo `Profissional.convenios: String[]` (array nativo, sem modelo N:N) e autogestão pelo médico (mesmo padrão de `/professionals/me/preco`). Verificado end-to-end no app rodando: filtro por "Unimed" retornou os médicos certos, médico alternou e salvou convênios com persistência confirmada no banco. Ver `KANBAN_MELHORIAS.md` v1.24.0. Atualização anterior, mais cedo em 03 de Novembro de 2026: ampliado `unit/email.unit.test.ts` de 3 para 9 casos: `enviarEmailComprovantePagamento()` (comprovante de pagamento, novo), incluindo um caso de regressão para um vazamento real encontrado nesta sessão — rodar `npm test` localmente com uma `RESEND_API_KEY` real configurada no `.env` disparava e-mails de verdade, porque `.env.test` não define a variável e o carregamento em cascata de `env.ts` preenchia a partir do `.env` real; corrigido com trava explícita por `NODE_ENV === 'test'` em `email.service.ts`. 275 → 281 casos, mesmos 32 arquivos. **Achado end-to-end**: o desconto de "plano de saúde" (15%) não aparecia no comprovante (só o desconto de cupom era exposto) — `valor cobrado` e `valor pago` ficavam sem explicar a diferença; corrigido expondo `descontoPlano` separadamente na resposta da API, no e-mail e na tela `PagamentoSucessoScreen`. Verificado end-to-end no app rodando: agendamento → pagamento via Pix com plano de saúde ativo → tela de comprovante com o desconto correto → e-mail real enviado (confirmado nos logs do container). Ver `KANBAN_MELHORIAS.md` v1.23.0. Atualização anterior, mais cedo em 03 de Novembro de 2026: adicionado `unit/email.unit.test.ts` (3 casos) cobrindo `email.service.ts`, o serviço de confirmação de agendamento por e-mail (Resend). 272 → 275 casos, 31 → 32 arquivos. Ver `KANBAN_MELHORIAS.md` v1.22.0. Atualização anterior a essa, mais cedo em 03 de Novembro de 2026: fechados os 3 arquivos com cobertura genuinamente baixa identificados na medição inicial do mesmo dia (`especialidades.controller.ts`, `conta-bancaria.controller.ts`, `geocoding.service.ts`), todos levados a ≥81% branch / 100% statements. 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36% statements / 82.07% → 85.84% funções (84.51% → 86.83% / 86.14% → 90.1% excluindo infraestrutura não testável). Ver seção 7, "Cobertura de Código", e `KANBAN_MELHORIAS.md` v1.20.0. Atualização anterior, mais cedo em 03 de Novembro de 2026: cobertura de código medida formalmente pela primeira vez (`@vitest/coverage-v8` instalado). Atualização anterior a essa, 01 de Novembro de 2026: contagem real re-auditada via `npm test` (não apenas somada a partir da versão anterior do documento, que já estava desatualizada em alguns pontos: `auth.schema.unit.test.ts` e `auth_signup_signin.test.ts` haviam crescido em revisões anteriores sem atualizar esta tabela, e `perfil_profissional.test.ts` nunca havia sido documentado). 155 → 256 casos, 23 → 29 arquivos no total ao longo da sessão de 01/11 (cancelamento/remarcação, status de pagamento, botão de avaliar agendamentos, busca real de médicos, filtro de preço e detalhamento completo de avaliações) — ver `KANBAN_MELHORIAS.md` v1.18.0.  
 **Autor**: Equipe de Desenvolvimento UaiMED  
 **Referência**: [`vitest.config.ts`](../vitest.config.ts) · [`src/__tests__/`](../src/__tests__/) · [`DOCUMENTACAO_PROJETO_UAIMED.md`](../../DOCUMENTACAO_PROJETO_UAIMED.md)
 

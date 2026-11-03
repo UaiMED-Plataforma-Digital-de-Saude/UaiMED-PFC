@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CONVENIOS_ACEITOS, convenioValido } from "../constants/convenios";
 
 export const crmSchema = z.string().trim().toUpperCase()
   .min(3, 'Informe um CRM válido, como 123456-MG')
@@ -34,3 +35,9 @@ const horarioDiaSchema = z.object({
 export const disponibilidadeSchema = z.array(horarioDiaSchema).length(7, "Envie os 7 dias da semana");
 
 export type DisponibilidadeInput = z.infer<typeof disponibilidadeSchema>;
+
+export const atualizarConveniosSchema = z.array(
+  z.string().refine(convenioValido, { message: "Convênio inválido" })
+).max(CONVENIOS_ACEITOS.length, "Lista de convênios inválida");
+
+export type AtualizarConveniosInput = z.infer<typeof atualizarConveniosSchema>;

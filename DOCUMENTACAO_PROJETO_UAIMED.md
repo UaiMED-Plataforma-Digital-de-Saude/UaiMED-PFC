@@ -1,6 +1,6 @@
 # 📘 Documentação Completa do Projeto UaiMED
 
-**Versão**: 1.16.0  
+**Versão**: 1.18.0  
 **Data**: 03 de Novembro de 2026  
 **Classificação**: Documentação Técnica de Engenharia de Software  
 **Status**: Projeto em Desenvolvimento Avançado — Seção de Avaliação do Projeto (percurso, decisões técnicas, desafios, resultados e perspectivas) revisada com base no histórico real do Git (135 commits, 63 PRs, Fev–Out/2026)
@@ -236,7 +236,7 @@ Plataforma mobile-first que:
 
 #### RNF05 - Manutenibilidade
 - **RNF05.1**: Padrões TypeScript ✅
-- **RNF05.2**: Cobertura de testes ≥ 275 casos automatizados (32 arquivos); cobertura de código medida em 03/11/2026 — 87.18% statements excluindo infraestrutura não testável (ver `uaimed-back/documents/TESTES.md`) ✅
+- **RNF05.2**: Cobertura de testes ≥ 294 casos automatizados (34 arquivos); cobertura de código medida em 03/11/2026 — 87.55% statements excluindo infraestrutura não testável (ver `uaimed-back/documents/TESTES.md`) ✅
 - **RNF05.3**: Documentação completa ✅
 
 ---
@@ -728,8 +728,10 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ Artigos de saúde (leitura pública + CRUD administrativo)
 - ✅ Geolocalização (geocodificação de endereço, busca por proximidade)
 - ✅ Chat/Conversas entre usuários (REST, sem WebSocket/tempo real)
-- ✅ **275 casos de teste automatizados** (32 arquivos) cobrindo os endpoints principais
+- ✅ **294 casos de teste automatizados** (34 arquivos) cobrindo os endpoints principais
 - ✅ Confirmação de agendamento por e-mail (Resend) e lembrete local 1h antes da consulta
+- ✅ Comprovante de pagamento por e-mail e tela de sucesso dedicada (`PagamentoSucessoScreen`)
+- ✅ Filtro de busca por convênio/plano de saúde aceito, com autogestão pelo médico
 - ✅ Logging revisado — Prisma não loga mais SQL com dados de usuário; app não loga payloads fora de ambiente de desenvolvimento
 - ✅ Proteção LGPD — consentimento (+ reconsentimento de contas antigas), auditoria de acesso a dados de pacientes e de operações críticas (`GET /admin/logs-auditoria`), relatório de pacientes anonimizado (`GET /admin/relatorios/pacientes`), exportar/excluir meus dados (`GET`/`DELETE /users/me`), retenção do log de auditoria
 - ✅ Docker Compose para desenvolvimento
@@ -758,8 +760,11 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ **Status de pagamento visível na lista de consultas**: `GET /agendamentos` retorna `pagamento`/`valor`/`pixKey`; `MinhasConsultasScreen` exibe badge Pago/Não pago e botão "Pagar agora" (v1.14.0 do Kanban)
 - ✅ **Botão "Avaliar" em consultas concluídas**: `Avaliacao` vinculada a um `agendamentoId` específico; `MinhasConsultasScreen` exibe o botão só quando aplicável (v1.15.0 do Kanban)
 - ✅ **`ResultadosScreen` com busca real na API**: já consumia `GET /medicos` com filtros reais; adicionada nota média, preço da consulta e `amount` na navegação, mais paginação (`skip`/`take`) e agregação de avaliação no backend (v1.16.0 do Kanban)
-- ✅ **`SearchScreen` com filtros funcionais**: já buscava por nome/especialidade/cidade; adicionado filtro de faixa de preço (chips + `precoMin`/`precoMax` em `GET /medicos`). Filtro de plano de saúde aceito movido para o Backlog — não há esse conceito no modelo de dados hoje (v1.17.0 do Kanban)
+- ✅ **`SearchScreen` com filtros funcionais**: já buscava por nome/especialidade/cidade; adicionado filtro de faixa de preço (chips + `precoMin`/`precoMax` em `GET /medicos`) e, posteriormente, filtro de convênio aceito — ver abaixo (v1.17.0 do Kanban)
 - ✅ **`HistoricoAvaliacoesScreen` com dados reais**: modelo `Avaliacao` expandido com o detalhamento completo (4 notas por critério, voltaria, recomenda, sugestões) que o formulário de avaliação já coletava mas nunca persistia — corrigido na raiz, não só na tela de histórico. Atalho "Minhas Avaliações" adicionado em `PerfilScreen` (v1.18.0 do Kanban)
+- ✅ **Confirmação de horário por e-mail (Resend) e lembrete local 1h antes**: `email.service.ts` novo no backend; `App.tsx` corrigido para solicitar permissão de notificação também no Expo Go (v1.22.0 do Kanban)
+- ✅ **Comprovante de pagamento por e-mail e tela de sucesso dedicada**: substitui o modal antigo; expõe separadamente o desconto de cupom e o desconto de plano de saúde, achado real durante a verificação end-to-end (v1.23.0 do Kanban)
+- ✅ **Filtro de busca por convênio/plano de saúde aceito**: catálogo fixo de convênios, campo `Profissional.convenios: String[]`, médico autogerencia via `PUT /professionals/me/convenios`, `GET /medicos` aceita `?convenio=` (v1.24.0 do Kanban)
 
 #### ⚠️ Em Desenvolvimento
 
@@ -778,10 +783,10 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 ### 8.2 Métricas de Qualidade
 
 #### Cobertura de Testes
-- **Total de casos**: **275 testes automatizados** (32 arquivos) — todos passando ✅
-- **Cobertura de código**: medida formalmente pela primeira vez em 03/11/2026 — 87.18% statements / 90.48% funções, excluindo infraestrutura não testável por desenho (seed, scripts, bootstrap) — ver `TESTES.md` seção 7
-- **Adições mais recentes**: `unit/email.unit.test.ts` (3 casos, confirmação por e-mail), `unit/geocoding.unit.test.ts` (6 casos), `especialidades.test.ts` (2 casos), `conta-bancaria.test.ts` ampliado (3→11 casos)
-- **Suítes unitárias**: `auth.schema.unit`, `hash.unit`, `jwt.unit`, `geocoding.unit`, `email.unit` — 102 casos
+- **Total de casos**: **294 testes automatizados** (34 arquivos) — todos passando ✅
+- **Cobertura de código**: medida formalmente pela primeira vez em 03/11/2026 — 87.55% statements / 91.07% funções, excluindo infraestrutura não testável por desenho (seed, scripts, bootstrap) — ver `TESTES.md` seção 7
+- **Adições mais recentes**: `convenios.test.ts` (2 casos), `professionals_convenios.test.ts` (9 casos, filtro de convênio), `unit/email.unit.test.ts` ampliado (3→9 casos, comprovante de pagamento)
+- **Suítes unitárias**: `auth.schema.unit`, `hash.unit`, `jwt.unit`, `geocoding.unit`, `email.unit` — 108 casos
 - **Frontend**: Testes manuais (fluxo completo verificado) + `cadastroValidation.test.cjs`/`avaliacoesPerfil.test.cjs` (Node `--test`); sem suíte automatizada própria para as telas
 - **Detalhamento completo, suíte por suíte**: [`uaimed-back/documents/TESTES.md`](./uaimed-back/documents/TESTES.md) (fonte da verdade — mantido atualizado a cada sessão; os números aqui podem ficar defasados entre atualizações)
 
@@ -1188,7 +1193,7 @@ Ao todo, o percurso soma **135 commits e 63 pull requests** revisados e mesclado
 
 ### 13.4 Resultados Alcançados
 
-- Backend: API REST completa com autenticação JWT + refresh token, validação Zod em todos os endpoints, rate limiting contra brute-force, **275 testes automatizados (100% passando, ~87% de cobertura de código)** e CI executando a cada push/PR.
+- Backend: API REST completa com autenticação JWT + refresh token, validação Zod em todos os endpoints, rate limiting contra brute-force, **294 testes automatizados (100% passando, ~87% de cobertura de código)** e CI executando a cada push/PR.
 - Frontend: fluxo ponta-a-ponta de agendamento, telas de clínicas, profissionais, artigos de saúde, chat, geolocalização, recuperação de senha, central de ajuda e, mais recentemente, dashboard do médico (contatos, preço/disponibilidade) e tela de administração.
 - **63 pull requests** mesclados ao longo de ~8 meses de desenvolvimento ativo (Fev–Out/2026).
 - Postura de segurança evoluiu de forma incremental: de um MVP funcional (Abril) para um backend com rate limiting, refresh token e validação completa (Setembro–Outubro).
@@ -1206,7 +1211,7 @@ Ao todo, o percurso soma **135 commits e 63 pull requests** revisados e mesclado
 O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 - ✅ Backend completo e funcional
 - ✅ Frontend mobile implementado e integrado
-- ✅ **275 testes automatizados** cobrindo os endpoints críticos — todos passando, ~87% de cobertura de código
+- ✅ **294 testes automatizados** cobrindo os endpoints críticos — todos passando, ~87% de cobertura de código
 - ✅ **Fluxo de agendamento ponta-a-ponta**: busca → calendário → horário → confirmação → pagamento → avaliação
 - ✅ CI/CD com GitHub Actions configurado
 - ✅ Banco de dados migrado e populado com dados reais
@@ -1250,6 +1255,40 @@ O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 **Verificação:** 9 novos casos de teste ao longo da sessão; suíte de backend 256 → 275 casos (29 → 32 arquivos). Verificado end-to-end no app rodando via driver headless contra o backend real com a chave do Resend de verdade: agendamento criado, e-mails efetivamente enviados ao paciente e ao médico (confirmado nos logs do container), zero erros de console.
 
 Ver `KANBAN_MELHORIAS.md` v1.19.0 → v1.22.0 e `uaimed-back/documents/TESTES.md` v1.11.0 para o detalhamento completo.
+
+---
+
+### v1.17.0 — 03 de Novembro de 2026
+
+#### 🟢 Implementado
+
+**Confirmação de pagamento — comprovante por e-mail e tela de sucesso dedicada:**
+- Backend: `enviarEmailComprovantePagamento()` novo em `email.service.ts` — e-mail HTML com valor cobrado, desconto(s), valor pago, método e ID do pagamento, sem nunca bloquear o pagamento já processado se o envio falhar
+- Frontend: nova tela `PagamentoSucessoScreen.tsx` substitui o modal antigo, com botão "Compartilhar Comprovante" (API `Share` nativa)
+- **Correção de escopo**: o critério "status do pagamento atualizado no card de agendamento" já estava satisfeito desde 01/11 (`MinhasConsultasScreen.tsx`); optado por tela formatada em vez de PDF (ambas válidas no critério original)
+- **Achado real #1**: rodar `npm test` localmente com uma `RESEND_API_KEY` real no `.env` disparava e-mails de verdade durante os testes — `.env.test` não define a variável, e o carregamento em cascata de `env.ts` preenchia a partir do `.env` real. Corrigido com trava explícita por `NODE_ENV === 'test'`, com teste de regressão
+- **Achado real #2**, na própria verificação end-to-end: pagando com "Plano de saúde" ativo, o comprovante mostrava valor cobrado e valor pago sem explicar a diferença — só o desconto de cupom era exposto, nunca o desconto do plano. Corrigido expondo `descontoPlano` separado na API, e-mail e tela
+
+**Verificação:** 6 novos casos de teste (`unit/email.unit.test.ts`, 3 → 9); suíte de backend 275 → 281 casos (mesmos 32 arquivos). Verificado end-to-end no app rodando (Metro precisou reiniciar com `--clear` para pegar os edits do front): pagamento com plano de saúde ativo exibiu o desconto corretamente e o e-mail foi enviado de verdade.
+
+Ver `KANBAN_MELHORIAS.md` v1.23.0 e `uaimed-back/documents/TESTES.md` v1.12.0 para o detalhamento completo.
+
+---
+
+### v1.18.0 — 03 de Novembro de 2026
+
+#### 🟢 Implementado
+
+**Filtro de busca por convênio/plano de saúde aceito:**
+- Resolvidas as 3 decisões de design que estavam em aberto no Backlog: catálogo fixo de convênios (`src/constants/convenios.ts`, mesmo padrão de `especialidades.ts`, em vez de texto livre); campo `Profissional.convenios: String[]` — array nativo do Postgres, em vez de uma relação N:N; médico autogerencia via `GET`/`PUT /professionals/me/convenios`, mesmo padrão já usado para preço/disponibilidade
+- Backend: `GET /convenios` (catálogo público), filtro `?convenio=` em `GET /medicos`, `convenios` incluído nas respostas de listagem e detalhe
+- Frontend: `ConvenioDropdown.tsx` novo em `SearchScreen`; nova tela `MedicoConveniosScreen.tsx` (checklist multi-seleção) com atalho em `PerfilScreen`; convênios exibidos no card de resultado e na tela de detalhes do médico
+- Migração de banco + seed populado com convênios realistas, para o filtro já nascer demonstrável
+- **Verificação adicional do estado da feature de avaliações** (sem pedido de implementação — já completa, sem pendências): corrigiu um registro anterior deste documento/Kanban — `useAvaliacoes.ts` não é 100% código morto, a parte de `notaMedia` é usada de verdade por `PerfilScreen`; só partes específicas do hook (mock nunca finalizado) e `CardAvaliacao.tsx` são mortas, movidas para item de limpeza no Backlog
+
+**Verificação:** 17 novos casos de teste; suíte de backend 281 → 294 casos (32 → 34 arquivos). Verificado end-to-end no app rodando: filtro por "Unimed" retornou os médicos certos; médico alternou e salvou convênios com persistência confirmada.
+
+Ver `KANBAN_MELHORIAS.md` v1.24.0 e `uaimed-back/documents/TESTES.md` v1.13.0 para o detalhamento completo.
 
 ---
 
