@@ -1,6 +1,6 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.19.0  
+**Versão**: 1.20.0  
 **Data**: 03 de Novembro de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
@@ -525,6 +525,29 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 
 ---
 
+### ✅ [IMPROVEMENT] Cobertura de testes — fechar os 3 arquivos genuinamente fracos
+**Área**: Backend | **Prioridade**: 🟢 Baixo | **Esforço**: 2
+
+**Descrição original**: `geocoding.service.ts` (30.5%), `conta-bancaria.controller.ts` (54.2% statements / 11.1% branch) e `especialidades.controller.ts` (57.1%) não tinham nenhum teste exercitando seu código de verdade (item levantado no card anterior).
+
+**Resolução**:
+- `especialidades.controller.ts` → **100% / 100%** — `especialidades.test.ts` (2 casos), endpoint `GET /api/especialidades` não tinha teste nenhum
+- `conta-bancaria.controller.ts` → **93.75% / 81.8% branch** — `conta-bancaria.test.ts` ampliado de 3 para 11 casos: `obter()` como médico (dados do `Profissional`), como clínica e como paciente (dados do `Usuario`), `403` de usuário inválido em `atualizar()`, `404` de usuário inexistente em ambos os métodos, e `PUT` como médico (nunca testado antes)
+- `geocoding.service.ts` → **100% / 83.33% branch** — `unit/geocoding.unit.test.ts` (6 casos), mockando `fetch` global (`vi.stubGlobal`) para cobrir sucesso, resposta não-ok, sem resultados, coordenadas inválidas e exceção de rede sem depender da API real do Nominatim (OpenStreetMap)
+
+**Achados durante a escrita dos testes** (não corrigidos nesta sessão, só documentados):
+- Os blocos `catch`/500 de `conta-bancaria.controller.ts` continuam sem teste — exigiriam mockar o Prisma para forçar erro, padrão que o projeto não usa em nenhum outro controller
+- Em `geocoding.service.ts`, a guarda `if (!query.trim()) return null;` é **código morto**: a query sempre inclui o literal `"Brasil"` antes do `filter(Boolean)`, então nunca pode ficar vazia — o branch restante (83.33%, não 100%) é inalcançável por qualquer teste possível, não falta de cobertura
+
+Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36% statements / 82.07% → 85.84% funções (86.83%/90.1% excluindo infraestrutura não testável). Detalhes em [`uaimed-back/documents/TESTES.md`](./uaimed-back/documents/TESTES.md#cobertura-de-código-vitest-run---coverage-provider-v8).
+
+**Critério de aceite**:
+- [x] Testes cobrindo os ramos de erro/sucesso não exercitados em `conta-bancaria.controller.ts`
+- [x] Testes cobrindo `especialidades.controller.ts`
+- [x] Testes cobrindo `geocoding.service.ts` (mock do serviço externo de geocodificação)
+
+---
+
 ## 🔵 A FAZER — Próxima Sprint
 
 > Itens refinados e prontos para desenvolvimento.
@@ -615,18 +638,6 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 
 ---
 
-### 📌 [IMPROVEMENT] Cobertura de testes — fechar os 3 arquivos genuinamente fracos
-- **Área**: Backend
-- **Prioridade**: 🟢 Baixo
-- **Esforço**: 2
-- **Descrição**: Levantado ao medir a cobertura real em 03/11/2026 (ver Concluído — 03/11/2026 e `TESTES.md`). Diferente da maior parte do código (que já está ≥80%), estes 3 arquivos têm partes nunca exercitadas por nenhum teste: `geocoding.service.ts` (30.5% statements), `conta-bancaria.controller.ts` (54.2% statements / 11.1% branch) e `especialidades.controller.ts` (57.1% statements).
-- **Critério de aceite**:
-  - [ ] Testes cobrindo os ramos de erro/sucesso não exercitados em `conta-bancaria.controller.ts`
-  - [ ] Testes cobrindo `especialidades.controller.ts`
-  - [ ] Testes cobrindo `geocoding.service.ts` (ou mock do serviço externo de geocodificação, se for isso que falta)
-
----
-
 ### 📌 [IMPROVEMENT] `ContatoProfissionalScreen` — marginTop no topo
 - **Área**: Frontend
 - **Prioridade**: 🟢 Baixo
@@ -688,10 +699,10 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 | 🟢 Concluído — Mai–Out/2026 (consolidado) | 13 itens |
 | 🟢 Concluído — 30/10/2026 | 6 itens |
 | 🟢 Concluído — 01/11/2026 | 7 itens |
-| 🟢 Concluído — 03/11/2026 | 1 item |
+| 🟢 Concluído — 03/11/2026 | 2 itens |
 | 🔴 Bug Conhecido | 0 itens |
 | 🔵 A Fazer (próxima sprint) | 3 itens |
-| 🗃️ Backlog | 7 itens |
+| 🗃️ Backlog | 6 itens |
 | ⏸️ Bloqueado | 2 itens |
 | **Total** | **58 itens** |
 
@@ -737,6 +748,7 @@ Sprint entrega PFC
 | 01/11/2026 | 1.17.0 | Implementado "SearchScreen — busca real com filtros funcionais", mais uma vez com card desatualizado: a tela já buscava por nome/especialidade/cidade e já navegava para `Resultados` com parâmetros reais. Único gap genuíno era faixa de preço, agora implementado (`precoMin`/`precoMax` em `GET /medicos`, chips de faixa em `SearchScreen`). **Filtro de "plano de saúde aceito" não implementado**: não existe esse conceito no modelo `Profissional` hoje (só um desconto genérico de 15% escolhido pelo paciente no pagamento, sem relação com convênios específicos) — implementar de verdade exige desenhar um modelo de dados novo; movido para item próprio no Backlog em vez de construir um filtro decorativo sem dado real por trás. 1 novo caso de teste, verificado end-to-end. |
 | 01/11/2026 | 1.18.0 | Implementado "HistoricoAvaliacoesScreen — consumir API real". Revisão antes de codar achou um problema bem mais fundo que "trocar mock por fetch": a tela foi construída contra um shape de avaliação (4 notas por critério, voltaria, recomenda, sugestões) que **nunca existiu no backend** — `AvaliacaoScreen` já coletava tudo isso no formulário mas `handleSubmit` só enviava a média das notas + comentário, descartando o resto silenciosamente; o modelo `Avaliacao` só tinha `nota`+`comentario`. Ou seja, toda avaliação enviada no app perdia a maior parte do feedback, não só a tela de histórico estava desatualizada. **Decisão do usuário: resolver na raiz.** Migração expandindo `Avaliacao` com os campos de detalhamento (opcionais, nulos para avaliações antigas); `POST /avaliacoes` e `AvaliacaoScreen.handleSubmit` passam a persistir tudo; `HistoricoAvaliacoesScreen` reescrita consumindo dado real, com degradação graciosa pra avaliações antigas sem detalhe. Achado adicional: a tela não tinha ponto de entrada nenhum na navegação — adicionado atalho em `PerfilScreen`. 5 novos casos de teste, verificado end-to-end (avaliação nova com detalhamento completo e avaliação antiga simples, lado a lado, cada uma renderizando certo). |
 | 03/11/2026 | 1.19.0 | Medida formalmente a cobertura de código pela primeira vez (`@vitest/coverage-v8` instalado — não havia provider configurado). Resultado: 71.4% statements/lines, 63.26% branch, 82.07% funções em todos os arquivos; 84.51% statements / 86.14% funções excluindo 5 arquivos de infraestrutura não testável por desenho (bootstrap do servidor, seed, script de purga de logs, setup global de teste, script de validação manual). Já supera a meta informal de 80%. **3 arquivos com lacuna real** (não ruído de infraestrutura) movidos para item próprio no Backlog: `geocoding.service.ts` (30.5%), `conta-bancaria.controller.ts` (54.2% statements/11.1% branch), `especialidades.controller.ts` (57.1%). Número completo registrado em `TESTES.md` v1.9.0. |
+| 03/11/2026 | 1.20.0 | Fechados os 3 arquivos de cobertura fraca levantados na v1.19.0. `especialidades.controller.ts` → 100%/100% (endpoint não tinha teste nenhum); `conta-bancaria.controller.ts` → 93.75%/81.8% branch (`obter()` nunca tinha sido testado; cobertos médico/clínica/paciente, `403`, `404` e `PUT` como médico); `geocoding.service.ts` → 100%/83.33% branch (mock de `fetch` global via `vi.stubGlobal`, cobrindo sucesso/erro HTTP/sem resultados/coordenadas inválidas/exceção de rede, sem bater na API real do Nominatim). **Achado**: a guarda de query vazia em `geocoding.service.ts` é código morto (a query sempre inclui o literal `"Brasil"`, nunca fica vazia) — documentado, não corrigido. Suíte: 256 → 272 casos, 29 → 31 arquivos; cobertura total 71.4% → 73.36% statements / 82.07% → 85.84% funções. Detalhes em `TESTES.md` v1.10.0. |
 
 ---
 

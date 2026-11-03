@@ -1,6 +1,6 @@
 # 🧪 Estratégia e Documentação de Testes — UaiMED Backend
 
-**Versão**: 1.9.0  
+**Versão**: 1.10.0  
 **Data**: 03 de Novembro de 2026  
 **Framework**: Vitest 1.4 + Supertest 6.3  
 **Banco de Teste**: PostgreSQL (`uaimed_test`) — isolado do banco de desenvolvimento
@@ -622,7 +622,8 @@ npx vitest run --coverage
 | `artigos.test.ts` | 17 | Integração | ✅ Passando |
 | `conversas.test.ts` | 5 | Integração | ✅ Passando |
 | `destaques.test.ts` | 9 | Integração | ✅ Passando |
-| `conta-bancaria.test.ts` | 3 | Integração | ✅ Passando |
+| `conta-bancaria.test.ts` | 11 | Integração | ✅ Passando |
+| `especialidades.test.ts` | 2 | Integração | ✅ Passando |
 | `users.test.ts` | 4 | Integração | ✅ Passando |
 | `auditoria.test.ts` | 2 | Integração | ✅ Passando |
 | `relatorios.test.ts` | 2 | Integração | ✅ Passando |
@@ -633,7 +634,7 @@ npx vitest run --coverage
 | `agendamentos_listar_pagamento.test.ts` | 2 | Integração | ✅ Passando |
 | `avaliacoes_agendamento.test.ts` | 7 | Integração | ✅ Passando |
 | `medicos_listar.test.ts` | 4 | Integração | ✅ Passando |
-| **Subtotal** | **163** | | **✅ 163/163** |
+| **Subtotal** | **173** | | **✅ 173/173** |
 
 #### Testes Unitários
 
@@ -642,7 +643,8 @@ npx vitest run --coverage
 | `unit/jwt.unit.test.ts` | 8 | Unitário | ✅ Passando |
 | `unit/hash.unit.test.ts` | 8 | Unitário | ✅ Passando |
 | `unit/auth.schema.unit.test.ts` | 77 | Unitário | ✅ Passando |
-| **Subtotal** | **93** | | **✅ 93/93** |
+| `unit/geocoding.unit.test.ts` | 6 | Unitário | ✅ Passando |
+| **Subtotal** | **99** | | **✅ 99/99** |
 
 > `auth.schema.unit.test.ts` cresceu de 23 para 77 casos ao longo de revisões anteriores (não documentadas aqui individualmente) com blocos `it.each` cobrindo variações de nome com acento, telefone em formatos diferentes, senha no limite de 72 bytes, CRM e CNPJ inválidos — ver seção 4.3 para os grupos, não cada valor testado.
 
@@ -650,40 +652,49 @@ npx vitest run --coverage
 
 | Tipo | Casos | Status |
 |------|-------|--------|
-| Integração (API) | 163 | ✅ |
-| Unitários | 93 | ✅ |
+| Integração (API) | 173 | ✅ |
+| Unitários | 99 | ✅ |
 | E2E automatizado | 0 | ⚠️ Planejado |
-| **Total** | **256** | **✅ 256/256** (executado em 01/11/2026, `Duration 9.94s`) |
+| **Total** | **272** | **✅ 272/272** (executado em 03/11/2026, 31 arquivos) |
 
 ### Cobertura de Código (`vitest run --coverage`, provider v8)
 
-> Medida formalmente em 03/11/2026 — resolve o item de Backlog "Testes automatizados — cobertura residual" do `KANBAN_MELHORIAS.md`. Não havia provider de cobertura instalado até então; `@vitest/coverage-v8@1.6.1` adicionado como dev dependency (a versão declarada em `package.json`, `^1.4.4`, já rodava de fato em `1.6.1` por resolução de peer dependency).
+> Medida formalmente em 03/11/2026 — resolve o item de Backlog "Testes automatizados — cobertura residual" do `KANBAN_MELHORIAS.md`. Não havia provider de cobertura instalado até então; `@vitest/coverage-v8@1.6.1` adicionado como dev dependency (a versão declarada em `package.json`, `^1.4.4`, já rodava de fato em `1.6.1` por resolução de peer dependency). Número inicial (71.4%/84.51%) revisado no mesmo dia após fechar os 3 arquivos fracos identificados (ver abaixo).
 
 | Métrica | Todos os arquivos | Excluindo infraestrutura não testável¹ |
 |---|---|---|
-| Statements | 71.4% | **84.51%** |
-| Branches | 63.26% | — |
-| Functions | 82.07% | **86.14%** |
-| Lines | 71.4% | — |
+| Statements | 73.36% | **86.83%** |
+| Branches | 65.27% | — |
+| Functions | 85.84% | **90.1%** |
+| Lines | 73.36% | — |
 
 ¹ `server.ts` (bootstrap), `src/prisma/seed.ts`, `src/scripts/purgar-logs-auditoria.ts`, `src/tests/globalSetup.ts` e `scripts/validacao-funcional.cjs` — todos em 0% por não serem exercitados por testes de unidade/integração por desenho (scripts manuais, seed de dados, bootstrap do servidor), não por lacuna de teste.
 
-Com a exclusão acima, a suíte já supera a meta informal de 80%. Sem exclusão nenhuma, `src/routes` (94.04%), `src/schemas` (93.05%), `src/middleware` (87.38%) e `src/utils` (91.2%) já estavam acima de 80%; os pontos reais mais fracos (não é ruído de infraestrutura):
+Com a exclusão acima, a suíte já supera a meta informal de 80%. Sem exclusão nenhuma, `src/routes` (94.04%), `src/schemas` (93.05%), `src/middleware` (87.38%) e `src/utils` (91.2%) já estavam acima de 80%.
+
+**Fechados em 03/11/2026** — os 3 arquivos com lacuna real (não ruído de infraestrutura), via testes novos:
+
+| Arquivo | Antes | Depois | Como |
+|---|---|---|---|
+| `src/controllers/especialidades.controller.ts` | 57.1% / 100% branch | **100% / 100%** | `especialidades.test.ts` (2 casos novos) — endpoint não tinha nenhum teste |
+| `src/controllers/conta-bancaria.controller.ts` | 54.2% / 11.1% branch | **93.75% / 81.8%** | `conta-bancaria.test.ts` ampliado (3 → 11 casos): `obter()` como médico/clínica/paciente, `403` de usuário inválido, `404` de usuário inexistente, `PUT` como médico |
+| `src/services/geocoding.service.ts` | 30.5% / 100% branch | **100% / 83.33%** | `unit/geocoding.unit.test.ts` (6 casos novos) — `fetch` global mockado (`vi.stubGlobal`) para cobrir sucesso, HTTP não-ok, sem resultados, coordenadas inválidas e exceção de rede, sem depender da API real do Nominatim |
+
+**Achado durante a escrita dos testes de `conta-bancaria.controller.ts`**: os blocos `catch`/500 de `obter()` e `atualizar()` continuam sem teste (exigiriam mockar o Prisma para forçar erro) — consistente com o resto do projeto, que não testa esse padrão em nenhum outro controller.
+
+**Achado durante a escrita dos testes de `geocoding.service.ts`**: a guarda `if (!query.trim()) return null;` é código morto — a query sempre inclui o literal `"Brasil"` antes do `filter(Boolean)`, então nunca pode ficar vazia independente do que `endereco`/`cidade`/`estado` contenham. É por isso que o branch restante (83.33%, não 100%) é inalcançável por qualquer teste, não falta de cobertura. Não corrigido nesta sessão — só identificado.
+
+Pontos restantes abaixo de 80% (sem exclusão), não cobertos nesta sessão — fora do escopo deste item, que era medir e fechar só os 3 arquivos acima:
 
 | Arquivo | Statements | Branch |
 |---|---|---|
-| `src/services/geocoding.service.ts` | 30.5% | 100%* |
-| `src/controllers/conta-bancaria.controller.ts` | 54.2% | 11.1% |
-| `src/controllers/especialidades.controller.ts` | 57.1% | 100%* |
 | `src/middleware/errorHandler.ts` | 58.3% | 100%* |
 | `src/controllers/medicos.controller.ts` | 64.7% | 77.4% |
 | `src/controllers/admin.controller.ts` | 73.3% | 60% |
 | `src/controllers/contatos.controller.ts` | 73.6% | 21.4% |
 | `src/services/auth.service.ts` | 75.9% | 76.6% |
 
-\* Branch 100% nesses três apesar do baixo statement coverage: são funções pequenas sem bifurcação relevante ainda não chamadas por nenhum teste — o problema é 0 chamadas, não ramos não exercitados dentro de uma chamada.
-
-**Não implementado**: elevar a cobertura desses arquivos fracos para a meta — medir era o objetivo deste item; escrever os testes faltantes ficou como item novo, a refinar.
+\* Branch 100% apesar do baixo statement coverage: função pequena sem bifurcação relevante ainda não chamada por nenhum teste — o problema é 0 chamadas, não ramos não exercitados dentro de uma chamada.
 
 ### Endpoints Cobertos
 
@@ -786,7 +797,7 @@ hookTimeout: 30000,  // 30s para beforeAll/afterAll
 ---
 
 **Documento criado em**: 17 de Abril de 2026  
-**Última atualização**: 03 de Novembro de 2026 — cobertura de código medida formalmente pela primeira vez (`@vitest/coverage-v8` instalado; 71.4% bruto / 84.51% excluindo infraestrutura não testável) — ver seção 7, "Cobertura de Código" e `KANBAN_MELHORIAS.md` v1.19.0. Atualização anterior, 01 de Novembro de 2026: contagem real re-auditada via `npm test` (não apenas somada a partir da versão anterior do documento, que já estava desatualizada em alguns pontos: `auth.schema.unit.test.ts` e `auth_signup_signin.test.ts` haviam crescido em revisões anteriores sem atualizar esta tabela, e `perfil_profissional.test.ts` nunca havia sido documentado). 155 → 256 casos, 23 → 29 arquivos no total ao longo da sessão de 01/11 (cancelamento/remarcação, status de pagamento, botão de avaliar agendamentos, busca real de médicos, filtro de preço e detalhamento completo de avaliações) — ver `KANBAN_MELHORIAS.md` v1.18.0.  
+**Última atualização**: 03 de Novembro de 2026 — fechados os 3 arquivos com cobertura genuinamente baixa identificados na medição inicial do mesmo dia (`especialidades.controller.ts`, `conta-bancaria.controller.ts`, `geocoding.service.ts`), todos levados a ≥81% branch / 100% statements. 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36% statements / 82.07% → 85.84% funções (84.51% → 86.83% / 86.14% → 90.1% excluindo infraestrutura não testável). Ver seção 7, "Cobertura de Código", e `KANBAN_MELHORIAS.md` v1.20.0. Atualização anterior, mais cedo em 03 de Novembro de 2026: cobertura de código medida formalmente pela primeira vez (`@vitest/coverage-v8` instalado). Atualização anterior a essa, 01 de Novembro de 2026: contagem real re-auditada via `npm test` (não apenas somada a partir da versão anterior do documento, que já estava desatualizada em alguns pontos: `auth.schema.unit.test.ts` e `auth_signup_signin.test.ts` haviam crescido em revisões anteriores sem atualizar esta tabela, e `perfil_profissional.test.ts` nunca havia sido documentado). 155 → 256 casos, 23 → 29 arquivos no total ao longo da sessão de 01/11 (cancelamento/remarcação, status de pagamento, botão de avaliar agendamentos, busca real de médicos, filtro de preço e detalhamento completo de avaliações) — ver `KANBAN_MELHORIAS.md` v1.18.0.  
 **Autor**: Equipe de Desenvolvimento UaiMED  
 **Referência**: [`vitest.config.ts`](../vitest.config.ts) · [`src/__tests__/`](../src/__tests__/) · [`DOCUMENTACAO_PROJETO_UAIMED.md`](../../DOCUMENTACAO_PROJETO_UAIMED.md)
 
