@@ -47,6 +47,7 @@ describe('GET /medicos — avaliação média e paginação', () => {
         estado: 'MG',
         cep: '30000-000',
         precoConsulta: 100,
+        convenios: ['Unimed'],
       },
     });
     profUsuarioB = await prisma.usuario.create({
@@ -70,6 +71,7 @@ describe('GET /medicos — avaliação média e paginação', () => {
         estado: 'MG',
         cep: '30100-000',
         precoConsulta: 300,
+        convenios: ['Amil'],
       },
     });
 
@@ -118,5 +120,19 @@ describe('GET /medicos — avaliação média e paginação', () => {
     const ids = res.body.map((p: any) => p.id);
     expect(ids).toContain(profissionalB.id);
     expect(ids).not.toContain(profissionalA.id);
+  });
+
+  it('filtra por convênio aceito', async () => {
+    const res = await request(app).get('/api/medicos').query({ especialidade: 'Lista Geral', convenio: 'Unimed' });
+    expect(res.status).toBe(200);
+    const ids = res.body.map((p: any) => p.id);
+    expect(ids).toContain(profissionalA.id);
+    expect(ids).not.toContain(profissionalB.id);
+  });
+
+  it('inclui o array de convenios na resposta', async () => {
+    const res = await request(app).get('/api/medicos').query({ especialidade: 'Lista Geral' });
+    const a = res.body.find((p: any) => p.id === profissionalA.id);
+    expect(a.convenios).toEqual(['Unimed']);
   });
 });

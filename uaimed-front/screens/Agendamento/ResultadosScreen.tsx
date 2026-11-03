@@ -8,7 +8,7 @@ import uaiMedApi from '../../api/uaiMedApi';
 type Props = StackScreenProps<AgendamentoStackParamList, 'Resultados'>;
 
 const ResultadosScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { query, especialidade, cidade, estado, precoMin, precoMax } = route.params ?? {};
+  const { query, especialidade, cidade, estado, precoMin, precoMax, convenio } = route.params ?? {};
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<any[]>([]);
   const [iniciandoConversaId, setIniciandoConversaId] = useState<string | null>(null);
@@ -58,6 +58,7 @@ const ResultadosScreen: React.FC<Props> = ({ route, navigation }) => {
         if (cidade) params.cidade = cidade;
         if (precoMin !== undefined) params.precoMin = precoMin;
         if (precoMax !== undefined) params.precoMax = precoMax;
+        if (convenio) params.convenio = convenio;
 
         const res = await uaiMedApi.get('/medicos', { params });
         setResults(res.data);
@@ -70,7 +71,7 @@ const ResultadosScreen: React.FC<Props> = ({ route, navigation }) => {
     };
 
     fetchResults();
-  }, [query, especialidade, cidade, estado, precoMin, precoMax]);
+  }, [query, especialidade, cidade, estado, precoMin, precoMax, convenio]);
 
   const renderItem = ({ item }: any) => (
     <TouchableOpacity
@@ -113,6 +114,14 @@ const ResultadosScreen: React.FC<Props> = ({ route, navigation }) => {
             <Ionicons name="location-outline" size={13} color="#888" />
             <Text style={styles.locationText}>
               {[item.cidade, item.estado].filter(Boolean).join(', ')}
+            </Text>
+          </View>
+        )}
+        {item.convenios?.length > 0 && (
+          <View style={styles.locationRow}>
+            <Ionicons name="shield-checkmark-outline" size={13} color="#888" />
+            <Text style={styles.locationText} numberOfLines={1}>
+              {item.convenios.join(', ')}
             </Text>
           </View>
         )}

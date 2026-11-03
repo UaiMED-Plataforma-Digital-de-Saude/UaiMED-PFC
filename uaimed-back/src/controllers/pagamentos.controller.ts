@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/database";
 import AuditoriaService from "../services/auditoria.service";
+import { enviarEmailComprovantePagamento } from "../services/email.service";
 import logger from "../utils/logger";
 
 class PagamentosController {
@@ -89,7 +90,15 @@ class PagamentosController {
         where: { agendamentoId },
         update: { usuarioId, valor, desconto, valorFinal, metodo, cupom, status: "concluido" },
         create: { usuarioId, agendamentoId, valor, desconto, valorFinal, metodo, cupom, status: "concluido" },
-        include: { usuario: { select: { nome: true } } },
+        include: {
+          usuario: { select: { nome: true, email: true } },
+          agendamento: {
+            select: {
+              dataHora: true,
+              profissional: { select: { especialidade: true, usuario: { select: { nome: true } } } },
+            },
+          },
+        },
       });
       logger.success(`Pagamento processado: ${pagamento.id}`);
 
@@ -103,7 +112,28 @@ class PagamentosController {
         ip: req.ip,
       });
 
-      return res.status(201).json({ id: pagamento.id, status: pagamento.status, valor: pagamento.valor, desconto: pagamento.desconto, valorFinal: pagamento.valorFinal, dataProcessamento: pagamento.criado_em });
+      // E-mail de comprovante é um efeito colateral — não deve derrubar o
+      // pagamento já processado se o envio falhar.
+      try {
+        await enviarEmailComprovantePagamento({
+          paciente: { nome: pagamento.usuario.nome, email: pagamento.usuario.email },
+          pagamentoId: pagamento.id,
+          valor: pagamento.valor,
+          desconto: pagamento.desconto,
+          descontoPlano: planDiscount,
+          valorFinal: pagamento.valorFinal,
+          metodo: pagamento.metodo,
+          medico: { nome: pagamento.agendamento.profissional.usuario.nome, especialidade: pagamento.agendamento.profissional.especialidade },
+          dataHora: pagamento.agendamento.dataHora,
+        });
+      } catch (emailErr) {
+        logger.error('Falha ao enviar e-mail de comprovante de pagamento', emailErr);
+      }
+
+      // `descontoPlano` não é persistido (só o desconto de cupom vive em `Pagamento.desconto`
+      // hoje — gap conhecido, documentado no Kanban); vem calculado nesta requisição para a
+      // resposta e o e-mail refletirem o desconto real aplicado no momento do pagamento.
+      return res.status(201).json({ id: pagamento.id, status: pagamento.status, valor: pagamento.valor, desconto: pagamento.desconto, descontoPlano: planDiscount, valorFinal: pagamento.valorFinal, metodo: pagamento.metodo, dataProcessamento: pagamento.criado_em });
     } catch (err) {
       logger.error("Erro ao processar pagamento", err);
       return res.status(500).json({ error: "Erro ao processar pagamento" });

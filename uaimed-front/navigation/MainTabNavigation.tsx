@@ -23,6 +23,7 @@ import MedicoAvaliacoesScreen from '../screens/Main/MedicoAvaliacoesScreen';
 import MedicoDashboardScreen from '../screens/Main/MedicoDashboardScreen';
 import MedicoContatosScreen from '../screens/Main/MedicoContatosScreen';
 import MedicoDisponibilidadeScreen from '../screens/Main/MedicoDisponibilidadeScreen';
+import MedicoConveniosScreen from '../screens/Main/MedicoConveniosScreen';
 import ClinicaHomeScreen from '../screens/Main/ClinicaHomeScreen';
 import ClinicaMedicosScreen from '../screens/Main/ClinicaMedicosScreen';
 import { TipoUsuario } from '../types/usuario';
@@ -219,6 +220,21 @@ const MainTabNavigator: React.FC = () => {
         component={MedicoDisponibilidadeScreen}
         options={({ navigation }) => ({
           title: 'Horários de Atendimento',
+          tabBarItemStyle: hiddenTab,
+          headerRight: () => null,
+          headerLeft: () => (
+            <TouchableOpacity style={{ marginLeft: 16 }} onPress={() => navigation.navigate('Perfil')}>
+              <Ionicons name="arrow-back" size={24} color="#333" />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+
+      <Tab.Screen
+        name="MedicoConvenios"
+        component={MedicoConveniosScreen}
+        options={({ navigation }) => ({
+          title: 'Convênios Aceitos',
           tabBarItemStyle: hiddenTab,
           headerRight: () => null,
           headerLeft: () => (

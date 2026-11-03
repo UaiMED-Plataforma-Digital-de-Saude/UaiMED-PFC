@@ -793,6 +793,13 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
               label="Meus Pagamentos"
               sublabel="Histórico financeiro"
               onPress={() => navigation.navigate('Agendamentos', { screen: 'MeusPagamentos' })}
+            />
+            <ActionRow
+              icon="star-outline"
+              iconColor="#FFB800"
+              label="Minhas Avaliações"
+              sublabel="Avaliações que você enviou"
+              onPress={() => navigation.navigate('Agendamentos', { screen: 'HistoricoAvaliacoes' })}
               last
             />
           </View>
@@ -814,6 +821,13 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
               label="Horários de Atendimento"
               sublabel="Dias e janelas de horário em que você atende"
               onPress={() => navigation.navigate('MedicoDisponibilidade')}
+            />
+            <ActionRow
+              icon="shield-checkmark-outline"
+              iconColor="#2E7D32"
+              label="Convênios Aceitos"
+              sublabel="Planos de saúde que pacientes podem filtrar na busca"
+              onPress={() => navigation.navigate('MedicoConvenios')}
               last
             />
           </View>

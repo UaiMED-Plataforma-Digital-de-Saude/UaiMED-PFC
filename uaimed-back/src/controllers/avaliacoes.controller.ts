@@ -5,7 +5,11 @@ import logger from "../utils/logger";
 class AvaliacoesController {
   async criar(req: Request, res: Response) {
     try {
-      const { profissionalId, agendamentoId, nota, comentario } = req.body;
+      const {
+        profissionalId, agendamentoId, nota, comentario,
+        notaAtendimento, notaPontualidade, notaClinica, notaComunicacao,
+        voltariaClinica, recomendaMedico, melhorias,
+      } = req.body;
       const usuarioId = (req as any).user?.id;
       if (!usuarioId) return res.status(401).json({ error: "Usuário não autenticado" });
 
@@ -27,7 +31,13 @@ class AvaliacoesController {
         }
       }
 
-      const avaliacao = await prisma.avaliacao.create({ data: { usuarioId, profissionalId, agendamentoId: agendamentoId ?? null, nota, comentario } });
+      const avaliacao = await prisma.avaliacao.create({
+        data: {
+          usuarioId, profissionalId, agendamentoId: agendamentoId ?? null, nota, comentario,
+          notaAtendimento, notaPontualidade, notaClinica, notaComunicacao,
+          voltariaClinica, recomendaMedico, melhorias,
+        },
+      });
       logger.success(`Avaliação criada: ${avaliacao.id}`);
       return res.status(201).json(avaliacao);
     } catch (err) {
@@ -48,6 +58,13 @@ class AvaliacoesController {
           id: true,
           nota: true,
           comentario: true,
+          notaAtendimento: true,
+          notaPontualidade: true,
+          notaClinica: true,
+          notaComunicacao: true,
+          voltariaClinica: true,
+          recomendaMedico: true,
+          melhorias: true,
           criado_em: true,
           profissional: {
             select: {

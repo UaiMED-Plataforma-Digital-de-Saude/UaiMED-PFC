@@ -295,6 +295,50 @@ class ProfessionalController {
       return res.status(500).json({ error: 'Erro ao atualizar disponibilidade' });
     }
   }
+
+  /** GET /api/professionals/me/convenios — convênios aceitos pelo profissional autenticado */
+  async obterConvenios(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ error: 'Usuário não autenticado' });
+
+      const profissional = await prisma.profissional.findUnique({
+        where: { usuarioId: userId },
+        select: { convenios: true },
+      });
+      if (!profissional) return res.status(404).json({ error: 'Profissional não encontrado' });
+
+      return res.json(profissional.convenios);
+    } catch (err) {
+      logger.error('Erro ao buscar convênios do profissional', err);
+      return res.status(500).json({ error: 'Erro ao buscar convênios' });
+    }
+  }
+
+  /** PUT /api/professionals/me/convenios — substitui a lista de convênios aceitos */
+  async atualizarConvenios(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ error: 'Usuário não autenticado' });
+
+      const convenios = req.body as string[];
+
+      const profissional = await prisma.profissional.findUnique({ where: { usuarioId: userId } });
+      if (!profissional) return res.status(404).json({ error: 'Profissional não encontrado' });
+
+      const atualizado = await prisma.profissional.update({
+        where: { id: profissional.id },
+        data: { convenios: [...new Set(convenios)] },
+        select: { convenios: true },
+      });
+
+      logger.success(`Convênios atualizados: profissional ${profissional.id}`);
+      return res.json(atualizado.convenios);
+    } catch (err) {
+      logger.error('Erro ao atualizar convênios do profissional', err);
+      return res.status(500).json({ error: 'Erro ao atualizar convênios' });
+    }
+  }
 }
 
 export default new ProfessionalController();

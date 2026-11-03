@@ -16,6 +16,7 @@ import uaiMedApi from '../../api/uaiMedApi';
 import { AgendamentoStackParamList } from '../../navigation/types';
 import AppModal from '../../components/AppModal';
 import { useModal } from '../../hooks/useModal';
+import { agendarLembreteConsulta } from '../../utils/notificacoesConsulta';
 
 type Props = StackScreenProps<AgendamentoStackParamList, 'SelecaoHorariosDia'>;
 
@@ -78,6 +79,9 @@ const SelecaoHorariosDiaScreen: React.FC<Props> = ({ route, navigation }) => {
         dataHora: horario,
       });
       const agendamentoId: string = res.data?.id ?? res.data?.agendamentoId;
+      if (agendamentoId) {
+        agendarLembreteConsulta(agendamentoId, horario, nomeProfissional);
+      }
       navigation.navigate('Confirmacao', {
         horario,
         medicoId: medicoId ?? '',
@@ -117,6 +121,9 @@ const SelecaoHorariosDiaScreen: React.FC<Props> = ({ route, navigation }) => {
       await uaiMedApi.patch(`/agendamentos/${remarcarAgendamentoId}/remarcar`, {
         dataHora: horario,
       });
+      if (remarcarAgendamentoId) {
+        agendarLembreteConsulta(remarcarAgendamentoId, horario, nomeProfissional);
+      }
       showModal(
         'Consulta remarcada',
         'Sua consulta foi remarcada com sucesso.',

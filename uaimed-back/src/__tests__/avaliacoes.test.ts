@@ -126,5 +126,71 @@ describe('Avaliações endpoints', () => {
     const res = await request(app).get('/api/avaliacoes/minhas');
     expect(res.status).toBe(401);
   });
+
+  it('persiste e retorna o detalhamento completo da avaliação (notas por critério, voltaria, recomenda, melhorias)', async () => {
+    const criar = await request(app)
+      .post('/api/avaliacoes')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        profissionalId: profissional.id,
+        nota: 4,
+        comentario: 'Bom atendimento no geral.',
+        notaAtendimento: 5,
+        notaPontualidade: 3,
+        notaClinica: 4,
+        notaComunicacao: 4,
+        voltariaClinica: 'sim',
+        recomendaMedico: 'talvez',
+        melhorias: 'Reduzir tempo de espera.',
+      });
+    expect(criar.status).toBe(201);
+    expect(criar.body).toMatchObject({
+      notaAtendimento: 5,
+      notaPontualidade: 3,
+      notaClinica: 4,
+      notaComunicacao: 4,
+      voltariaClinica: 'sim',
+      recomendaMedico: 'talvez',
+      melhorias: 'Reduzir tempo de espera.',
+    });
+
+    const lista = await request(app)
+      .get('/api/avaliacoes/minhas')
+      .set('Authorization', `Bearer ${token}`);
+    const item = lista.body.find((a: any) => a.id === criar.body.id);
+    expect(item).toMatchObject({
+      notaAtendimento: 5,
+      notaPontualidade: 3,
+      notaClinica: 4,
+      notaComunicacao: 4,
+      voltariaClinica: 'sim',
+      recomendaMedico: 'talvez',
+      melhorias: 'Reduzir tempo de espera.',
+    });
+  });
+
+  it('rejeita detalhamento com nota fora de 1-5 ou resposta inválida', async () => {
+    const res = await request(app)
+      .post('/api/avaliacoes')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ profissionalId: profissional.id, nota: 4, notaPontualidade: 6 });
+    expect(res.status).toBe(400);
+
+    const res2 = await request(app)
+      .post('/api/avaliacoes')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ profissionalId: profissional.id, nota: 4, voltariaClinica: 'claro' });
+    expect(res2.status).toBe(400);
+  });
+
+  it('permite avaliação sem detalhamento (só nota + comentário), mantendo os campos de detalhe como null', async () => {
+    const res = await request(app)
+      .post('/api/avaliacoes')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ profissionalId: profissional.id, nota: 3 });
+    expect(res.status).toBe(201);
+    expect(res.body.notaAtendimento).toBeNull();
+    expect(res.body.voltariaClinica).toBeNull();
+  });
 });
 

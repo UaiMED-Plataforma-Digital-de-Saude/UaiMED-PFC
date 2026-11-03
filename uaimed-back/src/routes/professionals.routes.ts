@@ -4,7 +4,7 @@ import authMiddleware from "../middleware/auth";
 import requireRole from "../middleware/role";
 import { TipoUsuario } from "@prisma/client";
 import { validateBody } from "../middleware/validate";
-import { atualizarEnderecoSchema, atualizarPrecoSchema, disponibilidadeSchema } from "../schemas/professional.schema";
+import { atualizarEnderecoSchema, atualizarPrecoSchema, disponibilidadeSchema, atualizarConveniosSchema } from "../schemas/professional.schema";
 
 const router = Router();
 
@@ -28,5 +28,11 @@ router.get('/professionals/me/disponibilidade', authMiddleware, requireRole(Tipo
 
 // PUT /api/professionals/me/disponibilidade - substitui a janela de atendimento dos 7 dias
 router.put('/professionals/me/disponibilidade', authMiddleware, requireRole(TipoUsuario.medico), validateBody(disponibilidadeSchema), (req, res) => ProfessionalController.atualizarDisponibilidade(req, res));
+
+// GET /api/professionals/me/convenios - convênios aceitos pelo profissional autenticado
+router.get('/professionals/me/convenios', authMiddleware, requireRole(TipoUsuario.medico), (req, res) => ProfessionalController.obterConvenios(req, res));
+
+// PUT /api/professionals/me/convenios - substitui a lista de convênios aceitos
+router.put('/professionals/me/convenios', authMiddleware, requireRole(TipoUsuario.medico), validateBody(atualizarConveniosSchema), (req, res) => ProfessionalController.atualizarConvenios(req, res));
 
 export default router;

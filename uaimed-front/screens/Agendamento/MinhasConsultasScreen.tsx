@@ -17,6 +17,7 @@ import uaiMedApi from '../../api/uaiMedApi';
 import AppModal from '../../components/AppModal';
 import { useModal } from '../../hooks/useModal';
 import { googleMapsUrl } from '../../utils/geo';
+import { cancelarLembreteConsulta } from '../../utils/notificacoesConsulta';
 
 type Props = StackScreenProps<AgendamentoStackParamList, 'MinhasConsultas'>;
 
@@ -112,6 +113,7 @@ const MinhasConsultasScreen: React.FC<Props> = ({ navigation }) => {
               setCancelando(item.id);
               try {
                 await uaiMedApi.patch(`/agendamentos/${item.id}/cancelar`);
+                cancelarLembreteConsulta(item.id);
                 setConsultas((prev) =>
                   prev.map((c) => (c.id === item.id ? { ...c, status: 'cancelado' } : c)),
                 );

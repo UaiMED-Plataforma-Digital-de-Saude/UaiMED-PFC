@@ -446,26 +446,17 @@ const PagamentoScreen: React.FC<Props> = ({ route, navigation }) => {
       setShowPixModal(false);
       setShowBoletoModal(false);
       setShowConfirmModal(false);
-      showModal(
-        'Pagamento realizado!',
-        `Valor: R$ ${resultado.amount.toFixed(2)}\nID: ${resultado.id}`,
-        {
-          type: 'success',
-          buttons: [
-            {
-              text: 'Avaliar Consulta',
-              onPress: () => {
-                if (agendamentoId && medicoId) {
-                  navigation.navigate('Avaliacao', { agendamentoId, medicoId });
-                } else {
-                  navigation.getParent<any>()?.navigate('Home');
-                }
-              },
-            },
-            { text: 'Início', style: 'cancel', onPress: () => navigation.getParent<any>()?.navigate('Home') },
-          ],
-        },
-      );
+      navigation.navigate('PagamentoSucesso', {
+        pagamentoId: resultado.id,
+        valor: resultado.valorBruto,
+        desconto: resultado.desconto,
+        descontoPlano: resultado.descontoPlano,
+        valorFinal: resultado.amount,
+        metodo: resultado.method,
+        agendamentoId,
+        medicoId,
+        nomeProfissional,
+      });
     } else {
       showModal('Falha no pagamento', 'Não foi possível processar o pagamento. Tente novamente.', { type: 'error' });
     }

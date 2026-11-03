@@ -1,7 +1,7 @@
 # 🧪 Estratégia e Documentação de Testes — UaiMED Backend
 
-**Versão**: 1.7.0  
-**Data**: 01 de Novembro de 2026  
+**Versão**: 1.13.0  
+**Data**: 03 de Novembro de 2026  
 **Framework**: Vitest 1.4 + Supertest 6.3  
 **Banco de Teste**: PostgreSQL (`uaimed_test`) — isolado do banco de desenvolvimento
 
@@ -29,7 +29,7 @@ O UaiMED adota uma estratégia de testes em camadas, priorizando **testes de int
 - **Isolamento**: cada suíte cria e limpa seus próprios dados por ID
 - **Repetibilidade**: UUIDs únicos garantem que testes paralelos não colidam
 - **Confiabilidade**: banco de teste isolado (`uaimed_test`) com schema migrado automaticamente via `globalSetup`
-- **Velocidade**: 253 casos (unitários + integração), em 29 arquivos, rodam em menos de 10 segundos no total (`Duration 10.18s` na última execução)
+- **Velocidade**: 256 casos (unitários + integração), em 29 arquivos, rodam em menos de 10 segundos no total (`Duration 9.94s` na última execução)
 
 ---
 
@@ -43,7 +43,7 @@ O UaiMED adota uma estratégia de testes em camadas, priorizando **testes de int
         └──────────────────┬──────────────────┘
                            │
         ┌──────────────────▼──────────────────┐
-        │      Integração (API)               │  ← Principal camada automatizada (160 casos, 26 arquivos)
+        │      Integração (API)               │  ← Principal camada automatizada (163 casos, 26 arquivos)
         │      Vitest + Supertest             │    Testa controllers, services e banco real
         └──────────────────┬──────────────────┘
                            │
@@ -147,6 +147,9 @@ Os testes de integração são a **camada principal** de validação automatizad
 | 6 | Rejeita criação sem autenticação | `POST /api/avaliacoes` | 401 Unauthorized |
 | 7 | Lista as avaliações feitas pelo paciente autenticado | `GET /api/avaliacoes/minhas` | 200 array com dados do profissional |
 | 8 | Rejeita listagem de avaliações próprias sem autenticação | `GET /api/avaliacoes/minhas` | 401 Unauthorized |
+| 9 | Persiste e retorna o detalhamento completo (notas por critério, voltaria, recomenda, melhorias) | `POST /api/avaliacoes` + `GET /api/avaliacoes/minhas` | 201/200, campos de detalhe presentes nos dois |
+| 10 | Rejeita detalhamento com nota fora de 1-5 ou resposta inválida | `POST /api/avaliacoes` | 400 Bad Request |
+| 11 | Permite avaliação sem detalhamento, campos de detalhe ficam `null` | `POST /api/avaliacoes` | 201, `notaAtendimento`/`voltariaClinica` nulos |
 
 ---
 
@@ -610,7 +613,7 @@ npx vitest run --coverage
 | `contatos.test.ts` | 3 | Integração | ✅ Passando |
 | `medicos_agendamentos.test.ts` | 2 | Integração | ✅ Passando |
 | `agendamentos_criar.test.ts` | 7 | Integração | ✅ Passando |
-| `avaliacoes.test.ts` | 8 | Integração | ✅ Passando |
+| `avaliacoes.test.ts` | 11 | Integração | ✅ Passando |
 | `pagamentos.test.ts` | 12 | Integração | ✅ Passando |
 | `admin.test.ts` | 1 | Integração | ✅ Passando |
 | `professional.test.ts` | 8 | Integração | ✅ Passando |
@@ -619,7 +622,10 @@ npx vitest run --coverage
 | `artigos.test.ts` | 17 | Integração | ✅ Passando |
 | `conversas.test.ts` | 5 | Integração | ✅ Passando |
 | `destaques.test.ts` | 9 | Integração | ✅ Passando |
-| `conta-bancaria.test.ts` | 3 | Integração | ✅ Passando |
+| `conta-bancaria.test.ts` | 11 | Integração | ✅ Passando |
+| `especialidades.test.ts` | 2 | Integração | ✅ Passando |
+| `convenios.test.ts` | 2 | Integração | ✅ Passando |
+| `professionals_convenios.test.ts` | 9 | Integração | ✅ Passando |
 | `users.test.ts` | 4 | Integração | ✅ Passando |
 | `auditoria.test.ts` | 2 | Integração | ✅ Passando |
 | `relatorios.test.ts` | 2 | Integração | ✅ Passando |
@@ -629,8 +635,8 @@ npx vitest run --coverage
 | `agendamentos_remarcar.test.ts` | 8 | Integração | ✅ Passando |
 | `agendamentos_listar_pagamento.test.ts` | 2 | Integração | ✅ Passando |
 | `avaliacoes_agendamento.test.ts` | 7 | Integração | ✅ Passando |
-| `medicos_listar.test.ts` | 4 | Integração | ✅ Passando |
-| **Subtotal** | **160** | | **✅ 160/160** |
+| `medicos_listar.test.ts` | 6 | Integração | ✅ Passando |
+| **Subtotal** | **186** | | **✅ 186/186** |
 
 #### Testes Unitários
 
@@ -639,7 +645,9 @@ npx vitest run --coverage
 | `unit/jwt.unit.test.ts` | 8 | Unitário | ✅ Passando |
 | `unit/hash.unit.test.ts` | 8 | Unitário | ✅ Passando |
 | `unit/auth.schema.unit.test.ts` | 77 | Unitário | ✅ Passando |
-| **Subtotal** | **93** | | **✅ 93/93** |
+| `unit/geocoding.unit.test.ts` | 6 | Unitário | ✅ Passando |
+| `unit/email.unit.test.ts` | 9 | Unitário | ✅ Passando |
+| **Subtotal** | **108** | | **✅ 108/108** |
 
 > `auth.schema.unit.test.ts` cresceu de 23 para 77 casos ao longo de revisões anteriores (não documentadas aqui individualmente) com blocos `it.each` cobrindo variações de nome com acento, telefone em formatos diferentes, senha no limite de 72 bytes, CRM e CNPJ inválidos — ver seção 4.3 para os grupos, não cada valor testado.
 
@@ -647,10 +655,51 @@ npx vitest run --coverage
 
 | Tipo | Casos | Status |
 |------|-------|--------|
-| Integração (API) | 160 | ✅ |
-| Unitários | 93 | ✅ |
+| Integração (API) | 186 | ✅ |
+| Unitários | 108 | ✅ |
 | E2E automatizado | 0 | ⚠️ Planejado |
-| **Total** | **253** | **✅ 253/253** (executado em 01/11/2026, `Duration 10.18s`) |
+| **Total** | **294** | **✅ 294/294** (executado em 03/11/2026, 34 arquivos) |
+
+### Cobertura de Código (`vitest run --coverage`, provider v8)
+
+> Medida formalmente em 03/11/2026 — resolve o item de Backlog "Testes automatizados — cobertura residual" do `KANBAN_MELHORIAS.md`. Não havia provider de cobertura instalado até então; `@vitest/coverage-v8@1.6.1` adicionado como dev dependency (a versão declarada em `package.json`, `^1.4.4`, já rodava de fato em `1.6.1` por resolução de peer dependency). Número inicial (71.4%/84.51%) revisado ao longo do mesmo dia após fechar os 3 arquivos fracos identificados, `email.service.ts` (confirmação de agendamento + comprovante de pagamento) e, por fim, o filtro de convênios (ver `KANBAN_MELHORIAS.md`).
+
+| Métrica | Todos os arquivos | Excluindo infraestrutura não testável¹ |
+|---|---|---|
+| Statements | 74.81% | **87.55%** |
+| Branches | 66.04% | — |
+| Functions | 87.17% | **91.07%** |
+| Lines | 74.81% | — |
+
+`src/services/email.service.ts`: **99.45% statements / 88.88% branch / 100% funções** — único ramo não coberto é o `catch` interno de `getClient()`, equivalente aos outros blocos de erro-500 já documentados como não testados no projeto. `src/controllers/pagamentos.controller.ts`: **88.19% statements / 60% branch / 100% funções**. `src/constants/convenios.ts`, `src/controllers/convenios.controller.ts` e `src/routes/convenios.routes.ts` (novos): **100%**.
+
+¹ `server.ts` (bootstrap), `src/prisma/seed.ts`, `src/scripts/purgar-logs-auditoria.ts`, `src/tests/globalSetup.ts` e `scripts/validacao-funcional.cjs` — todos em 0% por não serem exercitados por testes de unidade/integração por desenho (scripts manuais, seed de dados, bootstrap do servidor), não por lacuna de teste.
+
+Com a exclusão acima, a suíte já supera a meta informal de 80%. Sem exclusão nenhuma, `src/routes` (94.04%), `src/schemas` (93.05%), `src/middleware` (87.38%) e `src/utils` (91.2%) já estavam acima de 80%.
+
+**Fechados em 03/11/2026** — os 3 arquivos com lacuna real (não ruído de infraestrutura), via testes novos:
+
+| Arquivo | Antes | Depois | Como |
+|---|---|---|---|
+| `src/controllers/especialidades.controller.ts` | 57.1% / 100% branch | **100% / 100%** | `especialidades.test.ts` (2 casos novos) — endpoint não tinha nenhum teste |
+| `src/controllers/conta-bancaria.controller.ts` | 54.2% / 11.1% branch | **93.75% / 81.8%** | `conta-bancaria.test.ts` ampliado (3 → 11 casos): `obter()` como médico/clínica/paciente, `403` de usuário inválido, `404` de usuário inexistente, `PUT` como médico |
+| `src/services/geocoding.service.ts` | 30.5% / 100% branch | **100% / 83.33%** | `unit/geocoding.unit.test.ts` (6 casos novos) — `fetch` global mockado (`vi.stubGlobal`) para cobrir sucesso, HTTP não-ok, sem resultados, coordenadas inválidas e exceção de rede, sem depender da API real do Nominatim |
+
+**Achado durante a escrita dos testes de `conta-bancaria.controller.ts`**: os blocos `catch`/500 de `obter()` e `atualizar()` continuam sem teste (exigiriam mockar o Prisma para forçar erro) — consistente com o resto do projeto, que não testa esse padrão em nenhum outro controller.
+
+**Achado durante a escrita dos testes de `geocoding.service.ts`**: a guarda `if (!query.trim()) return null;` é código morto — a query sempre inclui o literal `"Brasil"` antes do `filter(Boolean)`, então nunca pode ficar vazia independente do que `endereco`/`cidade`/`estado` contenham. É por isso que o branch restante (83.33%, não 100%) é inalcançável por qualquer teste, não falta de cobertura. Não corrigido nesta sessão — só identificado.
+
+Pontos restantes abaixo de 80% (sem exclusão), não cobertos nesta sessão — fora do escopo deste item, que era medir e fechar só os 3 arquivos acima:
+
+| Arquivo | Statements | Branch |
+|---|---|---|
+| `src/middleware/errorHandler.ts` | 58.3% | 100%* |
+| `src/controllers/medicos.controller.ts` | 64.7% | 77.4% |
+| `src/controllers/admin.controller.ts` | 73.3% | 60% |
+| `src/controllers/contatos.controller.ts` | 73.6% | 21.4% |
+| `src/services/auth.service.ts` | 75.9% | 76.6% |
+
+\* Branch 100% apesar do baixo statement coverage: função pequena sem bifurcação relevante ainda não chamada por nenhum teste — o problema é 0 chamadas, não ramos não exercitados dentro de uma chamada.
 
 ### Endpoints Cobertos
 
@@ -753,7 +802,7 @@ hookTimeout: 30000,  // 30s para beforeAll/afterAll
 ---
 
 **Documento criado em**: 17 de Abril de 2026  
-**Última atualização**: 01 de Novembro de 2026 — contagem real re-auditada via `npm test` (não apenas somada a partir da versão anterior do documento, que já estava desatualizada em alguns pontos: `auth.schema.unit.test.ts` e `auth_signup_signin.test.ts` haviam crescido em revisões anteriores sem atualizar esta tabela, e `perfil_profissional.test.ts` nunca havia sido documentado). 155 → 253 casos, 23 → 29 arquivos no total ao longo da sessão de 01/11 (cancelamento/remarcação, status de pagamento, botão de avaliar agendamentos, busca real de médicos e filtro de preço) — ver `KANBAN_MELHORIAS.md` v1.17.0.  
+**Última atualização**: 03 de Novembro de 2026 — implementado o filtro de busca por plano de saúde/convênio aceito: `convenios.test.ts` (2 casos, catálogo público), `professionals_convenios.test.ts` (9 casos, GET/PUT `/professionals/me/convenios` — autenticação, papel médico, substituição, lista vazia, deduplicação, convênio fora do catálogo) e `medicos_listar.test.ts` ampliado (4 → 6 casos, filtro por convênio e array `convenios` na resposta). 281 → 294 casos, 32 → 34 arquivos. Decisões de design que estavam em aberto no Backlog resolvidas: catálogo fixo (`src/constants/convenios.ts`, mesmo padrão de `especialidades.ts`), campo `Profissional.convenios: String[]` (array nativo, sem modelo N:N) e autogestão pelo médico (mesmo padrão de `/professionals/me/preco`). Verificado end-to-end no app rodando: filtro por "Unimed" retornou os médicos certos, médico alternou e salvou convênios com persistência confirmada no banco. Ver `KANBAN_MELHORIAS.md` v1.24.0. Atualização anterior, mais cedo em 03 de Novembro de 2026: ampliado `unit/email.unit.test.ts` de 3 para 9 casos: `enviarEmailComprovantePagamento()` (comprovante de pagamento, novo), incluindo um caso de regressão para um vazamento real encontrado nesta sessão — rodar `npm test` localmente com uma `RESEND_API_KEY` real configurada no `.env` disparava e-mails de verdade, porque `.env.test` não define a variável e o carregamento em cascata de `env.ts` preenchia a partir do `.env` real; corrigido com trava explícita por `NODE_ENV === 'test'` em `email.service.ts`. 275 → 281 casos, mesmos 32 arquivos. **Achado end-to-end**: o desconto de "plano de saúde" (15%) não aparecia no comprovante (só o desconto de cupom era exposto) — `valor cobrado` e `valor pago` ficavam sem explicar a diferença; corrigido expondo `descontoPlano` separadamente na resposta da API, no e-mail e na tela `PagamentoSucessoScreen`. Verificado end-to-end no app rodando: agendamento → pagamento via Pix com plano de saúde ativo → tela de comprovante com o desconto correto → e-mail real enviado (confirmado nos logs do container). Ver `KANBAN_MELHORIAS.md` v1.23.0. Atualização anterior, mais cedo em 03 de Novembro de 2026: adicionado `unit/email.unit.test.ts` (3 casos) cobrindo `email.service.ts`, o serviço de confirmação de agendamento por e-mail (Resend). 272 → 275 casos, 31 → 32 arquivos. Ver `KANBAN_MELHORIAS.md` v1.22.0. Atualização anterior a essa, mais cedo em 03 de Novembro de 2026: fechados os 3 arquivos com cobertura genuinamente baixa identificados na medição inicial do mesmo dia (`especialidades.controller.ts`, `conta-bancaria.controller.ts`, `geocoding.service.ts`), todos levados a ≥81% branch / 100% statements. 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36% statements / 82.07% → 85.84% funções (84.51% → 86.83% / 86.14% → 90.1% excluindo infraestrutura não testável). Ver seção 7, "Cobertura de Código", e `KANBAN_MELHORIAS.md` v1.20.0. Atualização anterior, mais cedo em 03 de Novembro de 2026: cobertura de código medida formalmente pela primeira vez (`@vitest/coverage-v8` instalado). Atualização anterior a essa, 01 de Novembro de 2026: contagem real re-auditada via `npm test` (não apenas somada a partir da versão anterior do documento, que já estava desatualizada em alguns pontos: `auth.schema.unit.test.ts` e `auth_signup_signin.test.ts` haviam crescido em revisões anteriores sem atualizar esta tabela, e `perfil_profissional.test.ts` nunca havia sido documentado). 155 → 256 casos, 23 → 29 arquivos no total ao longo da sessão de 01/11 (cancelamento/remarcação, status de pagamento, botão de avaliar agendamentos, busca real de médicos, filtro de preço e detalhamento completo de avaliações) — ver `KANBAN_MELHORIAS.md` v1.18.0.  
 **Autor**: Equipe de Desenvolvimento UaiMED  
 **Referência**: [`vitest.config.ts`](../vitest.config.ts) · [`src/__tests__/`](../src/__tests__/) · [`DOCUMENTACAO_PROJETO_UAIMED.md`](../../DOCUMENTACAO_PROJETO_UAIMED.md)
 

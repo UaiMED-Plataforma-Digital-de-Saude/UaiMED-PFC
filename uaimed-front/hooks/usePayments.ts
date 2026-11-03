@@ -28,6 +28,9 @@ export interface PaymentResponse {
   id: string;
   status: 'sucesso' | 'pendente' | 'falha';
   amount: number;
+  valorBruto: number;
+  desconto: number;
+  descontoPlano: number;
   method: PaymentMethod;
   dataCriacao: string;
   receiptUrl?: string;
@@ -83,7 +86,10 @@ export const usePayments = () => {
         id: response.data.id,
         status: response.data.status === 'concluido' ? 'sucesso' : response.data.status,
         amount: response.data.valorFinal ?? response.data.valor,
-        method: dados.method,
+        valorBruto: response.data.valor,
+        desconto: response.data.desconto ?? 0,
+        descontoPlano: response.data.descontoPlano ?? 0,
+        method: response.data.metodo ?? dados.method,
         dataCriacao: response.data.dataProcessamento || new Date().toISOString(),
         receiptUrl: response.data.receiptUrl,
       } as PaymentResponse;

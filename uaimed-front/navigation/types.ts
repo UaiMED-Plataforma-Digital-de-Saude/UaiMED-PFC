@@ -20,6 +20,7 @@ export type MainTabParamList = {
   MedicoDashboard?: undefined;
   MedicoContatos?: undefined;
   MedicoDisponibilidade?: undefined;
+  MedicoConvenios?: undefined;
   ClinicDashboard?: undefined;
   ClinicaMedicos?: undefined;
   Perfil: undefined;
@@ -42,6 +43,7 @@ export type AgendamentoStackParamList = {
     estado?: string;
     precoMin?: number;
     precoMax?: number;
+    convenio?: string;
   };
   DetalhesMedico?: { medicoId: string; amount?: number; pixKey?: string; nomeProfissional?: string };
   ClinicaPerfil?: { clinicaId: string; nomeClinica?: string };
@@ -51,6 +53,17 @@ export type AgendamentoStackParamList = {
   Avaliacao?: { agendamentoId: string; medicoId: string };
   HistoricoAvaliacoes?: undefined;
   Pagamento?: { amount?: number; agendamentoId?: string; medicoId?: string; pixKey?: string; nomeProfissional?: string; };
+  PagamentoSucesso?: {
+    pagamentoId: string;
+    valor: number;
+    desconto: number;
+    descontoPlano: number;
+    valorFinal: number;
+    metodo: 'pix' | 'card' | 'boleto';
+    agendamentoId?: string;
+    medicoId?: string;
+    nomeProfissional?: string;
+  };
   MeusPagamentos?: undefined;
   MinhasConsultas?: undefined;
   ContatoProfissional?: { medicoId: string };

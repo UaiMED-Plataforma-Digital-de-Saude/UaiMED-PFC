@@ -47,8 +47,8 @@ class MedicosController {
 
   async listar(req: Request, res: Response) {
     try {
-      const { query, especialidade, cidade, estado } = req.query as {
-        query?: string; especialidade?: string; cidade?: string; estado?: string;
+      const { query, especialidade, cidade, estado, convenio } = req.query as {
+        query?: string; especialidade?: string; cidade?: string; estado?: string; convenio?: string;
       };
       const skip = Number(req.query.skip) || 0;
       const take = Math.min(Number(req.query.take) || 50, 100);
@@ -60,6 +60,7 @@ class MedicosController {
       if (estado)        where.estado        = { contains: estado,        mode: 'insensitive' };
       if (cidade)        where.cidade        = { contains: cidade,        mode: 'insensitive' };
       if (query)         where.usuario       = { nome: { contains: query, mode: 'insensitive' } };
+      if (convenio)      where.convenios     = { has: convenio };
       if (precoMin !== undefined && !Number.isNaN(precoMin)) where.precoConsulta = { ...where.precoConsulta, gte: precoMin };
       if (precoMax !== undefined && !Number.isNaN(precoMax)) where.precoConsulta = { ...where.precoConsulta, lte: precoMax };
 
@@ -91,6 +92,7 @@ class MedicosController {
           avatar: p.usuario?.avatar || null,
           pixKey: p.pixKey || null,
           precoConsulta: p.precoConsulta,
+          convenios: p.convenios,
           notaMedia: media?._avg.nota != null ? parseFloat(media._avg.nota.toFixed(1)) : null,
           totalAvaliacoes: media?._count.nota ?? 0,
         };
@@ -138,6 +140,7 @@ class MedicosController {
         dataFormacao: prof.dataFormacao,
         pixKey: prof.pixKey ?? null,
         precoConsulta: prof.precoConsulta,
+        convenios: prof.convenios,
         totalAgendamentos: prof._count.agendamentos,
         totalAvaliacoes: prof._count.avaliacoes,
         notaMedia: notaMedia ? parseFloat(notaMedia.toFixed(1)) : null,
