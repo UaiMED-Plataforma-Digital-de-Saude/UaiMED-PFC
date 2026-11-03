@@ -1,7 +1,7 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.18.0  
-**Data**: 01 de Novembro de 2026  
+**Versão**: 1.19.0  
+**Data**: 03 de Novembro de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
 
@@ -507,6 +507,24 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 
 ---
 
+## 🟢 CONCLUÍDO — 03/11/2026
+
+---
+
+### ✅ [IMPROVEMENT] Testes automatizados — cobertura residual
+**Área**: Backend | **Prioridade**: 🟡 Médio | **Esforço**: 2
+
+**Descrição original**: cobertura mínima de 80% ainda não tinha sido medida formalmente (sem `--coverage` configurado).
+
+**Resolução**: instalado `@vitest/coverage-v8@1.6.1` (provider inexistente até então) e executado `npx vitest run --coverage` com o banco de teste real. Resultado: **71.4% statements / 63.26% branch / 82.07% funções / 71.4% lines** em todos os arquivos; **84.51% statements / 86.14% funções** excluindo os 5 arquivos de infraestrutura não testável por desenho (`server.ts`, `src/prisma/seed.ts`, script de purga de logs, `globalSetup.ts` de teste, script de validação manual) — todos 0% por não serem código de negócio exercitado por teste, não por lacuna. `src/routes`, `src/schemas`, `src/middleware` e `src/utils` já estavam acima de 80% mesmo sem a exclusão. Número registrado em [`uaimed-back/documents/TESTES.md`](./uaimed-back/documents/TESTES.md#cobertura-de-código-vitest-run---coverage-provider-v8).
+
+**Achado**: 3 arquivos com cobertura genuinamente baixa, não por ruído de infraestrutura: `geocoding.service.ts` (30.5%), `conta-bancaria.controller.ts` (54.2% statements / 11.1% branch) e `especialidades.controller.ts` (57.1%) — nenhum teste exercita essas funções hoje. Movido para item novo no Backlog em vez de escrever os testes agora, já que o pedido desta sprint era medir, não elevar a cobertura.
+
+**Critério de aceite**:
+- [x] Rodar `npx vitest run --coverage` e registrar o número real
+
+---
+
 ## 🔵 A FAZER — Próxima Sprint
 
 > Itens refinados e prontos para desenvolvimento.
@@ -597,13 +615,15 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 
 ---
 
-### 📌 [IMPROVEMENT] Testes automatizados — cobertura residual
+### 📌 [IMPROVEMENT] Cobertura de testes — fechar os 3 arquivos genuinamente fracos
 - **Área**: Backend
-- **Prioridade**: 🟡 Médio
+- **Prioridade**: 🟢 Baixo
 - **Esforço**: 2
-- **Descrição**: `POST /agendamentos` e `POST /pagamentos` já têm teste (7 e 10 casos, respectivamente — ver `TESTES.md`). O que falta: cobertura mínima de 80% ainda não foi medida formalmente (sem `--coverage` configurado).
+- **Descrição**: Levantado ao medir a cobertura real em 03/11/2026 (ver Concluído — 03/11/2026 e `TESTES.md`). Diferente da maior parte do código (que já está ≥80%), estes 3 arquivos têm partes nunca exercitadas por nenhum teste: `geocoding.service.ts` (30.5% statements), `conta-bancaria.controller.ts` (54.2% statements / 11.1% branch) e `especialidades.controller.ts` (57.1% statements).
 - **Critério de aceite**:
-  - [ ] Rodar `npx vitest run --coverage` e registrar o número real
+  - [ ] Testes cobrindo os ramos de erro/sucesso não exercitados em `conta-bancaria.controller.ts`
+  - [ ] Testes cobrindo `especialidades.controller.ts`
+  - [ ] Testes cobrindo `geocoding.service.ts` (ou mock do serviço externo de geocodificação, se for isso que falta)
 
 ---
 
@@ -668,11 +688,12 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 | 🟢 Concluído — Mai–Out/2026 (consolidado) | 13 itens |
 | 🟢 Concluído — 30/10/2026 | 6 itens |
 | 🟢 Concluído — 01/11/2026 | 7 itens |
+| 🟢 Concluído — 03/11/2026 | 1 item |
 | 🔴 Bug Conhecido | 0 itens |
 | 🔵 A Fazer (próxima sprint) | 3 itens |
 | 🗃️ Backlog | 7 itens |
 | ⏸️ Bloqueado | 2 itens |
-| **Total** | **57 itens** |
+| **Total** | **58 itens** |
 
 ---
 
@@ -715,6 +736,7 @@ Sprint entrega PFC
 | 01/11/2026 | 1.16.0 | Implementado "ResultadosScreen — exibir lista real de médicos da API", com correção de escopo: a descrição do card estava desatualizada, `ResultadosScreen.tsx` já consumia `GET /medicos` com filtros reais, sem dados simulados. O gap real era menor — faltava nota média/preço no card, `amount` na navegação para `DetalhesMedico`, e paginação/agregação de avaliação no backend. `GET /medicos` passa a aceitar `skip`/`take` e retorna `notaMedia`/`totalAvaliacoes` via `groupBy` (sem N+1), mantendo o contrato de resposta como array (total vai no header `X-Total-Count`, para não quebrar os 2 consumidores existentes). Decisão consciente de não construir UI de "carregar mais" agora — dataset tem ~10-14 profissionais, sem necessidade real hoje. 3 novos casos de teste, verificado end-to-end no app rodando. |
 | 01/11/2026 | 1.17.0 | Implementado "SearchScreen — busca real com filtros funcionais", mais uma vez com card desatualizado: a tela já buscava por nome/especialidade/cidade e já navegava para `Resultados` com parâmetros reais. Único gap genuíno era faixa de preço, agora implementado (`precoMin`/`precoMax` em `GET /medicos`, chips de faixa em `SearchScreen`). **Filtro de "plano de saúde aceito" não implementado**: não existe esse conceito no modelo `Profissional` hoje (só um desconto genérico de 15% escolhido pelo paciente no pagamento, sem relação com convênios específicos) — implementar de verdade exige desenhar um modelo de dados novo; movido para item próprio no Backlog em vez de construir um filtro decorativo sem dado real por trás. 1 novo caso de teste, verificado end-to-end. |
 | 01/11/2026 | 1.18.0 | Implementado "HistoricoAvaliacoesScreen — consumir API real". Revisão antes de codar achou um problema bem mais fundo que "trocar mock por fetch": a tela foi construída contra um shape de avaliação (4 notas por critério, voltaria, recomenda, sugestões) que **nunca existiu no backend** — `AvaliacaoScreen` já coletava tudo isso no formulário mas `handleSubmit` só enviava a média das notas + comentário, descartando o resto silenciosamente; o modelo `Avaliacao` só tinha `nota`+`comentario`. Ou seja, toda avaliação enviada no app perdia a maior parte do feedback, não só a tela de histórico estava desatualizada. **Decisão do usuário: resolver na raiz.** Migração expandindo `Avaliacao` com os campos de detalhamento (opcionais, nulos para avaliações antigas); `POST /avaliacoes` e `AvaliacaoScreen.handleSubmit` passam a persistir tudo; `HistoricoAvaliacoesScreen` reescrita consumindo dado real, com degradação graciosa pra avaliações antigas sem detalhe. Achado adicional: a tela não tinha ponto de entrada nenhum na navegação — adicionado atalho em `PerfilScreen`. 5 novos casos de teste, verificado end-to-end (avaliação nova com detalhamento completo e avaliação antiga simples, lado a lado, cada uma renderizando certo). |
+| 03/11/2026 | 1.19.0 | Medida formalmente a cobertura de código pela primeira vez (`@vitest/coverage-v8` instalado — não havia provider configurado). Resultado: 71.4% statements/lines, 63.26% branch, 82.07% funções em todos os arquivos; 84.51% statements / 86.14% funções excluindo 5 arquivos de infraestrutura não testável por desenho (bootstrap do servidor, seed, script de purga de logs, setup global de teste, script de validação manual). Já supera a meta informal de 80%. **3 arquivos com lacuna real** (não ruído de infraestrutura) movidos para item próprio no Backlog: `geocoding.service.ts` (30.5%), `conta-bancaria.controller.ts` (54.2% statements/11.1% branch), `especialidades.controller.ts` (57.1%). Número completo registrado em `TESTES.md` v1.9.0. |
 
 ---
 

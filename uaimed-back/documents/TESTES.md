@@ -1,7 +1,7 @@
 # 🧪 Estratégia e Documentação de Testes — UaiMED Backend
 
-**Versão**: 1.8.0  
-**Data**: 01 de Novembro de 2026  
+**Versão**: 1.9.0  
+**Data**: 03 de Novembro de 2026  
 **Framework**: Vitest 1.4 + Supertest 6.3  
 **Banco de Teste**: PostgreSQL (`uaimed_test`) — isolado do banco de desenvolvimento
 
@@ -655,6 +655,36 @@ npx vitest run --coverage
 | E2E automatizado | 0 | ⚠️ Planejado |
 | **Total** | **256** | **✅ 256/256** (executado em 01/11/2026, `Duration 9.94s`) |
 
+### Cobertura de Código (`vitest run --coverage`, provider v8)
+
+> Medida formalmente em 03/11/2026 — resolve o item de Backlog "Testes automatizados — cobertura residual" do `KANBAN_MELHORIAS.md`. Não havia provider de cobertura instalado até então; `@vitest/coverage-v8@1.6.1` adicionado como dev dependency (a versão declarada em `package.json`, `^1.4.4`, já rodava de fato em `1.6.1` por resolução de peer dependency).
+
+| Métrica | Todos os arquivos | Excluindo infraestrutura não testável¹ |
+|---|---|---|
+| Statements | 71.4% | **84.51%** |
+| Branches | 63.26% | — |
+| Functions | 82.07% | **86.14%** |
+| Lines | 71.4% | — |
+
+¹ `server.ts` (bootstrap), `src/prisma/seed.ts`, `src/scripts/purgar-logs-auditoria.ts`, `src/tests/globalSetup.ts` e `scripts/validacao-funcional.cjs` — todos em 0% por não serem exercitados por testes de unidade/integração por desenho (scripts manuais, seed de dados, bootstrap do servidor), não por lacuna de teste.
+
+Com a exclusão acima, a suíte já supera a meta informal de 80%. Sem exclusão nenhuma, `src/routes` (94.04%), `src/schemas` (93.05%), `src/middleware` (87.38%) e `src/utils` (91.2%) já estavam acima de 80%; os pontos reais mais fracos (não é ruído de infraestrutura):
+
+| Arquivo | Statements | Branch |
+|---|---|---|
+| `src/services/geocoding.service.ts` | 30.5% | 100%* |
+| `src/controllers/conta-bancaria.controller.ts` | 54.2% | 11.1% |
+| `src/controllers/especialidades.controller.ts` | 57.1% | 100%* |
+| `src/middleware/errorHandler.ts` | 58.3% | 100%* |
+| `src/controllers/medicos.controller.ts` | 64.7% | 77.4% |
+| `src/controllers/admin.controller.ts` | 73.3% | 60% |
+| `src/controllers/contatos.controller.ts` | 73.6% | 21.4% |
+| `src/services/auth.service.ts` | 75.9% | 76.6% |
+
+\* Branch 100% nesses três apesar do baixo statement coverage: são funções pequenas sem bifurcação relevante ainda não chamadas por nenhum teste — o problema é 0 chamadas, não ramos não exercitados dentro de uma chamada.
+
+**Não implementado**: elevar a cobertura desses arquivos fracos para a meta — medir era o objetivo deste item; escrever os testes faltantes ficou como item novo, a refinar.
+
 ### Endpoints Cobertos
 
 | Endpoint | Método | Coberto |
@@ -756,7 +786,7 @@ hookTimeout: 30000,  // 30s para beforeAll/afterAll
 ---
 
 **Documento criado em**: 17 de Abril de 2026  
-**Última atualização**: 01 de Novembro de 2026 — contagem real re-auditada via `npm test` (não apenas somada a partir da versão anterior do documento, que já estava desatualizada em alguns pontos: `auth.schema.unit.test.ts` e `auth_signup_signin.test.ts` haviam crescido em revisões anteriores sem atualizar esta tabela, e `perfil_profissional.test.ts` nunca havia sido documentado). 155 → 256 casos, 23 → 29 arquivos no total ao longo da sessão de 01/11 (cancelamento/remarcação, status de pagamento, botão de avaliar agendamentos, busca real de médicos, filtro de preço e detalhamento completo de avaliações) — ver `KANBAN_MELHORIAS.md` v1.18.0.  
+**Última atualização**: 03 de Novembro de 2026 — cobertura de código medida formalmente pela primeira vez (`@vitest/coverage-v8` instalado; 71.4% bruto / 84.51% excluindo infraestrutura não testável) — ver seção 7, "Cobertura de Código" e `KANBAN_MELHORIAS.md` v1.19.0. Atualização anterior, 01 de Novembro de 2026: contagem real re-auditada via `npm test` (não apenas somada a partir da versão anterior do documento, que já estava desatualizada em alguns pontos: `auth.schema.unit.test.ts` e `auth_signup_signin.test.ts` haviam crescido em revisões anteriores sem atualizar esta tabela, e `perfil_profissional.test.ts` nunca havia sido documentado). 155 → 256 casos, 23 → 29 arquivos no total ao longo da sessão de 01/11 (cancelamento/remarcação, status de pagamento, botão de avaliar agendamentos, busca real de médicos, filtro de preço e detalhamento completo de avaliações) — ver `KANBAN_MELHORIAS.md` v1.18.0.  
 **Autor**: Equipe de Desenvolvimento UaiMED  
 **Referência**: [`vitest.config.ts`](../vitest.config.ts) · [`src/__tests__/`](../src/__tests__/) · [`DOCUMENTACAO_PROJETO_UAIMED.md`](../../DOCUMENTACAO_PROJETO_UAIMED.md)
 
