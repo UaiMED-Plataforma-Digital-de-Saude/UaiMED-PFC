@@ -1,6 +1,6 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.22.0  
+**Versão**: 1.23.0  
 **Data**: 03 de Novembro de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
@@ -572,28 +572,37 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 
 ---
 
+### ✅ [FEATURE] Confirmação de pagamento — comprovante e e-mail
+**Área**: Backend + Frontend | **Prioridade**: 🟠 Alto | **Esforço**: 5
+
+**Descrição original**: após processar o pagamento (`POST /pagamentos`), o paciente não recebia comprovante — a tela de sucesso exibia só um modal com ID e valor, sem persistência ou e-mail.
+
+**Correção de escopo (revisão antes de implementar)**: o 4º critério de aceite ("status do pagamento atualizado no card de agendamento em `AgendamentosScreen`") já estava satisfeito — `AgendamentosScreen.tsx` é código morto; a feature real já foi entregue em `MinhasConsultasScreen.tsx` no card "Status de pagamento visível" (01/11/2026). Também optado por **tela formatada** em vez de PDF para o comprovante (ambas as opções eram válidas no critério de aceite original) — gerar PDF exigiria uma dependência nova (`expo-print` ou similar) sem necessidade real, já que o comprovante por e-mail cobre o caso de guardar/imprimir.
+
+**Resolução**:
+- Backend: `enviarEmailComprovantePagamento()` novo em `email.service.ts`, integrado em `PagamentosController.processar()` — e-mail HTML com valor cobrado, desconto(s), valor pago, método e ID do pagamento, dados da consulta (médico/especialidade/data). Mesma política de resiliência das outras integrações: nunca bloqueia o pagamento já processado se o envio falhar.
+- Frontend: nova tela `PagamentoSucessoScreen.tsx` (registrada no `AgendamentoStack`, sem botão de voltar — não faz sentido retornar ao formulário de pagamento) substitui o modal antigo. Botão "Compartilhar Comprovante" usa a API nativa `Share` (já usada em outro ponto do mesmo arquivo para a chave Pix), sem dependência nova.
+- `usePayments.ts` ampliado para repassar `valorBruto`, `desconto` e `descontoPlano` da resposta do backend (antes descartados, só repassava o valor final).
+
+**Achado real #1 (vazamento de e-mail durante `npm test`)**: ao rodar a suíte localmente com uma `RESEND_API_KEY` real no `.env`, pagamentos e agendamentos criados em teste disparavam e-mails de verdade. Causa: `.env.test` não define `RESEND_API_KEY`; o carregamento em cascata de `env.ts` (dotenv sem `override`) preenche a partir do `.env` real quando a variável está ausente. **Corrigido** com trava explícita `if (ENV.NODE_ENV === "test") return null;` em `getClient()` (`email.service.ts`), com teste de regressão dedicado — garante que nenhum teste envia e-mail real, independente de qual `.env` estiver presente na máquina.
+
+**Achado real #2 (na própria verificação end-to-end)**: pagando com "Plano de saúde" ativo (desconto de 15%), o comprovante mostrava "Valor cobrado R$150,00 → Valor pago R$127,50" sem explicar a diferença — o desconto do plano nunca era exposto na resposta da API nem no e-mail, só o desconto de cupom (que ficava zerado nesse caso). Mesma causa raiz do achado já registrado no card "Filtro de busca por plano de saúde aceito" (Backlog): `planDiscount` é calculado mas não persistido nem retornado. **Corrigido** (sem mudança de schema — cálculo já existia em memória no `processar()`): resposta da API, e-mail e tela agora expõem `descontoPlano` separado do `desconto` de cupom, com linhas distintas ("Desconto de cupom" / "Desconto de plano de saúde"). O gap de persistência (auditoria financeira histórica) continua documentado no Backlog, sem mudança.
+
+6 novos casos de teste em `unit/email.unit.test.ts` (3 → 9): sucesso do comprovante, omissão da linha de cupom quando zero, exibição da linha de plano de saúde, resiliência a falha de envio, e o teste de regressão do vazamento.
+
+**Verificado end-to-end no app rodando** (driver headless, backend real via `docker compose up -d`, chave real do Resend): agendamento criado → pagamento via Pix com "Plano de saúde" ativado → tela de comprovante exibindo "Desconto de plano de saúde: - R$ 22,50" corretamente (R$150,00 → R$127,50) → e-mail real enviado, confirmado nos logs do container. Zero erros de console. **Gotcha encontrado e resolvido no processo**: o Metro (bundler web) não pegou os primeiros edits do frontend nessa sessão — precisou reiniciar com `expo start --web --clear` (comportamento já documentado na skill `run-uaimed-front`).
+
+**Critério de aceite**:
+- [x] Backend envia e-mail de comprovante com: valor cobrado, desconto aplicado, método, ID do pagamento e dados da consulta
+- [x] Tela `PagamentoScreen` exibe tela de sucesso dedicada (não apenas Alert) com resumo e botão de compartilhar comprovante
+- [x] Comprovante gerado como tela formatada (optou-se por essa alternativa a PDF, ambas válidas no critério original)
+- [x] Status do pagamento atualizado no card de agendamento — já satisfeito por `MinhasConsultasScreen.tsx` (card "Status de pagamento visível", 01/11/2026)
+
+---
+
 ## 🔵 A FAZER — Próxima Sprint
 
 > Itens refinados e prontos para desenvolvimento.
-
----
-
-### 🎯 [FEATURE] Confirmação de pagamento — comprovante e e-mail
-- **Área**: Backend + Frontend
-- **Prioridade**: 🟠 Alto
-- **Esforço**: 5
-- **Descrição**: Após processar o pagamento (`POST /pagamentos`), o paciente não recebe comprovante. A tela de sucesso exibe apenas um `Alert.alert` com ID e valor, sem persistência ou e-mail.
-- **Critério de aceite**:
-  - [ ] Backend envia e-mail de comprovante com: valor cobrado, desconto aplicado, método, ID do pagamento e dados da consulta
-  - [ ] Tela `PagamentoScreen` exibe tela de sucesso dedicada (não apenas Alert) com resumo e botão de compartilhar comprovante
-  - [ ] Comprovante gerado como PDF ou tela formatada (`receiptUrl`)
-  - [ ] Status do pagamento atualizado no card de agendamento em `AgendamentosScreen`
-
----
-
-
----
-
 
 ---
 
@@ -717,9 +726,9 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 | 🟢 Concluído — Mai–Out/2026 (consolidado) | 13 itens |
 | 🟢 Concluído — 30/10/2026 | 6 itens |
 | 🟢 Concluído — 01/11/2026 | 7 itens |
-| 🟢 Concluído — 03/11/2026 | 3 itens |
+| 🟢 Concluído — 03/11/2026 | 4 itens |
 | 🔴 Bug Conhecido | 0 itens |
-| 🔵 A Fazer (próxima sprint) | 2 itens |
+| 🔵 A Fazer (próxima sprint) | 1 item |
 | 🗃️ Backlog | 6 itens |
 | ⏸️ Bloqueado | 2 itens |
 | **Total** | **58 itens** |
@@ -769,6 +778,7 @@ Sprint entrega PFC
 | 03/11/2026 | 1.20.0 | Fechados os 3 arquivos de cobertura fraca levantados na v1.19.0. `especialidades.controller.ts` → 100%/100% (endpoint não tinha teste nenhum); `conta-bancaria.controller.ts` → 93.75%/81.8% branch (`obter()` nunca tinha sido testado; cobertos médico/clínica/paciente, `403`, `404` e `PUT` como médico); `geocoding.service.ts` → 100%/83.33% branch (mock de `fetch` global via `vi.stubGlobal`, cobrindo sucesso/erro HTTP/sem resultados/coordenadas inválidas/exceção de rede, sem bater na API real do Nominatim). **Achado**: a guarda de query vazia em `geocoding.service.ts` é código morto (a query sempre inclui o literal `"Brasil"`, nunca fica vazia) — documentado, não corrigido. Suíte: 256 → 272 casos, 29 → 31 arquivos; cobertura total 71.4% → 73.36% statements / 82.07% → 85.84% funções. Detalhes em `TESTES.md` v1.10.0. |
 | 03/11/2026 | 1.21.0 | Removida a guarda de código morto em `geocoding.service.ts` (levantada na v1.20.0) — branch do arquivo 83.33% → 90.9% (o restante é artefato de instrumentação do `finally`, não lacuna real). **Novo achado**, investigando o fluxo de pagamento com "Plano de saúde": `PagamentosController.processar()` aceita `insuranceProvider`/`insuranceCoveragePercent` no corpo da requisição, mas nenhum caller real (o front só envia `usingPlan: boolean`) os envia — parâmetros mortos no backend. Mesmo que fossem enviados, `insuranceProvider` não seria persistido (sem campo correspondente no model `Pagamento`), e o desconto do plano de saúde é somado em `valorFinal` sem ficar auditável separado do desconto de cupom. Registrado como achado adicional no card "Filtro de busca por plano de saúde aceito" (Backlog), com 2 critérios de aceite novos. |
 | 03/11/2026 | 1.22.0 | Implementado "Confirmação de horário por notificação/e-mail" (único item 🔴 Crítico restante em "A Fazer"). Backend: `email.service.ts` novo, integrado via Resend (chave gerada pelo usuário, decisão tomada em conjunto antes de codar) — envia e-mail HTML com logo ao paciente e ao médico na criação do agendamento, sem nunca bloquear a resposta da API se o envio falhar ou a chave não estiver configurada. Frontend: `utils/notificacoesConsulta.ts` novo — agenda notificação local 1h antes da consulta (criar/remarcar) e cancela ao cancelar. **Bug real corrigido no processo**: `App.tsx` pulava a solicitação de permissão de notificação inteira no Expo Go, mas notificações *locais* (diferente de push remota) funcionam normalmente nele — sem a correção, o lembrete de 1h nunca apareceria em quem testa via Expo Go. 3 novos casos de teste (`unit/email.unit.test.ts`). Verificado end-to-end no app rodando via driver headless contra o backend real com a chave do Resend de verdade: agendamento criado, e-mails efetivamente enviados (confirmado nos logs do container), zero erros de console. Suíte: 272 → 275 casos, 31 → 32 arquivos. Detalhes em `TESTES.md` v1.11.0. |
+| 03/11/2026 | 1.23.0 | Implementado "Confirmação de pagamento — comprovante e e-mail" (último item em "A Fazer"). Correção de escopo: o critério "status do pagamento no card de agendamento" já estava satisfeito desde 01/11 (`MinhasConsultasScreen.tsx`); optado por tela formatada em vez de PDF (ambas válidas no critério original, PDF exigiria dependência nova sem necessidade real). Backend: `enviarEmailComprovantePagamento()` em `email.service.ts`. Frontend: nova tela `PagamentoSucessoScreen.tsx` com botão de compartilhar (API `Share` nativa, já usada em outro ponto do mesmo arquivo). **2 achados reais**: (1) rodar `npm test` localmente com uma `RESEND_API_KEY` real no `.env` disparava e-mails de verdade durante os testes — `.env.test` não define a variável, e o carregamento em cascata de `env.ts` preenchia a partir do `.env` real; corrigido com trava explícita por `NODE_ENV === 'test'`, com teste de regressão; (2) na própria verificação end-to-end, o desconto de "plano de saúde" não aparecia no comprovante (só o de cupom), deixando valor cobrado/pago sem explicação — corrigido expondo `descontoPlano` separado na API, e-mail e tela. 6 novos casos de teste (`unit/email.unit.test.ts`, 3 → 9). Verificado end-to-end no app rodando (achado adicional: Metro precisou reiniciar com `--clear` para pegar os edits do front, gotcha já documentado na skill `run-uaimed-front`): pagamento com plano de saúde ativo exibiu o desconto corretamente e o e-mail foi enviado de verdade. Suíte: 275 → 281 casos, mesmos 32 arquivos. Detalhes em `TESTES.md` v1.12.0. |
 
 ---
 

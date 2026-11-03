@@ -11,6 +11,11 @@ const REMETENTE = "UaiMED <onboarding@resend.dev>";
 
 let resendClient: Resend | null = null;
 function getClient(): Resend | null {
+  // Trava explícita por ambiente: .env.test não define RESEND_API_KEY, mas o
+  // carregamento em cascata de env.ts (dotenv sem override) preenche a partir
+  // do .env real se a variável não estiver setada — sem essa trava, rodar os
+  // testes localmente com uma chave real configurada dispara e-mails de verdade.
+  if (ENV.NODE_ENV === "test") return null;
   if (!ENV.RESEND_API_KEY) return null;
   if (!resendClient) resendClient = new Resend(ENV.RESEND_API_KEY);
   return resendClient;
@@ -25,6 +30,25 @@ function formatarDataHora(dataHora: Date): string {
     hour: "2-digit",
     minute: "2-digit",
   }).format(dataHora);
+}
+
+function formatarMoeda(valor: number): string {
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+const METODO_LABEL: Record<string, string> = {
+  pix: "Pix",
+  card: "Cartão de crédito",
+  boleto: "Boleto bancário",
+};
+
+async function enviarUm(client: Resend, payload: { from: string; to: string; subject: string; html: string }, destino: string): Promise<void> {
+  try {
+    await client.emails.send(payload);
+    logger.success(`[email] Enviado para ${destino}`);
+  } catch (err) {
+    logger.error(`[email] Falha ao enviar para ${destino}`, err);
+  }
 }
 
 function templateBase(titulo: string, corpo: string): string {
@@ -102,19 +126,58 @@ export async function enviarEmailConfirmacaoAgendamento({ paciente, medico, data
     ),
   };
 
-  const resultados = await Promise.allSettled([
-    client.emails.send(emailPaciente),
-    client.emails.send(emailMedico),
+  await Promise.all([
+    enviarUm(client, emailPaciente, paciente.email),
+    enviarUm(client, emailMedico, medico.email),
   ]);
-
-  resultados.forEach((resultado, index) => {
-    const destino = index === 0 ? paciente.email : medico.email;
-    if (resultado.status === "rejected") {
-      logger.error(`[email] Falha ao enviar confirmação para ${destino}`, resultado.reason);
-    } else {
-      logger.success(`[email] Confirmação enviada para ${destino}`);
-    }
-  });
 }
 
-export default { enviarEmailConfirmacaoAgendamento };
+interface DadosComprovante {
+  paciente: { nome: string; email: string };
+  pagamentoId: string;
+  valor: number;
+  desconto: number;
+  descontoPlano: number;
+  valorFinal: number;
+  metodo: string;
+  medico: { nome: string; especialidade: string };
+  dataHora: Date;
+}
+
+/**
+ * Envia e-mail de comprovante ao paciente após um pagamento processado.
+ * Mesma política de resiliência de enviarEmailConfirmacaoAgendamento: nunca lança.
+ */
+export async function enviarEmailComprovantePagamento({ paciente, pagamentoId, valor, desconto, descontoPlano, valorFinal, metodo, medico, dataHora }: DadosComprovante): Promise<void> {
+  const client = getClient();
+  if (!client) {
+    logger.info(`[email] RESEND_API_KEY não configurada — pulando envio de comprovante (pagamento ${pagamentoId})`);
+    return;
+  }
+
+  const email = {
+    from: REMETENTE,
+    to: paciente.email,
+    subject: "Comprovante de pagamento — UaiMED",
+    html: templateBase(
+      "Pagamento confirmado!",
+      `
+        <p style="color:#333; font-size:15px;">Olá, ${paciente.nome}!</p>
+        <p style="color:#333; font-size:15px;">Recebemos o pagamento da sua consulta com ${medico.nome} (${medico.especialidade}), em ${formatarDataHora(dataHora)}:</p>
+        <ul style="color:#333; font-size:15px; padding-left:20px;">
+          <li><strong>Valor cobrado:</strong> ${formatarMoeda(valor)}</li>
+          ${desconto > 0 ? `<li><strong>Desconto de cupom:</strong> ${formatarMoeda(desconto)}</li>` : ""}
+          ${descontoPlano > 0 ? `<li><strong>Desconto de plano de saúde:</strong> ${formatarMoeda(descontoPlano)}</li>` : ""}
+          <li><strong>Valor pago:</strong> ${formatarMoeda(valorFinal)}</li>
+          <li><strong>Método:</strong> ${METODO_LABEL[metodo] ?? metodo}</li>
+          <li><strong>ID do pagamento:</strong> ${pagamentoId}</li>
+        </ul>
+        <p style="color:#333; font-size:15px;">Guarde este e-mail como comprovante. Você também pode consultar seus pagamentos a qualquer momento na aba "Meus Pagamentos" do app.</p>
+      `
+    ),
+  };
+
+  await enviarUm(client, email, paciente.email);
+}
+
+export default { enviarEmailConfirmacaoAgendamento, enviarEmailComprovantePagamento };

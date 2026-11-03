@@ -51,6 +51,17 @@ export type AgendamentoStackParamList = {
   Avaliacao?: { agendamentoId: string; medicoId: string };
   HistoricoAvaliacoes?: undefined;
   Pagamento?: { amount?: number; agendamentoId?: string; medicoId?: string; pixKey?: string; nomeProfissional?: string; };
+  PagamentoSucesso?: {
+    pagamentoId: string;
+    valor: number;
+    desconto: number;
+    descontoPlano: number;
+    valorFinal: number;
+    metodo: 'pix' | 'card' | 'boleto';
+    agendamentoId?: string;
+    medicoId?: string;
+    nomeProfissional?: string;
+  };
   MeusPagamentos?: undefined;
   MinhasConsultas?: undefined;
   ContatoProfissional?: { medicoId: string };

@@ -9,6 +9,7 @@ import { AvaliacaoScreen } from '../screens/Agendamento/AvaliacaoScreen';
 import { HistoricoAvaliacoesScreen } from '../screens/Agendamento/HistoricoAvaliacoesScreen';
 import ContatoProfissionalScreen from '../screens/Agendamento/ContatoProfissionalScreen';
 import PagamentoScreen from '../screens/Agendamento/PagamentoScreen';
+import PagamentoSucessoScreen from '../screens/Agendamento/PagamentoSucessoScreen';
 import ResultadosScreen from '../screens/Agendamento/ResultadosScreen';
 import MedicoDetalhesScreen from '../screens/Agendamento/MedicoDetalhesScreen';
 import SelecaoHorarioScreen from '../screens/Agendamento/SelecaoHorarioScreen';
@@ -100,6 +101,12 @@ const AgendamentoStack: React.FC = () => {
         name="Pagamento"
         component={PagamentoScreen}
         options={{ title: 'Pagamento' }}
+      />
+
+      <Stack.Screen
+        name="PagamentoSucesso"
+        component={PagamentoSucessoScreen}
+        options={{ title: 'Pagamento Confirmado', headerLeft: () => null, gestureEnabled: false }}
       />
 
       <Stack.Screen
