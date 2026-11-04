@@ -21,7 +21,18 @@ import FeaturedProfessionalsCarousel from '../../components/FeaturedProfessional
 import FeaturedClinicsCarousel from '../../components/FeaturedClinicsCarousel';
 import LocationModal, { LocationValue } from '../../components/LocationModal';
 import ArtigosDestaque from '../../components/ArtigosDestaque';
+import NextAppointmentCard from '../../components/NextAppointmentCard';
+import uaiMedApi from '../../api/uaiMedApi';
 import { TipoUsuario } from '../../types/usuario';
+
+interface Agendamento {
+  id: string;
+  medicoId?: string;
+  medico: string | null;
+  especialidade: string | null;
+  data: string;
+  status: string;
+}
 
 const LOCATION_STORAGE_KEY = '@uaimed:location';
 const DRAWER_WIDTH = Dimensions.get('window').width * 0.78;
@@ -230,9 +241,36 @@ const CustomDrawer: React.FC<DrawerProps> = ({ visible, onClose, navigation }) =
 // Tela Principal: HomeScreen
 // ─────────────────────────────────────────────
 const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
+  const { user } = useAuth();
   const [drawerOpen, setDrawerOpen]   = useState(false);
   const [locationModalVisible, setLocationModalVisible] = useState(false);
   const [location, setLocation]       = useState<LocationValue>({ uf: '', estado: '', cidade: '' });
+  const [proximaConsulta, setProximaConsulta] = useState<Agendamento | null>(null);
+
+  const isPaciente = user?.tipo === TipoUsuario.PACIENTE;
+
+  // Busca o próximo agendamento futuro (agendado/confirmado) do paciente
+  useFocusEffect(
+    useCallback(() => {
+      if (!isPaciente) return;
+      let mounted = true;
+      uaiMedApi
+        .get('/agendamentos')
+        .then((res) => {
+          if (!mounted) return;
+          const lista: Agendamento[] = Array.isArray(res.data) ? res.data : [];
+          const futuras = lista
+            .filter((a) => ['agendado', 'confirmado'].includes(a.status) && new Date(a.data) > new Date())
+            .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
+          setProximaConsulta(futuras[0] ?? null);
+        })
+        .catch((e) => {
+          console.warn('[HomeScreen] Erro ao buscar próxima consulta:', e);
+          if (mounted) setProximaConsulta(null);
+        });
+      return () => { mounted = false; };
+    }, [isPaciente])
+  );
 
   // Escuta o parâmetro openMenu vindo do headerLeft do MainTabNavigator
   useEffect(() => {
@@ -297,6 +335,21 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
             />
           </TouchableOpacity>
         </View>
+
+        {/* Próxima consulta */}
+        {isPaciente && proximaConsulta && (
+          <>
+            <Text style={styles.sectionTitle}>Próxima consulta</Text>
+            <NextAppointmentCard
+              medico={proximaConsulta.medico || 'Profissional'}
+              especialidade={proximaConsulta.especialidade || undefined}
+              data={proximaConsulta.data}
+              onPress={() =>
+                navigation.navigate('Agendamentos', { screen: 'MinhasConsultas' } as any)
+              }
+            />
+          </>
+        )}
 
         {/* Profissionais em destaque */}
         <Text style={styles.sectionTitle}>Profissionais em destaque</Text>

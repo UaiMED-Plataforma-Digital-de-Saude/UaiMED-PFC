@@ -1,6 +1,6 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.24.0  
+**Versão**: 1.25.0  
 **Data**: 03 de Novembro de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
@@ -511,6 +511,22 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 
 ---
 
+### ✅ [IMPROVEMENT] `HomeScreen` — consumir dados reais (próxima consulta, médicos em destaque)
+**Área**: Frontend | **Prioridade**: 🟡 Médio | **Esforço**: 3
+
+**Descrição original**: a `HomeScreen` exibia `NextAppointmentCard` e `FeaturedProfessionalsCarousel` mas com dados simulados.
+
+**Correção de escopo (revisão antes de implementar)**: metade do card já estava resolvida e não documentada — `FeaturedProfessionalsCarousel.tsx` já consumia `GET /medicos/recomendados` (dado real, curado via flag `Profissional.destaque` administrada em `AdminDestaquesScreen`), não dado simulado. O gap genuíno era só o `NextAppointmentCard`: o componente existia pronto (`components/NextAppointmentCard.tsx`) mas **não era importado em lugar nenhum da `HomeScreen`** — código morto, nunca chegou a ser conectado.
+
+**Resolução**: `HomeScreen.tsx` busca `GET /agendamentos` (mesmo endpoint de `MinhasConsultasScreen`) ao focar a tela, filtra consultas com status `agendado`/`confirmado` e `data` no futuro, ordena pela mais próxima e renderiza `NextAppointmentCard` com o resultado — só para usuários `paciente`. Sem consulta futura, a seção "Próxima consulta" simplesmente não aparece (sem placeholder vazio). Toque no card navega para `MinhasConsultas`.
+
+**Critério de aceite**:
+- [x] `NextAppointmentCard` busca próximo agendamento real do paciente
+- [x] Carrossel de profissionais em destaque — já usava dado real (`GET /medicos/recomendados`), confirmado na revisão
+- [x] Verificado end-to-end no app rodando (driver headless `run-uaimed-front`): paciente com consulta futura confirmada exibe o card com médico/especialidade/data/hora corretos; paciente sem consulta futura não exibe a seção; zero erros de console nos dois cenários
+
+---
+
 ### ✅ [IMPROVEMENT] Testes automatizados — cobertura residual
 **Área**: Backend | **Prioridade**: 🟡 Médio | **Esforço**: 2
 
@@ -628,18 +644,7 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 
 ## 🔵 A FAZER — Próxima Sprint
 
-> Itens refinados e prontos para desenvolvimento.
-
----
-
-### 🎯 [IMPROVEMENT] `HomeScreen` — consumir dados reais (próxima consulta, médicos em destaque)
-- **Área**: Frontend
-- **Prioridade**: 🟡 Médio
-- **Esforço**: 3
-- **Descrição**: A `HomeScreen` exibe `NextAppointmentCard` e `FeaturedProfessionalsCarousel` mas com dados simulados.
-- **Critério de aceite**:
-  - [ ] `NextAppointmentCard` busca próximo agendamento real do paciente
-  - [ ] Carrossel busca profissionais com maior nota média via `GET /medicos?destaque=true`
+> Nenhum item no momento — ver Backlog para itens de baixa prioridade.
 
 ---
 
@@ -749,9 +754,9 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 | 🟢 Concluído — Mai–Out/2026 (consolidado) | 13 itens |
 | 🟢 Concluído — 30/10/2026 | 6 itens |
 | 🟢 Concluído — 01/11/2026 | 7 itens |
-| 🟢 Concluído — 03/11/2026 | 5 itens |
+| 🟢 Concluído — 03/11/2026 | 6 itens |
 | 🔴 Bug Conhecido | 0 itens |
-| 🔵 A Fazer (próxima sprint) | 1 item |
+| 🔵 A Fazer (próxima sprint) | 0 itens |
 | 🗃️ Backlog | 7 itens |
 | ⏸️ Bloqueado | 2 itens |
 | **Total** | **60 itens** |
@@ -763,16 +768,12 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 ```
 Sprints Fev–Nov/2026 ──────────────── CONCLUÍDAS (ver seções Concluído acima)
 
-Sprint atual (próxima, ~1 semana)
-  Foco: ResultadosScreen + SearchScreen busca real, HistoricoAvaliacoesScreen
-        (consumir GET /avaliacoes/minhas, já pronto no backend), Status de
-        pagamento visível
+"A Fazer" zerada em 03/11/2026 — todo o escopo funcional planejado para o
+PFC está implementado e testado.
 
-Sprint seguinte (~1 semana)
-  Foco: E-mail de confirmação de agendamento/pagamento
-
-Sprint entrega PFC
-  Foco: Polimento visual, documentação final, apresentação
+Sprint entrega PFC (atual)
+  Foco: documentação final e apresentação/defesa. Itens de Backlog restantes
+  são polimento/débito técnico de baixa prioridade, não bloqueantes.
 ```
 
 ---
@@ -803,6 +804,7 @@ Sprint entrega PFC
 | 03/11/2026 | 1.22.0 | Implementado "Confirmação de horário por notificação/e-mail" (único item 🔴 Crítico restante em "A Fazer"). Backend: `email.service.ts` novo, integrado via Resend (chave gerada pelo usuário, decisão tomada em conjunto antes de codar) — envia e-mail HTML com logo ao paciente e ao médico na criação do agendamento, sem nunca bloquear a resposta da API se o envio falhar ou a chave não estiver configurada. Frontend: `utils/notificacoesConsulta.ts` novo — agenda notificação local 1h antes da consulta (criar/remarcar) e cancela ao cancelar. **Bug real corrigido no processo**: `App.tsx` pulava a solicitação de permissão de notificação inteira no Expo Go, mas notificações *locais* (diferente de push remota) funcionam normalmente nele — sem a correção, o lembrete de 1h nunca apareceria em quem testa via Expo Go. 3 novos casos de teste (`unit/email.unit.test.ts`). Verificado end-to-end no app rodando via driver headless contra o backend real com a chave do Resend de verdade: agendamento criado, e-mails efetivamente enviados (confirmado nos logs do container), zero erros de console. Suíte: 272 → 275 casos, 31 → 32 arquivos. Detalhes em `TESTES.md` v1.11.0. |
 | 03/11/2026 | 1.23.0 | Implementado "Confirmação de pagamento — comprovante e e-mail" (último item em "A Fazer"). Correção de escopo: o critério "status do pagamento no card de agendamento" já estava satisfeito desde 01/11 (`MinhasConsultasScreen.tsx`); optado por tela formatada em vez de PDF (ambas válidas no critério original, PDF exigiria dependência nova sem necessidade real). Backend: `enviarEmailComprovantePagamento()` em `email.service.ts`. Frontend: nova tela `PagamentoSucessoScreen.tsx` com botão de compartilhar (API `Share` nativa, já usada em outro ponto do mesmo arquivo). **2 achados reais**: (1) rodar `npm test` localmente com uma `RESEND_API_KEY` real no `.env` disparava e-mails de verdade durante os testes — `.env.test` não define a variável, e o carregamento em cascata de `env.ts` preenchia a partir do `.env` real; corrigido com trava explícita por `NODE_ENV === 'test'`, com teste de regressão; (2) na própria verificação end-to-end, o desconto de "plano de saúde" não aparecia no comprovante (só o de cupom), deixando valor cobrado/pago sem explicação — corrigido expondo `descontoPlano` separado na API, e-mail e tela. 6 novos casos de teste (`unit/email.unit.test.ts`, 3 → 9). Verificado end-to-end no app rodando (achado adicional: Metro precisou reiniciar com `--clear` para pegar os edits do front, gotcha já documentado na skill `run-uaimed-front`): pagamento com plano de saúde ativo exibiu o desconto corretamente e o e-mail foi enviado de verdade. Suíte: 275 → 281 casos, mesmos 32 arquivos. Detalhes em `TESTES.md` v1.12.0. |
 | 03/11/2026 | 1.24.0 | Implementado "Filtro de busca por plano de saúde aceito" (convênio), resolvendo as 3 decisões de design que estavam em aberto: catálogo fixo (`src/constants/convenios.ts`), campo `Profissional.convenios: String[]` (array nativo, sem N:N) e autogestão pelo médico (`GET`/`PUT /professionals/me/convenios`, mesmo padrão de preço/disponibilidade). `GET /medicos?convenio=` filtra; `SearchScreen` ganhou `ConvenioDropdown`; nova tela `MedicoConveniosScreen` (checklist) com atalho em Perfil; convênios exibidos no card de resultado e na tela de detalhes do médico. Migração + seed com convênios realistas. Verificação do estado da feature de avaliações (sem pedido de implementação, já completa) corrigiu um registro anterior deste Kanban: `useAvaliacoes.ts` não é 100% código morto — a parte de `notaMedia` é usada de verdade por `PerfilScreen`; só `loadAvaliacoes`/`calcularEstatisticas`/`avaliacoesMedico`/`criarAvaliacao` são mortos, movidos para item de limpeza no Backlog. 17 novos casos de teste. Verificado end-to-end no app rodando: filtro por "Unimed" retornou os médicos certos; médico alternou e salvou convênios com persistência confirmada. Suíte: 281 → 294 casos, 32 → 34 arquivos. Detalhes em `TESTES.md` v1.13.0. |
+| 03/11/2026 | 1.25.0 | Implementado "HomeScreen — consumir dados reais" (último item em "A Fazer", agora zerada). Correção de escopo: metade do card já estava resolvida sem registro — `FeaturedProfessionalsCarousel` já consumia `GET /medicos/recomendados` (dado real, curado por admin via flag `destaque`), não simulado. O gap genuíno era só `NextAppointmentCard`: componente pronto, mas nunca importado pela `HomeScreen` — código morto nunca conectado. Resolvido buscando `GET /agendamentos` ao focar a Home, filtrando a consulta futura mais próxima (`agendado`/`confirmado`) do paciente logado. Verificado end-to-end no app rodando: card aparece com dados corretos para paciente com consulta futura, seção some por completo sem uma. **Quadro sem itens pendentes em "A Fazer"** — restam apenas Backlog (baixa prioridade) e Bloqueado (fora do escopo do PFC). |
 
 ---
 

@@ -1,6 +1,6 @@
 # 📘 Documentação Completa do Projeto UaiMED
 
-**Versão**: 1.18.0  
+**Versão**: 1.19.0  
 **Data**: 03 de Novembro de 2026  
 **Classificação**: Documentação Técnica de Engenharia de Software  
 **Status**: Projeto em Desenvolvimento Avançado — Seção de Avaliação do Projeto (percurso, decisões técnicas, desafios, resultados e perspectivas) revisada com base no histórico real do Git (135 commits, 63 PRs, Fev–Out/2026)
@@ -765,6 +765,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ **Confirmação de horário por e-mail (Resend) e lembrete local 1h antes**: `email.service.ts` novo no backend; `App.tsx` corrigido para solicitar permissão de notificação também no Expo Go (v1.22.0 do Kanban)
 - ✅ **Comprovante de pagamento por e-mail e tela de sucesso dedicada**: substitui o modal antigo; expõe separadamente o desconto de cupom e o desconto de plano de saúde, achado real durante a verificação end-to-end (v1.23.0 do Kanban)
 - ✅ **Filtro de busca por convênio/plano de saúde aceito**: catálogo fixo de convênios, campo `Profissional.convenios: String[]`, médico autogerencia via `PUT /professionals/me/convenios`, `GET /medicos` aceita `?convenio=` (v1.24.0 do Kanban)
+- ✅ **`HomeScreen` com "Próxima consulta" real**: `NextAppointmentCard` existia como componente mas nunca era importado pela tela — conectado a `GET /agendamentos`, exibindo a consulta futura mais próxima do paciente logado (sem seção quando não há nenhuma). Carrossel de profissionais em destaque já consumia dado real (`GET /medicos/recomendados`), confirmado na revisão (v1.25.0 do Kanban)
 
 #### ⚠️ Em Desenvolvimento
 
@@ -1289,6 +1290,21 @@ Ver `KANBAN_MELHORIAS.md` v1.23.0 e `uaimed-back/documents/TESTES.md` v1.12.0 pa
 **Verificação:** 17 novos casos de teste; suíte de backend 281 → 294 casos (32 → 34 arquivos). Verificado end-to-end no app rodando: filtro por "Unimed" retornou os médicos certos; médico alternou e salvou convênios com persistência confirmada.
 
 Ver `KANBAN_MELHORIAS.md` v1.24.0 e `uaimed-back/documents/TESTES.md` v1.13.0 para o detalhamento completo.
+
+---
+
+### v1.19.0 — 03 de Novembro de 2026
+
+#### 🟢 Implementado
+
+**`HomeScreen` — "Próxima consulta" com dado real (último item em "A Fazer" do Kanban, agora zerada):**
+- Correção de escopo: metade do card já estava resolvida sem registro — `FeaturedProfessionalsCarousel` já consumia `GET /medicos/recomendados` (dado real, curado por admin via flag `Profissional.destaque`), não dado simulado
+- O gap genuíno era só `NextAppointmentCard`: o componente existia pronto mas nunca era importado pela `HomeScreen` — código morto, nunca conectado
+- `HomeScreen.tsx` passa a buscar `GET /agendamentos` ao focar a tela, filtrar a consulta futura mais próxima (`agendado`/`confirmado`) do paciente logado e renderizar o card; sem seção quando não há consulta futura
+
+**Verificação:** verificado end-to-end no app rodando (driver headless `run-uaimed-front`): paciente com consulta futura confirmada exibe o card com médico/especialidade/data/hora corretos; paciente sem consulta futura não exibe a seção; zero erros de console nos dois cenários.
+
+Ver `KANBAN_MELHORIAS.md` v1.25.0 para o detalhamento completo.
 
 ---
 
