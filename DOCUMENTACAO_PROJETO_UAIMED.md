@@ -1,6 +1,6 @@
 # 📘 Documentação Completa do Projeto UaiMED
 
-**Versão**: 1.19.0  
+**Versão**: 1.20.0  
 **Data**: 03 de Novembro de 2026  
 **Classificação**: Documentação Técnica de Engenharia de Software  
 **Status**: Projeto em Desenvolvimento Avançado — Seção de Avaliação do Projeto (percurso, decisões técnicas, desafios, resultados e perspectivas) revisada com base no histórico real do Git (135 commits, 63 PRs, Fev–Out/2026)
@@ -766,6 +766,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ **Comprovante de pagamento por e-mail e tela de sucesso dedicada**: substitui o modal antigo; expõe separadamente o desconto de cupom e o desconto de plano de saúde, achado real durante a verificação end-to-end (v1.23.0 do Kanban)
 - ✅ **Filtro de busca por convênio/plano de saúde aceito**: catálogo fixo de convênios, campo `Profissional.convenios: String[]`, médico autogerencia via `PUT /professionals/me/convenios`, `GET /medicos` aceita `?convenio=` (v1.24.0 do Kanban)
 - ✅ **`HomeScreen` com "Próxima consulta" real**: `NextAppointmentCard` existia como componente mas nunca era importado pela tela — conectado a `GET /agendamentos`, exibindo a consulta futura mais próxima do paciente logado (sem seção quando não há nenhuma). Carrossel de profissionais em destaque já consumia dado real (`GET /medicos/recomendados`), confirmado na revisão (v1.25.0 do Kanban)
+- ✅ **Limpeza de código morto e saúde de tipos do frontend**: `AgendamentosScreen.tsx` (protótipo nunca conectado a nenhum navigator) e o residual de `useAvaliacoes.ts`/`CardAvaliacao.tsx`/`types/avaliacao.ts` removidos. A remoção do primeiro revelou que seu erro de sintaxe abortava `tsc --noEmit` antes de checar o resto do projeto, escondendo 7 erros de tipo reais em telas de produção — todos corrigidos (`npx tsc --noEmit` limpo pela primeira vez no frontend). Novo job `typecheck-frontend` no CI (`ci.yml`) impede que isso volte a passar despercebido (v1.26.0–v1.28.0 do Kanban)
 
 #### ⚠️ Em Desenvolvimento
 
@@ -1305,6 +1306,24 @@ Ver `KANBAN_MELHORIAS.md` v1.24.0 e `uaimed-back/documents/TESTES.md` v1.13.0 pa
 **Verificação:** verificado end-to-end no app rodando (driver headless `run-uaimed-front`): paciente com consulta futura confirmada exibe o card com médico/especialidade/data/hora corretos; paciente sem consulta futura não exibe a seção; zero erros de console nos dois cenários.
 
 Ver `KANBAN_MELHORIAS.md` v1.25.0 para o detalhamento completo.
+
+---
+
+### v1.20.0 — 03 de Novembro de 2026
+
+#### 🟢 Implementado
+
+**Limpeza de código morto e correção da saúde de tipos do frontend:**
+- `AgendamentosScreen.tsx` deletado — protótipo com dados simulados hardcoded, nunca importado por nenhum navigator (a aba real usa `AgendamentoStack` → `MinhasConsultasScreen`). Resolve, ao mesmo tempo, os 2 itens de Backlog que miravam essa tela (descartados, não implementados, por mirarem um arquivo morto)
+- `useAvaliacoes.ts` reescrito mantendo só a parte real (`carregarMediaAvaliacoes`/`notaMedia`/`totalAvaliacoes`, consumida por `PerfilScreen`); `CardAvaliacao.tsx` e `types/avaliacao.ts` removidos por completo (sem uso restante)
+
+**Achado real**: o erro de sintaxe JSX do `AgendamentosScreen.tsx` estava abortando `npx tsc --noEmit` antes de checar o resto do projeto — o typecheck "passava" escondendo **7 erros de tipo reais** em telas de produção (`LocalizacaoMedicoCard`, `AgendamentoStack`, `MainTabNavigation`, `ClinicaPerfilScreen`, `HistoricoAvaliacoesScreen`, `MedicoDetalhesScreen`, `MedicoDashboardScreen`). Nenhum era bug de runtime (Metro/Babel não valida tipos) — todos eram lacunas ou desatualizações de tipagem, triados e corrigidos um a um: resolução de módulos por plataforma (`moduleSuffixes` no `tsconfig.json`), API de back button do React Navigation 7, optional chaining em `navigation.navigate`, tipo de array perdido antes de um `.filter()`, `SafeAreaView` importado de `react-native` em vez de `react-native-safe-area-context` (mesma classe de bug já corrigida em outras telas), campo `convenios` faltando na interface local `MedicoPerfil`, e prop obrigatória faltando num gráfico de barras. `npx tsc --noEmit` limpo (exit 0) pela primeira vez no frontend.
+
+**Fechamento do buraco**: novo job `typecheck-frontend` em `.github/workflows/ci.yml`, paralelo ao typecheck do backend — garante que um erro de sintaxe como esse não volte a passar despercebido.
+
+**Verificação:** verificado end-to-end no app rodando contra o backend real (driver headless `run-uaimed-front`): fluxo completo de agendamento (Busca → Resultados → Detalhes → Horários → Minhas Consultas) intacto após a remoção do arquivo morto; telas com mudança de comportamento real renderizando corretamente. Suíte manual `tests/` (69/69) e testes do backend (294/294) sem regressão.
+
+Ver `KANBAN_MELHORIAS.md` v1.26.0–v1.28.0 para o detalhamento completo.
 
 ---
 

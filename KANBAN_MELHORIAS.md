@@ -1,6 +1,6 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.27.0  
+**Versão**: 1.28.0  
 **Data**: 03 de Novembro de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
@@ -576,7 +576,20 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 **Critério de aceite**:
 - [x] Triar os 7 erros: tipagem desatualizada (não quebra em runtime) vs. bug real — nenhum era bug de runtime; todos eram lacunas/desatualizações de tipagem
 - [x] Corrigir cada um; `npx tsc --noEmit` termina sem erros em `uaimed-front`
-- [ ] Adicionar o typecheck do frontend ao CI (`ci.yml` hoje só roda `tsc` do backend) — não feito agora, mudança de infraestrutura de CI fora do escopo desta limpeza; recomendado para não deixar isso voltar a ficar escondido
+- [x] Adicionar o typecheck do frontend ao CI — feito em item próprio logo abaixo ("Adicionar typecheck do frontend ao CI")
+
+---
+
+### ✅ [DEVOPS] Adicionar typecheck do frontend ao CI
+**Área**: DevOps | **Prioridade**: 🟡 Médio | **Esforço**: 1
+
+**Descrição original**: `ci.yml` só rodava `tsc --noEmit` do backend. O frontend nunca teve typecheck automatizado — foi assim que `AgendamentosScreen.tsx` conseguiu existir com um erro de sintaxe sem ninguém notar, e como os 7 erros de tipo reais ficaram escondidos atrás dele por tempo indeterminado (ver itens acima).
+
+**Resolução**: novo job `typecheck-frontend` em `.github/workflows/ci.yml`, paralelo ao `typecheck` do backend (não depende dele — roda mais rápido, sem precisar do Prisma Client). Mesma estrutura do job do backend: `actions/setup-node@v4` (Node 22, cache npm), `npm ci` em `uaimed-front`, `npx tsc --noEmit`.
+
+**Critério de aceite**:
+- [x] Novo job no `ci.yml` rodando `npx tsc --noEmit` em `uaimed-front` a cada push/PR
+- [x] YAML validado (`python3 -c "import yaml; yaml.safe_load(...)"`) e comando do job confirmado passando localmente (`npx tsc --noEmit` → exit 0)
 
 ---
 
@@ -744,16 +757,6 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 
 ---
 
-### 📌 [DEVOPS] Adicionar typecheck do frontend ao CI
-- **Área**: DevOps
-- **Prioridade**: 🟡 Médio
-- **Esforço**: 1
-- **Descrição**: Achado em 03/11/2026 corrigindo os 7 erros de TypeScript expostos pela remoção de `AgendamentosScreen.tsx` (ver Concluído). `ci.yml` hoje só roda `tsc --noEmit` do **backend** (`uaimed-back`); o frontend nunca teve typecheck automatizado. Isso foi exatamente como o arquivo morto com erro de sintaxe conseguiu existir sem ninguém notar — e como os 7 erros reais ficaram escondidos atrás dele por tempo indeterminado.
-- **Critério de aceite**:
-  - [ ] Novo job no `ci.yml` (ou job existente ampliado) rodando `npx tsc --noEmit` em `uaimed-front` a cada push/PR
-
----
-
 ---
 
 ## ⏸️ BLOQUEADO
@@ -786,12 +789,12 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 | 🟢 Concluído — Mai–Out/2026 (consolidado) | 13 itens |
 | 🟢 Concluído — 30/10/2026 | 6 itens |
 | 🟢 Concluído — 01/11/2026 | 7 itens |
-| 🟢 Concluído — 03/11/2026 | 9 itens |
+| 🟢 Concluído — 03/11/2026 | 10 itens |
 | 🔴 Bug Conhecido | 0 itens |
 | 🔵 A Fazer (próxima sprint) | 0 itens |
-| 🗃️ Backlog | 5 itens |
+| 🗃️ Backlog | 4 itens |
 | ⏸️ Bloqueado | 2 itens |
-| **Total** | **60 itens** |
+| **Total** | **61 itens** |
 
 ---
 
@@ -839,6 +842,7 @@ Sprint entrega PFC (atual)
 | 03/11/2026 | 1.25.0 | Implementado "HomeScreen — consumir dados reais" (último item em "A Fazer", agora zerada). Correção de escopo: metade do card já estava resolvida sem registro — `FeaturedProfessionalsCarousel` já consumia `GET /medicos/recomendados` (dado real, curado por admin via flag `destaque`), não simulado. O gap genuíno era só `NextAppointmentCard`: componente pronto, mas nunca importado pela `HomeScreen` — código morto nunca conectado. Resolvido buscando `GET /agendamentos` ao focar a Home, filtrando a consulta futura mais próxima (`agendado`/`confirmado`) do paciente logado. Verificado end-to-end no app rodando: card aparece com dados corretos para paciente com consulta futura, seção some por completo sem uma. **Quadro sem itens pendentes em "A Fazer"** — restam apenas Backlog (baixa prioridade) e Bloqueado (fora do escopo do PFC). |
 | 03/11/2026 | 1.26.0 | Limpeza de 2 itens de Backlog. (1) `AgendamentosScreen.tsx` deletado — código morto confirmado (sem import em nenhum navigator, erro de sintaxe JSX); os 2 itens de Backlog que miravam essa tela foram descartados em vez de implementados. **Achado real**: o erro de sintaxe estava abortando `tsc --noEmit` cedo, escondendo 7 erros de tipo reais em arquivos usados em produção (`LocalizacaoMedicoCard`, `AgendamentoStack`, `MainTabNavigation`, `ClinicaPerfilScreen`, `HistoricoAvaliacoesScreen`, `MedicoDetalhesScreen`, `MedicoDashboardScreen`) — registrado como novo item de Backlog, não corrigido agora. (2) Código morto residual de `useAvaliacoes.ts`/`CardAvaliacao.tsx`/`types/avaliacao.ts` removido: hook mantém só a parte real (`carregarMediaAvaliacoes`/`notaMedia`/`totalAvaliacoes`, consumida por `PerfilScreen`); `CardAvaliacao.tsx` e `types/avaliacao.ts` deletados por completo (sem uso restante após a limpeza do hook). Validado com `tsc --noEmit` (sem novos erros nos arquivos tocados) e suíte manual `tests/` (69/69). Backlog: 7 → 5 itens. |
 | 03/11/2026 | 1.27.0 | Corrigidos os 7 erros de TypeScript levantados na v1.26.0. Nenhum era bug de runtime (o Metro/Babel do Expo não valida tipos, então o app sempre rodou certo) — todos eram lacunas ou desatualizações de tipagem: `tsconfig.json` ganhou `moduleSuffixes` (resolve `.native`/`.web` como o Metro já fazia, mas o `tsc` não); `headerBackTitleVisible` (API do React Navigation 5/6) trocado por `headerBackButtonDisplayMode: 'minimal'` (projeto está na v7); 8 call-sites de `navigation.navigate(...)` em `MainTabNavigation.tsx` protegidos com optional chaining (quirk de tipagem do RN v7, sempre definido em runtime); array de `InfoField` em `ClinicaPerfilScreen` recebeu tipo explícito antes do `.filter()` (perdia o tipo contextual); `SafeAreaView` de `HistoricoAvaliacoesScreen` trocado de `react-native` para `react-native-safe-area-context` (mesma classe de bug já corrigida em outras telas na v1.8.0); campo `convenios: string[]` adicionado à interface `MedicoPerfil` (o backend já retornava, a tela já usava, só a interface local estava desatualizada); `yAxisSuffix=""` adicionado ao `BarChart` de `MedicoDashboardScreen` (o `LineChart` do mesmo arquivo já tinha). `npx tsc --noEmit` limpo (exit 0) pela primeira vez no frontend. Verificado end-to-end no app rodando: as 3 telas com mudança de comportamento real (`HistoricoAvaliacoesScreen`, header do `AgendamentoStack`, `MedicoDashboardScreen`) renderizam corretamente; os 7 avisos de console do gráfico de barras são do `react-native-chart-kit` no target web, confirmados pré-existentes (testado revertendo o arquivo isoladamente). Novo item de Backlog aberto: adicionar typecheck do frontend ao CI (hoje só roda no backend — foi assim que isso ficou escondido). Backlog: 5 → 5 itens (1 fechado, 1 novo aberto). |
+| 03/11/2026 | 1.28.0 | Implementado "Adicionar typecheck do frontend ao CI" (último achado da v1.26.0/v1.27.0). Novo job `typecheck-frontend` em `.github/workflows/ci.yml`, paralelo ao job de typecheck do backend (não depende dele): `npm ci` + `npx tsc --noEmit` em `uaimed-front`, mesma estrutura do job já existente. Fecha o buraco que permitiu o `AgendamentosScreen.tsx` morto (com erro de sintaxe) e os 7 erros de tipo reais ficarem escondidos sem detecção automatizada. YAML validado e comando confirmado passando localmente. **Contagem total do quadro corrigida nesta versão**: a linha "Total" estava desatualizada (60) desde edições anteriores; recontada item a item via grep — 61 itens reais (55 Concluído + 0 A Fazer + 4 Backlog + 2 Bloqueado). Backlog: 5 → 4 itens. |
 
 ---
 
