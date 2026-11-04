@@ -1,7 +1,7 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.30.0  
-**Data**: 03 de Novembro de 2026  
+**Versão**: 1.31.0  
+**Data**: 04 de Novembro de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
 
@@ -744,6 +744,33 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 
 ---
 
+## 🟢 CONCLUÍDO — 04/11/2026
+
+---
+
+### ✅ [FEATURE] Sistema de cupons — painel admin para criar/gerenciar cupons
+**Área**: Frontend (Admin) + Backend | **Prioridade**: 🟢 Baixo | **Esforço**: 5
+
+**Descrição original**: backend tinha o modelo `Cupom` e `PagamentosController.validarCupom()` (validação no checkout), mas não existia nenhum endpoint de CRUD nem tela admin para criar, listar ou desativar cupons — eram criados só via seed/banco direto.
+
+**Resolução**:
+- **Backend**: `src/schemas/cupom.schema.ts` novo (`cupomSchema` para criação, `cupomAtivoSchema` para o toggle); `src/controllers/cupons.controller.ts` novo — `listar()` (`GET /admin/cupons`), `criar()` (`POST /admin/cupons`, normaliza código para maiúsculo, `409` em código duplicado via `P2002`), `atualizarAtivo()` (`PUT /admin/cupons/:id`, `404` se não existe). Rotas em `src/routes/cupons.routes.ts`, protegidas por `authMiddleware` + `requireAdmin` — mesmo padrão de acesso de artigos/destaques (conta `admin@uaimed.com`). **Decisão de design**: desativação em vez de exclusão física — um cupom já pode ter sido usado em pagamentos concluídos (`Pagamento.cupom` guarda o código como string solta, sem FK), então apagar o registro perderia a rastreabilidade do desconto aplicado.
+- **Frontend**: `AdminCuponsScreen.tsx` novo — lista cupons com badge Ativo/Inativo/Expirado, desconto, validade, contagem de usos (`atuais / limite` ou "sem limite"), e um `Switch` por card que já chama `PUT /admin/cupons/:id` (atualização otimista, reverte se a API falhar). Modal de criação com campos código/desconto/validade (`DD/MM/AAAA`, parseado e validado no cliente antes de enviar)/limite de usos opcional. Nova aba "Cupons" no `AdminTabNavigator` (mesmo nível de Artigos/Destaques) + atalho em `AdminHomeScreen`.
+- 9 novos casos de teste (`cupons.test.ts`): 401 sem auth, 403 não-admin, criação com sucesso (código normalizado para maiúsculo), 409 em código duplicado, 400 em desconto fora de 1-100, 400 em data inválida, listagem incluindo o criado (ordenado por mais recente), desativar+reativar, 404 em cupom inexistente.
+
+**Verificado end-to-end no app rodando** (driver headless `run-uaimed-front`, backend real): login como `admin@uaimed.com` → "Cupons de desconto" na home admin e na tab bar → lista real com os 3 cupons do seed (`UAIMED10`, `PRIMEIRACOMPRA`, `NATAL25`) → criado cupom de teste via modal (código minúsculo normalizado para maiúsculo na resposta) → desativado via `Switch` (badge mudou para "Inativo", label para "Reativar cupom") → reativado → zero erros de console em todas as etapas. Cupom de teste removido do banco de dev após a verificação.
+
+**Critério de aceite**:
+- [x] CRUD de cupons no backend (criar, listar, desativar/reativar) restrito à conta admin
+- [x] Tela admin para criar cupons (código, desconto, validade, limite de usos opcional)
+- [x] Lista de cupons com status visual (Ativo/Inativo/Expirado) e contagem de usos
+- [x] Desativar/reativar sem excluir fisicamente (preserva rastreabilidade de cupons já usados)
+- [x] 9 novos casos de teste, suíte backend 303/303
+- [x] `npx tsc --noEmit` limpo nos dois projetos
+- [x] Verificado end-to-end no app rodando contra o backend real
+
+---
+
 ## 🔵 A FAZER — Próxima Sprint
 
 > Nenhum item no momento — ver Backlog para itens de baixa prioridade.
@@ -762,14 +789,6 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 - **Esforço**: 8
 - **Descrição**: `expo-notifications` não suporta push remoto no Expo Go SDK 53+. Para push funcionar é necessário gerar um **development build** com `npx expo run:android`. Requer configuração do Expo Push Service ou Firebase Cloud Messaging (FCM).
 - **Dependência**: Geração do APK/build de desenvolvimento
-
----
-
-### 📌 [FEATURE] Sistema de cupons — painel admin para criar/gerenciar cupons
-- **Área**: Frontend (Admin) + Backend
-- **Prioridade**: 🟢 Baixo
-- **Esforço**: 5
-- **Descrição**: Backend tem modelo `Cupom` e controller de validação, mas não existe tela admin para criar, listar e desativar cupons.
 
 ---
 
@@ -814,9 +833,10 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 | 🟢 Concluído — 30/10/2026 | 6 itens |
 | 🟢 Concluído — 01/11/2026 | 7 itens |
 | 🟢 Concluído — 03/11/2026 | 12 itens |
+| 🟢 Concluído — 04/11/2026 | 1 item |
 | 🔴 Bug Conhecido | 0 itens |
 | 🔵 A Fazer (próxima sprint) | 0 itens |
-| 🗃️ Backlog | 3 itens |
+| 🗃️ Backlog | 2 itens |
 | ⏸️ Bloqueado | 2 itens |
 | **Total** | **62 itens** |
 
@@ -869,6 +889,7 @@ Sprint entrega PFC (atual)
 | 03/11/2026 | 1.28.0 | Implementado "Adicionar typecheck do frontend ao CI" (último achado da v1.26.0/v1.27.0). Novo job `typecheck-frontend` em `.github/workflows/ci.yml`, paralelo ao job de typecheck do backend (não depende dele): `npm ci` + `npx tsc --noEmit` em `uaimed-front`, mesma estrutura do job já existente. Fecha o buraco que permitiu o `AgendamentosScreen.tsx` morto (com erro de sintaxe) e os 7 erros de tipo reais ficarem escondidos sem detecção automatizada. YAML validado e comando confirmado passando localmente. **Contagem total do quadro corrigida nesta versão**: a linha "Total" estava desatualizada (60) desde edições anteriores; recontada item a item via grep — 61 itens reais (55 Concluído + 0 A Fazer + 4 Backlog + 2 Bloqueado). Backlog: 5 → 4 itens. |
 | 03/11/2026 | 1.29.0 | Removido o parâmetro morto `insuranceProvider` de `PagamentosController.processar()` e de `processarPagamentoSchema` — desestruturado mas nunca referenciado, sem campo correspondente no model `Pagamento`, sem teste cobrindo. **Investigação antes de decidir**: `insuranceCoveragePercent` (o outro campo citado no card original) **não é morto** — sobrescreve o desconto padrão de 15% quando enviado, validado no schema e coberto por teste; só não é exercitado pelo front atual. Mantido como estava. **Achado real durante a verificação**: `npm run test` revelou 1 falha pré-existente em `professional.test.ts` (série semanal do dashboard do médico, provável sensibilidade a horário/fuso), confirmada não relacionada a este fix via `git stash` isolando a mudança. Registrada como novo item de Backlog, não corrigida agora. Suíte: 293/294 (1 falha pré-existente documentada). Backlog: 4 → 4 itens (1 fechado, 1 novo aberto). |
 | 03/11/2026 | 1.30.0 | Corrigido o teste flaky de `professional.test.ts` levantado na v1.29.0. **Causa raiz**: o seed do teste criava o agendamento em "agora + 1h"; rodando perto da meia-noite local, isso cruzava pra o dia seguinte, caindo fora da janela de "últimos 7 dias" que `getWeeklySeries()` calcula (vai até hoje, não inclui amanhã) — bucket de "hoje" ficava vazio. Não era bug no endpoint, só no seed do teste. **Resolução**: `dataHora` trocada de "agora + 1h" para "hoje ao meio-dia" (ancorada no dia corrente, não mais sensível à hora de execução). Reproduzido e confirmado o fix exatamente às 23:47 (horário que antes derrubava o teste) — 8/8 passando isolado, 294/294 na suíte completa. Backlog: 4 → 3 itens. |
+| 04/11/2026 | 1.31.0 | Implementado "Sistema de cupons — painel admin para criar/gerenciar cupons" (maior item do Backlog, esforço 5). Backend: `cupons.controller.ts` + `cupom.schema.ts` + `cupons.routes.ts` novos — CRUD restrito à conta `admin@uaimed.com` (mesmo padrão de artigos/destaques), com desativação em vez de exclusão física (preserva rastreabilidade de cupons já usados em pagamentos concluídos). Frontend: `AdminCuponsScreen.tsx` novo, com lista (badge Ativo/Inativo/Expirado, contagem de usos) e modal de criação; nova aba "Cupons" no `AdminTabNavigator` + atalho em `AdminHomeScreen`. 9 novos casos de teste (`cupons.test.ts`). Verificado end-to-end no app rodando contra o backend real: lista com os 3 cupons do seed, criação, desativação e reativação via `Switch`, tudo persistindo de verdade, zero erros de console. Suíte: 294 → 303 casos, 34 → 35 arquivos. **Nova seção datada "Concluído — 04/11/2026"** criada (sessão cruzou a meia-noite) — mantém a precisão de data já estabelecida neste documento em vez de agrupar sob 03/11. Backlog: 3 → 2 itens. |
 
 ---
 

@@ -9,6 +9,7 @@ import AdminHomeScreen from '../screens/Admin/AdminHomeScreen';
 import AdminPerfilScreen from '../screens/Admin/AdminPerfilScreen';
 import AdminArtigosScreen from '../screens/Admin/AdminArtigosScreen';
 import AdminDestaquesScreen from '../screens/Admin/AdminDestaquesScreen';
+import AdminCuponsScreen from '../screens/Admin/AdminCuponsScreen';
 import ArtigoCadastroScreen from '../screens/Admin/ArtigoCadastroScreen';
 import ArtigosListaScreen from '../screens/Main/ArtigosListaScreen';
 import ArtigoDetalhesScreen from '../screens/Main/ArtigoDetalhesScreen';
@@ -36,7 +37,9 @@ const AdminTabNavigator: React.FC = () => {
               ? focused ? 'newspaper' : 'newspaper-outline'
               : route.name === 'AdminDestaques'
                 ? focused ? 'star' : 'star-outline'
-                : focused ? 'shield-checkmark' : 'shield-checkmark-outline';
+                : route.name === 'AdminCupons'
+                  ? focused ? 'pricetag' : 'pricetag-outline'
+                  : focused ? 'shield-checkmark' : 'shield-checkmark-outline';
           return <Ionicons name={icon} color={color} size={size} />;
         },
       })}
@@ -44,6 +47,7 @@ const AdminTabNavigator: React.FC = () => {
       <Tab.Screen name="Home" component={AdminHomeScreen} options={{ title: 'Administração UaiMED', tabBarLabel: 'Início' }} />
       <Tab.Screen name="AdminArtigos" component={AdminArtigosScreen} options={{ title: 'Administração de artigos', tabBarLabel: 'Artigos' }} />
       <Tab.Screen name="AdminDestaques" component={AdminDestaquesScreen} options={{ title: 'Destaques da home', tabBarLabel: 'Destaques' }} />
+      <Tab.Screen name="AdminCupons" component={AdminCuponsScreen} options={{ title: 'Cupons de desconto', tabBarLabel: 'Cupons' }} />
       <Tab.Screen name="Perfil" component={AdminPerfilScreen} options={{ title: 'Conta administrativa', tabBarLabel: 'Meu perfil' }} />
       <Tab.Screen
         name="ArtigoCadastro"

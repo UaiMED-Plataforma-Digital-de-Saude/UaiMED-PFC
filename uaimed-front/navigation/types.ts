@@ -28,6 +28,7 @@ export type MainTabParamList = {
   Artigos: undefined;
   AdminArtigos: undefined;
   AdminDestaques: undefined;
+  AdminCupons: undefined;
   ArtigoDetalhes: { artigoId: string };
   ArtigoCadastro: { artigoId?: string } | undefined;
   Conversas: NavigatorScreenParams<ConversasStackParamList> | undefined;
