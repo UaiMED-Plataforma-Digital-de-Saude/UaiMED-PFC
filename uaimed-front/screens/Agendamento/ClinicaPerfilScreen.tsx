@@ -58,7 +58,7 @@ const ClinicaPerfilScreen: React.FC<Props> = ({ route, navigation }) => {
   const iniciais = nome.split(' ').slice(0, 2).map((n: string) => n[0]).join('').toUpperCase();
   const totalConsultas = perfil?.medicos.reduce((acc, m) => acc + m.totalAgendamentos, 0) ?? 0;
   type InfoField = { icon: 'location-outline' | 'call-outline'; label: string; value: string; onPress?: () => void };
-  const infoFields: InfoField[] = [
+  const infoFieldsOuNulos: (InfoField | null)[] = [
     perfil?.localizacao ? { icon: 'location-outline', label: 'Localização', value: perfil.localizacao } : null,
     perfil?.telefone
       ? {
@@ -68,7 +68,8 @@ const ClinicaPerfilScreen: React.FC<Props> = ({ route, navigation }) => {
           onPress: () => Linking.openURL(`tel:${perfil.telefone!.replace(/\D/g, '')}`),
         }
       : null,
-  ].filter((f): f is InfoField => f !== null);
+  ];
+  const infoFields: InfoField[] = infoFieldsOuNulos.filter((f): f is InfoField => f !== null);
 
   const handleBack = () => {
     navigation.getParent<any>()?.navigate('Home');

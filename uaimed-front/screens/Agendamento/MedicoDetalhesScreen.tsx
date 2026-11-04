@@ -36,6 +36,7 @@ interface MedicoPerfil {
   dataFormacao: string;
   pixKey: string | null;
   precoConsulta: number;
+  convenios: string[];
   totalAgendamentos: number;
   totalAvaliacoes: number;
   notaMedia: number | null;

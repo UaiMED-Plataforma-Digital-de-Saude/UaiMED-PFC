@@ -74,7 +74,7 @@ const MainTabNavigator: React.FC = () => {
             style={{ marginLeft: 16 }}
             onPress={() => {
               // Dispara um evento para abrir o menu na Home
-              navigation.navigate('Home', { openMenu: true });
+              navigation?.navigate('Home', { openMenu: true });
             }}
           >
             <Ionicons name="menu" size={26} color="#333" />
@@ -84,7 +84,7 @@ const MainTabNavigator: React.FC = () => {
           <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16 }}>
             <TouchableOpacity
               onPress={() => {
-                navigation.navigate('Agendamentos', { screen: 'Busca' });
+                navigation?.navigate('Agendamentos', { screen: 'Busca' });
               }}
             >
               <Ionicons name="search-outline" size={26} color="#333" />
@@ -178,7 +178,7 @@ const MainTabNavigator: React.FC = () => {
           tabBarItemStyle: hiddenTab,
           headerRight: () => null,
           headerLeft: () => (
-            <TouchableOpacity style={{ marginLeft: 16 }} onPress={() => navigation.navigate('Home')}>
+            <TouchableOpacity style={{ marginLeft: 16 }} onPress={() => navigation?.navigate('Home')}>
               <Ionicons name="arrow-back" size={24} color="#333" />
             </TouchableOpacity>
           ),
@@ -193,7 +193,7 @@ const MainTabNavigator: React.FC = () => {
           tabBarItemStyle: hiddenTab,
           headerRight: () => null,
           headerLeft: () => (
-            <TouchableOpacity style={{ marginLeft: 16 }} onPress={() => navigation.navigate('Home')}>
+            <TouchableOpacity style={{ marginLeft: 16 }} onPress={() => navigation?.navigate('Home')}>
               <Ionicons name="arrow-back" size={24} color="#333" />
             </TouchableOpacity>
           ),
@@ -208,7 +208,7 @@ const MainTabNavigator: React.FC = () => {
           tabBarItemStyle: hiddenTab,
           headerRight: () => null,
           headerLeft: () => (
-            <TouchableOpacity style={{ marginLeft: 16 }} onPress={() => navigation.navigate('Home')}>
+            <TouchableOpacity style={{ marginLeft: 16 }} onPress={() => navigation?.navigate('Home')}>
               <Ionicons name="arrow-back" size={24} color="#333" />
             </TouchableOpacity>
           ),
@@ -223,7 +223,7 @@ const MainTabNavigator: React.FC = () => {
           tabBarItemStyle: hiddenTab,
           headerRight: () => null,
           headerLeft: () => (
-            <TouchableOpacity style={{ marginLeft: 16 }} onPress={() => navigation.navigate('Perfil')}>
+            <TouchableOpacity style={{ marginLeft: 16 }} onPress={() => navigation?.navigate('Perfil')}>
               <Ionicons name="arrow-back" size={24} color="#333" />
             </TouchableOpacity>
           ),
@@ -238,7 +238,7 @@ const MainTabNavigator: React.FC = () => {
           tabBarItemStyle: hiddenTab,
           headerRight: () => null,
           headerLeft: () => (
-            <TouchableOpacity style={{ marginLeft: 16 }} onPress={() => navigation.navigate('Perfil')}>
+            <TouchableOpacity style={{ marginLeft: 16 }} onPress={() => navigation?.navigate('Perfil')}>
               <Ionicons name="arrow-back" size={24} color="#333" />
             </TouchableOpacity>
           ),
@@ -262,7 +262,7 @@ const MainTabNavigator: React.FC = () => {
           tabBarItemStyle: hiddenTab,
           headerRight: () => null,
           headerLeft: () => (
-            <TouchableOpacity style={{ marginLeft: 16 }} onPress={() => navigation.navigate('Home')}>
+            <TouchableOpacity style={{ marginLeft: 16 }} onPress={() => navigation?.navigate('Home')}>
               <Ionicons name="arrow-back" size={24} color="#333" />
             </TouchableOpacity>
           ),

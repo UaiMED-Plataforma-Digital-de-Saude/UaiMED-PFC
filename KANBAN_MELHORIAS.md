@@ -1,6 +1,6 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.26.0  
+**Versão**: 1.27.0  
 **Data**: 03 de Novembro de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
@@ -557,6 +557,29 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 
 ---
 
+### ✅ [IMPROVEMENT] Corrigir os 7 erros de TypeScript expostos pela remoção de `AgendamentosScreen.tsx`
+**Área**: Frontend | **Prioridade**: 🟡 Médio | **Esforço**: 3
+
+**Descrição original**: ver item "Remoção de `AgendamentosScreen.tsx`" acima — o erro de sintaxe desse arquivo morto abortava `tsc --noEmit` cedo, escondendo 7 erros reais em arquivos de produção.
+
+**Triagem e resolução, um a um** (nenhum era bug de runtime visível — o app sempre rodou certo via Metro/Babel, que não valida tipos; mas todos eram lacunas reais de tipagem):
+1. `components/LocalizacaoMedicoCard.tsx` — módulo `./MapaLocalizacao` "não encontrado": falso positivo do `tsc`, que não resolve a convenção de arquivos por plataforma (`MapaLocalizacao.native.tsx`/`MapaLocalizacao.web.tsx`) por padrão. Corrigido com `"moduleSuffixes": [".native", ".ios", ".android", ".web", ""]` no `tsconfig.json` (opção oficial do TS 4.7+ para esse cenário) — conserta a resolução para qualquer import platform-specific do projeto, não só esse arquivo.
+2. `navigation/AgendamentoStack.tsx` — `headerBackTitleVisible: false` é API do React Navigation 5/6; o projeto está na v7, onde foi substituída por `headerBackButtonDisplayMode`. Trocado para `headerBackButtonDisplayMode: 'minimal'` (equivalente: esconde o texto, mantém só a seta).
+3. `navigation/MainTabNavigation.tsx` — `navigation` possivelmente `undefined` dentro dos callbacks `screenOptions`/`options` do Tab Navigator (quirk de tipagem do React Navigation v7, `navigation` sempre está definido em runtime nesse contexto). Corrigido com optional chaining (`navigation?.navigate(...)`) nos 8 call-sites flagados — comportamento idêntico em runtime, apenas satisfaz o strict mode.
+4. `screens/Agendamento/ClinicaPerfilScreen.tsx` — array de `InfoField` perdia o tipo contextual por causa do `.filter()` encadeado direto na declaração (`icon` era inferido como `string` solto, não a união literal esperada). Corrigido extraindo o array para uma variável intermediária com tipo explícito (`(InfoField | null)[]`) antes do `.filter()`.
+5. `screens/Agendamento/HistoricoAvaliacoesScreen.tsx` — `SafeAreaView` importado de `react-native` (não suporta a prop `edges`), mesma classe de bug já corrigida em outras telas no Kanban (v1.8.0, `PagamentoScreen`/`AvaliacaoScreen`). Trocado o import para `react-native-safe-area-context`.
+6. `screens/Agendamento/MedicoDetalhesScreen.tsx` — `convenios` não existia na interface local `MedicoPerfil`, mas `GET /medicos/:id` já retorna o campo (confirmado no controller) e a tela já o usava (`perfil.convenios`) desde o filtro de convênios (v1.24.0). Tipagem desatualizada, não bug — campo `convenios: string[]` adicionado à interface.
+7. `screens/Main/MedicoDashboardScreen.tsx` — `BarChart` exige `yAxisSuffix` (o `LineChart` logo acima no mesmo arquivo já tinha `yAxisSuffix=""`, só o `BarChart` ficou sem). Adicionado `yAxisSuffix=""`.
+
+**Verificação**: `npx tsc --noEmit` limpo (exit code 0, zero erros) pela primeira vez no frontend. Suíte manual `tests/` 69/69. Verificado end-to-end no app rodando contra o backend real: `HistoricoAvaliacoesScreen` (troca de `SafeAreaView`) renderiza normal; header do `AgendamentoStack` (back button) renderiza normal em `MedicoDetalhesScreen`, que também exibe "Convênios: Unimed, Bradesco Saúde, Particular" corretamente; `MedicoDashboardScreen` exibe o gráfico de barras "Receita nos últimos 6 meses" corretamente. Os 7 avisos de console vistos no dashboard (`onStartShouldSetResponder` etc.) são do `react-native-chart-kit` renderizando SVG/gestos no target web — confirmado pré-existentes (idênticos com e sem a correção do `yAxisSuffix`, testado revertendo o arquivo isoladamente), não uma regressão.
+
+**Critério de aceite**:
+- [x] Triar os 7 erros: tipagem desatualizada (não quebra em runtime) vs. bug real — nenhum era bug de runtime; todos eram lacunas/desatualizações de tipagem
+- [x] Corrigir cada um; `npx tsc --noEmit` termina sem erros em `uaimed-front`
+- [ ] Adicionar o typecheck do frontend ao CI (`ci.yml` hoje só roda `tsc` do backend) — não feito agora, mudança de infraestrutura de CI fora do escopo desta limpeza; recomendado para não deixar isso voltar a ficar escondido
+
+---
+
 ### ✅ [IMPROVEMENT] Testes automatizados — cobertura residual
 **Área**: Backend | **Prioridade**: 🟡 Médio | **Esforço**: 2
 
@@ -721,15 +744,15 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 
 ---
 
-### 📌 [IMPROVEMENT] Corrigir os 7 erros de TypeScript expostos pela remoção de `AgendamentosScreen.tsx`
-- **Área**: Frontend
+### 📌 [DEVOPS] Adicionar typecheck do frontend ao CI
+- **Área**: DevOps
 - **Prioridade**: 🟡 Médio
-- **Esforço**: 3
-- **Descrição**: Achado em 03/11/2026, ao deletar `AgendamentosScreen.tsx` (código morto, ver Concluído 03/11/2026). O erro de sintaxe JSX desse arquivo estava **abortando o `tsc --noEmit` cedo**, mascarando 7 erros reais de tipo em arquivos que *são* usados em produção — `npx tsc --noEmit` rodava "limpo" (só o erro já conhecido) mas na verdade nunca chegava a checar o resto do projeto. Removido o arquivo morto, os seguintes erros ficaram visíveis: `components/LocalizacaoMedicoCard.tsx` (módulo `./MapaLocalizacao` não encontrado), `navigation/AgendamentoStack.tsx` (`headerBackTitleVisible` não existe no tipo de opções do Stack), `navigation/MainTabNavigation.tsx` (`navigation` possivelmente `undefined`, 6 ocorrências), `screens/Agendamento/ClinicaPerfilScreen.tsx` (tipo de `InfoField[]` incompatível com `null`), `screens/Agendamento/HistoricoAvaliacoesScreen.tsx` (prop `edges` não existe no `SafeAreaView` usado), `screens/Agendamento/MedicoDetalhesScreen.tsx` (propriedade `convenios` não existe no tipo `MedicoPerfil`), `screens/Main/MedicoDashboardScreen.tsx` (prop `yAxisSuffix` obrigatória faltando no gráfico de barras). Não corrigidos agora — não fazem parte do item que motivou a descoberta; alguns (`MedicoDetalhesScreen`/`MedicoPerfil` sem `convenios`) parecem só tipagem desatualizada e não bug de runtime, mas merecem triagem própria.
-- **Critério de aceite** (a refinar):
-  - [ ] Triar os 7 erros: tipagem desatualizada (não quebra em runtime) vs. bug real
-  - [ ] Corrigir cada um; `npx tsc --noEmit` deve terminar sem erros em `uaimed-front`
-  - [ ] Considerar adicionar o typecheck do frontend ao CI (`ci.yml` hoje só roda `tsc` do backend) para que isso não volte a ficar escondido
+- **Esforço**: 1
+- **Descrição**: Achado em 03/11/2026 corrigindo os 7 erros de TypeScript expostos pela remoção de `AgendamentosScreen.tsx` (ver Concluído). `ci.yml` hoje só roda `tsc --noEmit` do **backend** (`uaimed-back`); o frontend nunca teve typecheck automatizado. Isso foi exatamente como o arquivo morto com erro de sintaxe conseguiu existir sem ninguém notar — e como os 7 erros reais ficaram escondidos atrás dele por tempo indeterminado.
+- **Critério de aceite**:
+  - [ ] Novo job no `ci.yml` (ou job existente ampliado) rodando `npx tsc --noEmit` em `uaimed-front` a cada push/PR
+
+---
 
 ---
 
@@ -763,7 +786,7 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 | 🟢 Concluído — Mai–Out/2026 (consolidado) | 13 itens |
 | 🟢 Concluído — 30/10/2026 | 6 itens |
 | 🟢 Concluído — 01/11/2026 | 7 itens |
-| 🟢 Concluído — 03/11/2026 | 8 itens |
+| 🟢 Concluído — 03/11/2026 | 9 itens |
 | 🔴 Bug Conhecido | 0 itens |
 | 🔵 A Fazer (próxima sprint) | 0 itens |
 | 🗃️ Backlog | 5 itens |
@@ -815,6 +838,7 @@ Sprint entrega PFC (atual)
 | 03/11/2026 | 1.24.0 | Implementado "Filtro de busca por plano de saúde aceito" (convênio), resolvendo as 3 decisões de design que estavam em aberto: catálogo fixo (`src/constants/convenios.ts`), campo `Profissional.convenios: String[]` (array nativo, sem N:N) e autogestão pelo médico (`GET`/`PUT /professionals/me/convenios`, mesmo padrão de preço/disponibilidade). `GET /medicos?convenio=` filtra; `SearchScreen` ganhou `ConvenioDropdown`; nova tela `MedicoConveniosScreen` (checklist) com atalho em Perfil; convênios exibidos no card de resultado e na tela de detalhes do médico. Migração + seed com convênios realistas. Verificação do estado da feature de avaliações (sem pedido de implementação, já completa) corrigiu um registro anterior deste Kanban: `useAvaliacoes.ts` não é 100% código morto — a parte de `notaMedia` é usada de verdade por `PerfilScreen`; só `loadAvaliacoes`/`calcularEstatisticas`/`avaliacoesMedico`/`criarAvaliacao` são mortos, movidos para item de limpeza no Backlog. 17 novos casos de teste. Verificado end-to-end no app rodando: filtro por "Unimed" retornou os médicos certos; médico alternou e salvou convênios com persistência confirmada. Suíte: 281 → 294 casos, 32 → 34 arquivos. Detalhes em `TESTES.md` v1.13.0. |
 | 03/11/2026 | 1.25.0 | Implementado "HomeScreen — consumir dados reais" (último item em "A Fazer", agora zerada). Correção de escopo: metade do card já estava resolvida sem registro — `FeaturedProfessionalsCarousel` já consumia `GET /medicos/recomendados` (dado real, curado por admin via flag `destaque`), não simulado. O gap genuíno era só `NextAppointmentCard`: componente pronto, mas nunca importado pela `HomeScreen` — código morto nunca conectado. Resolvido buscando `GET /agendamentos` ao focar a Home, filtrando a consulta futura mais próxima (`agendado`/`confirmado`) do paciente logado. Verificado end-to-end no app rodando: card aparece com dados corretos para paciente com consulta futura, seção some por completo sem uma. **Quadro sem itens pendentes em "A Fazer"** — restam apenas Backlog (baixa prioridade) e Bloqueado (fora do escopo do PFC). |
 | 03/11/2026 | 1.26.0 | Limpeza de 2 itens de Backlog. (1) `AgendamentosScreen.tsx` deletado — código morto confirmado (sem import em nenhum navigator, erro de sintaxe JSX); os 2 itens de Backlog que miravam essa tela foram descartados em vez de implementados. **Achado real**: o erro de sintaxe estava abortando `tsc --noEmit` cedo, escondendo 7 erros de tipo reais em arquivos usados em produção (`LocalizacaoMedicoCard`, `AgendamentoStack`, `MainTabNavigation`, `ClinicaPerfilScreen`, `HistoricoAvaliacoesScreen`, `MedicoDetalhesScreen`, `MedicoDashboardScreen`) — registrado como novo item de Backlog, não corrigido agora. (2) Código morto residual de `useAvaliacoes.ts`/`CardAvaliacao.tsx`/`types/avaliacao.ts` removido: hook mantém só a parte real (`carregarMediaAvaliacoes`/`notaMedia`/`totalAvaliacoes`, consumida por `PerfilScreen`); `CardAvaliacao.tsx` e `types/avaliacao.ts` deletados por completo (sem uso restante após a limpeza do hook). Validado com `tsc --noEmit` (sem novos erros nos arquivos tocados) e suíte manual `tests/` (69/69). Backlog: 7 → 5 itens. |
+| 03/11/2026 | 1.27.0 | Corrigidos os 7 erros de TypeScript levantados na v1.26.0. Nenhum era bug de runtime (o Metro/Babel do Expo não valida tipos, então o app sempre rodou certo) — todos eram lacunas ou desatualizações de tipagem: `tsconfig.json` ganhou `moduleSuffixes` (resolve `.native`/`.web` como o Metro já fazia, mas o `tsc` não); `headerBackTitleVisible` (API do React Navigation 5/6) trocado por `headerBackButtonDisplayMode: 'minimal'` (projeto está na v7); 8 call-sites de `navigation.navigate(...)` em `MainTabNavigation.tsx` protegidos com optional chaining (quirk de tipagem do RN v7, sempre definido em runtime); array de `InfoField` em `ClinicaPerfilScreen` recebeu tipo explícito antes do `.filter()` (perdia o tipo contextual); `SafeAreaView` de `HistoricoAvaliacoesScreen` trocado de `react-native` para `react-native-safe-area-context` (mesma classe de bug já corrigida em outras telas na v1.8.0); campo `convenios: string[]` adicionado à interface `MedicoPerfil` (o backend já retornava, a tela já usava, só a interface local estava desatualizada); `yAxisSuffix=""` adicionado ao `BarChart` de `MedicoDashboardScreen` (o `LineChart` do mesmo arquivo já tinha). `npx tsc --noEmit` limpo (exit 0) pela primeira vez no frontend. Verificado end-to-end no app rodando: as 3 telas com mudança de comportamento real (`HistoricoAvaliacoesScreen`, header do `AgendamentoStack`, `MedicoDashboardScreen`) renderizam corretamente; os 7 avisos de console do gráfico de barras são do `react-native-chart-kit` no target web, confirmados pré-existentes (testado revertendo o arquivo isoladamente). Novo item de Backlog aberto: adicionar typecheck do frontend ao CI (hoje só roda no backend — foi assim que isso ficou escondido). Backlog: 5 → 5 itens (1 fechado, 1 novo aberto). |
 
 ---
 
