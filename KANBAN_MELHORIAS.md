@@ -1,6 +1,6 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.28.0  
+**Versão**: 1.30.0  
 **Data**: 03 de Novembro de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
@@ -593,6 +593,42 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 
 ---
 
+### ✅ [FIX] Parâmetro morto `insuranceProvider` em `PagamentosController`
+**Área**: Backend | **Prioridade**: 🟢 Baixo | **Esforço**: 2
+
+**Descrição original**: `PagamentosController.processar()` desestruturava `insuranceProvider` e `insuranceCoveragePercent` do corpo da requisição, mas nenhum caller real (`PagamentoScreen.tsx`) envia esses campos.
+
+**Investigação antes de decidir**: os dois campos **não são equivalentes**. `insuranceProvider` é 100% morto — desestruturado e nunca mais referenciado em lugar nenhum da função, sem campo correspondente no model `Pagamento` para persistir, sem nenhum teste cobrindo. `insuranceCoveragePercent`, por outro lado, **é funcional**: usado em `processar()` para sobrescrever o desconto padrão de 15% quando enviado (linha `if (insuranceCoveragePercent && typeof insuranceCoveragePercent === 'number') { planDiscount = (valor * insuranceCoveragePercent) / 100; }`), validado no schema Zod (`z.number().min(0).max(100)`) e coberto por teste (`pagamentos.test.ts`, rejeita valor fora de 0-100). Só não é exercitado pelo front atual — não é código morto, é um ponto de extensão já pronto.
+
+**Resolução**: removido só `insuranceProvider` — do destructuring em `pagamentos.controller.ts` e do schema `processarPagamentoSchema` (`pagamento.schema.ts`). `insuranceCoveragePercent` mantido como estava.
+
+**Achado real durante a verificação**: `npm run test` revelou 1 falha em `professional.test.ts` ("returns weekly and monthly series including the seeded appointment", linha 99: `expected 0 to be greater than or equal to 1`) — **não relacionada a este fix**. Confirmado isolando a mudança via `git stash`: o teste falha de forma idêntica com e sem a remoção do `insuranceProvider`. Provável sensibilidade a horário/fuso do teste (depende de um agendamento "de hoje" cair no último bucket da série semanal). Não corrigido agora — fora do escopo deste item; fica documentado para triagem própria.
+
+**Critério de aceite**:
+- [x] Remover `insuranceProvider` do controller e do schema (dead param) — `insuranceCoveragePercent` mantido por ser funcional e testado, não morto
+- [x] `npx tsc --noEmit` do backend limpo
+- [x] Suíte de testes: 293/294 na época — 1 falha pré-existente e não relacionada, confirmada via `git stash` (corrigida logo em seguida, item próprio abaixo)
+
+---
+
+### ✅ [FIX] Teste `professional.test.ts` flaky — "returns weekly and monthly series including the seeded appointment"
+**Área**: Backend | **Prioridade**: 🟡 Médio | **Esforço**: 2
+
+**Descrição original**: achado no item acima — `expect(hoje.count).toBeGreaterThanOrEqual(1)` falhava com `expected 0 to be greater than or equal to 1` em `src/tests/professional.test.ts:99`.
+
+**Causa raiz**: o teste criava o agendamento seed em `new Date(Date.now() + 3600000)` ("daqui a 1h" a partir do momento em que o teste roda). `getWeeklySeries()` (`src/services/dashboard.service.ts`) bucketiza "hoje" como `[00:00 local, 00:00 local do dia seguinte)`. Quando o teste roda perto da meia-noite local (ex.: 23:47), "agora + 1h" cai **no dia seguinte** — fora da janela dos "últimos 7 dias" (que vai até hoje, não inclui amanhã) — então o bucket de "hoje" fica vazio. Confirmado reproduzindo exatamente nesse horário.
+
+**Resolução**: `dataHora` do agendamento seed trocado de "agora + 1h" para "hoje ao meio-dia" (`new Date(); setHours(12, 0, 0, 0)`) — ancorado no dia corrente derivado de `new Date()`, não mais sensível a em que hora do dia o teste é executado. Nenhuma asserção do arquivo depende do agendamento estar no futuro (só de estar "no bucket de hoje"), então a mudança não quebra nenhum outro teste do arquivo.
+
+**Verificação**: reproduzido o bug e confirmado o fix rodando `professional.test.ts` isoladamente exatamente às 23:47 (horário que antes derrubava o teste) — 8/8 passando. Suíte completa: 294/294.
+
+**Critério de aceite**:
+- [x] Investigar a causa raiz — bug de fuso/horário no seed do teste (agendamento "agora + 1h" podia cair no dia seguinte perto da meia-noite), não bug no endpoint
+- [x] Corrigir o teste para não depender de quando ele roda — ancorado em "hoje ao meio-dia" em vez de "agora + 1h"
+- [x] Suíte completa: 294/294
+
+---
+
 ### ✅ [IMPROVEMENT] Testes automatizados — cobertura residual
 **Área**: Backend | **Prioridade**: 🟡 Médio | **Esforço**: 2
 
@@ -729,16 +765,6 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 
 ---
 
-### 📌 [FIX] Parâmetros mortos `insuranceProvider`/`insuranceCoveragePercent` em `PagamentosController`
-- **Área**: Backend
-- **Prioridade**: 🟢 Baixo
-- **Esforço**: 2
-- **Descrição**: Achado em 03/11/2026 investigando o fluxo de pagamento do toggle "Plano de saúde" (desconto fixo de 15%, sem relação com o filtro de convênios implementado — ver Concluído 03/11/2026). `PagamentosController.processar()` (`uaimed-back/src/controllers/pagamentos.controller.ts`) desestrutura `insuranceProvider` e `insuranceCoveragePercent` do corpo da requisição, mas **nenhum caller real envia esses campos** — `PagamentoScreen.tsx` só envia `usingPlan: boolean`. São parâmetros mortos, provavelmente de uma versão mais detalhada do fluxo de "plano de saúde" (distinto de convênio) que nunca foi finalizada no front. `insuranceCoveragePercent` ainda é lido e usado se enviado (define o % de desconto em vez do padrão de 15%), mas `insuranceProvider` não seria persistido de qualquer forma — o model `Pagamento` não tem campo para isso.
-- **Critério de aceite** (a refinar):
-  - [ ] Remover `insuranceProvider` do controller (dead param), ou implementar de fato o envio pelo front se fizer sentido guardar qual seguradora cobriu o desconto
-
----
-
 ### 📌 [FEATURE] Sistema de cupons — painel admin para criar/gerenciar cupons
 - **Área**: Frontend (Admin) + Backend
 - **Prioridade**: 🟢 Baixo
@@ -754,8 +780,6 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 - **Descrição**: Conteúdo colado no topo da tela sem `SafeAreaView` ou `marginTop` adequado.
 - **Critério de aceite**:
   - [ ] Padding/margin adequado para não colidir com a status bar do dispositivo
-
----
 
 ---
 
@@ -789,12 +813,12 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 | 🟢 Concluído — Mai–Out/2026 (consolidado) | 13 itens |
 | 🟢 Concluído — 30/10/2026 | 6 itens |
 | 🟢 Concluído — 01/11/2026 | 7 itens |
-| 🟢 Concluído — 03/11/2026 | 10 itens |
+| 🟢 Concluído — 03/11/2026 | 12 itens |
 | 🔴 Bug Conhecido | 0 itens |
 | 🔵 A Fazer (próxima sprint) | 0 itens |
-| 🗃️ Backlog | 4 itens |
+| 🗃️ Backlog | 3 itens |
 | ⏸️ Bloqueado | 2 itens |
-| **Total** | **61 itens** |
+| **Total** | **62 itens** |
 
 ---
 
@@ -843,6 +867,8 @@ Sprint entrega PFC (atual)
 | 03/11/2026 | 1.26.0 | Limpeza de 2 itens de Backlog. (1) `AgendamentosScreen.tsx` deletado — código morto confirmado (sem import em nenhum navigator, erro de sintaxe JSX); os 2 itens de Backlog que miravam essa tela foram descartados em vez de implementados. **Achado real**: o erro de sintaxe estava abortando `tsc --noEmit` cedo, escondendo 7 erros de tipo reais em arquivos usados em produção (`LocalizacaoMedicoCard`, `AgendamentoStack`, `MainTabNavigation`, `ClinicaPerfilScreen`, `HistoricoAvaliacoesScreen`, `MedicoDetalhesScreen`, `MedicoDashboardScreen`) — registrado como novo item de Backlog, não corrigido agora. (2) Código morto residual de `useAvaliacoes.ts`/`CardAvaliacao.tsx`/`types/avaliacao.ts` removido: hook mantém só a parte real (`carregarMediaAvaliacoes`/`notaMedia`/`totalAvaliacoes`, consumida por `PerfilScreen`); `CardAvaliacao.tsx` e `types/avaliacao.ts` deletados por completo (sem uso restante após a limpeza do hook). Validado com `tsc --noEmit` (sem novos erros nos arquivos tocados) e suíte manual `tests/` (69/69). Backlog: 7 → 5 itens. |
 | 03/11/2026 | 1.27.0 | Corrigidos os 7 erros de TypeScript levantados na v1.26.0. Nenhum era bug de runtime (o Metro/Babel do Expo não valida tipos, então o app sempre rodou certo) — todos eram lacunas ou desatualizações de tipagem: `tsconfig.json` ganhou `moduleSuffixes` (resolve `.native`/`.web` como o Metro já fazia, mas o `tsc` não); `headerBackTitleVisible` (API do React Navigation 5/6) trocado por `headerBackButtonDisplayMode: 'minimal'` (projeto está na v7); 8 call-sites de `navigation.navigate(...)` em `MainTabNavigation.tsx` protegidos com optional chaining (quirk de tipagem do RN v7, sempre definido em runtime); array de `InfoField` em `ClinicaPerfilScreen` recebeu tipo explícito antes do `.filter()` (perdia o tipo contextual); `SafeAreaView` de `HistoricoAvaliacoesScreen` trocado de `react-native` para `react-native-safe-area-context` (mesma classe de bug já corrigida em outras telas na v1.8.0); campo `convenios: string[]` adicionado à interface `MedicoPerfil` (o backend já retornava, a tela já usava, só a interface local estava desatualizada); `yAxisSuffix=""` adicionado ao `BarChart` de `MedicoDashboardScreen` (o `LineChart` do mesmo arquivo já tinha). `npx tsc --noEmit` limpo (exit 0) pela primeira vez no frontend. Verificado end-to-end no app rodando: as 3 telas com mudança de comportamento real (`HistoricoAvaliacoesScreen`, header do `AgendamentoStack`, `MedicoDashboardScreen`) renderizam corretamente; os 7 avisos de console do gráfico de barras são do `react-native-chart-kit` no target web, confirmados pré-existentes (testado revertendo o arquivo isoladamente). Novo item de Backlog aberto: adicionar typecheck do frontend ao CI (hoje só roda no backend — foi assim que isso ficou escondido). Backlog: 5 → 5 itens (1 fechado, 1 novo aberto). |
 | 03/11/2026 | 1.28.0 | Implementado "Adicionar typecheck do frontend ao CI" (último achado da v1.26.0/v1.27.0). Novo job `typecheck-frontend` em `.github/workflows/ci.yml`, paralelo ao job de typecheck do backend (não depende dele): `npm ci` + `npx tsc --noEmit` em `uaimed-front`, mesma estrutura do job já existente. Fecha o buraco que permitiu o `AgendamentosScreen.tsx` morto (com erro de sintaxe) e os 7 erros de tipo reais ficarem escondidos sem detecção automatizada. YAML validado e comando confirmado passando localmente. **Contagem total do quadro corrigida nesta versão**: a linha "Total" estava desatualizada (60) desde edições anteriores; recontada item a item via grep — 61 itens reais (55 Concluído + 0 A Fazer + 4 Backlog + 2 Bloqueado). Backlog: 5 → 4 itens. |
+| 03/11/2026 | 1.29.0 | Removido o parâmetro morto `insuranceProvider` de `PagamentosController.processar()` e de `processarPagamentoSchema` — desestruturado mas nunca referenciado, sem campo correspondente no model `Pagamento`, sem teste cobrindo. **Investigação antes de decidir**: `insuranceCoveragePercent` (o outro campo citado no card original) **não é morto** — sobrescreve o desconto padrão de 15% quando enviado, validado no schema e coberto por teste; só não é exercitado pelo front atual. Mantido como estava. **Achado real durante a verificação**: `npm run test` revelou 1 falha pré-existente em `professional.test.ts` (série semanal do dashboard do médico, provável sensibilidade a horário/fuso), confirmada não relacionada a este fix via `git stash` isolando a mudança. Registrada como novo item de Backlog, não corrigida agora. Suíte: 293/294 (1 falha pré-existente documentada). Backlog: 4 → 4 itens (1 fechado, 1 novo aberto). |
+| 03/11/2026 | 1.30.0 | Corrigido o teste flaky de `professional.test.ts` levantado na v1.29.0. **Causa raiz**: o seed do teste criava o agendamento em "agora + 1h"; rodando perto da meia-noite local, isso cruzava pra o dia seguinte, caindo fora da janela de "últimos 7 dias" que `getWeeklySeries()` calcula (vai até hoje, não inclui amanhã) — bucket de "hoje" ficava vazio. Não era bug no endpoint, só no seed do teste. **Resolução**: `dataHora` trocada de "agora + 1h" para "hoje ao meio-dia" (ancorada no dia corrente, não mais sensível à hora de execução). Reproduzido e confirmado o fix exatamente às 23:47 (horário que antes derrubava o teste) — 8/8 passando isolado, 294/294 na suíte completa. Backlog: 4 → 3 itens. |
 
 ---
 

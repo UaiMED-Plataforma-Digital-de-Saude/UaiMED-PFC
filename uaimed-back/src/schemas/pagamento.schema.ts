@@ -10,7 +10,6 @@ export const processarPagamentoSchema = z.object({
   metodo: z.string().min(1, "metodo é obrigatório"),
   cupom: z.string().optional(),
   usingPlan: z.boolean().optional(),
-  insuranceProvider: z.string().optional(),
   insuranceCoveragePercent: z.number().min(0).max(100).optional(),
 });
 
