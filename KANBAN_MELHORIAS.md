@@ -1,6 +1,6 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.25.0  
+**Versão**: 1.26.0  
 **Data**: 03 de Novembro de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
@@ -527,6 +527,36 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 
 ---
 
+### ✅ [IMPROVEMENT] Remoção de `AgendamentosScreen.tsx` (código morto)
+**Área**: Frontend | **Prioridade**: 🟢 Baixo | **Esforço**: 1
+
+**Descrição**: `AgendamentosScreen.tsx` não era importado por nenhum navigator (a aba real usa `AgendamentoStack` → `MinhasConsultasScreen`, já registrado neste Kanban desde 01/11/2026) e tinha um erro de sintaxe JSX real (`<View ...> />` sem fechar). Os dois itens de Backlog que miravam esse arquivo ("floatingButton funcional" e "dados reais da API") foram descartados em vez de implementados — consertar uma tela morta não tem valor.
+
+**Resolução**: arquivo deletado (`git rm`). Zero referências restantes no projeto (confirmado por busca textual antes da remoção).
+
+**Achado real na verificação**: o erro de sintaxe desse arquivo estava **abortando `tsc --noEmit` cedo**, escondendo 7 erros de tipo reais em arquivos usados em produção. Registrado como novo item de Backlog ("Corrigir os 7 erros de TypeScript expostos pela remoção de `AgendamentosScreen.tsx`") — não corrigidos agora, fora do escopo desta limpeza.
+
+**Critério de aceite**:
+- [x] Arquivo removido
+- [x] Nenhuma referência órfã (`grep` confirma)
+
+---
+
+### ✅ [IMPROVEMENT] Código morto residual em `useAvaliacoes.ts`/`CardAvaliacao.tsx`/`types/avaliacao.ts`
+**Área**: Frontend | **Prioridade**: 🟢 Baixo | **Esforço**: 1
+
+**Descrição original**: `useAvaliacoes.ts` tinha `loadAvaliacoes` (com `// TODO: Integrar com API real`, sempre retornava array vazio), `calcularEstatisticas`, `avaliacoesMedico` e `criarAvaliacao` sem nenhuma tela chamando; `CardAvaliacao.tsx` sem nenhum import em lugar nenhum; partes de `types/avaliacao.ts` usadas só por esse código morto.
+
+**Resolução**: `useAvaliacoes.ts` reescrito mantendo só a parte real — `carregarMediaAvaliacoes`/`notaMedia`/`totalAvaliacoes`/`loading`/`error` e o `useFocusEffect` que a aciona (é o que `PerfilScreen.tsx` de fato consome). `CardAvaliacao.tsx` removido. `types/avaliacao.ts` removido por completo — depois de tirar o código morto do hook, nenhum arquivo do projeto importava mais nada dele (`Avaliacao`, `EstatisticasAvaliacao`, `RespostaAvaliacao`, `ItemAvaliacao` — todos sem uso real).
+
+**Critério de aceite**:
+- [x] Remover `loadAvaliacoes`/`calcularEstatisticas`/`avaliacoesMedico`/`criarAvaliacao` de `useAvaliacoes.ts`, mantendo só a parte real (`carregarMediaAvaliacoes`)
+- [x] Remover `CardAvaliacao.tsx`
+- [x] Revisar `types/avaliacao.ts` — nada sobrou em uso, arquivo removido por completo
+- [x] `npx tsc --noEmit` sem novos erros nos arquivos tocados; suíte manual `tests/avaliacoesPerfil.test.cjs` (6 casos, exercita exatamente a parte mantida do hook) — 69/69 testes do diretório `tests/` passando
+
+---
+
 ### ✅ [IMPROVEMENT] Testes automatizados — cobertura residual
 **Área**: Backend | **Prioridade**: 🟡 Médio | **Esforço**: 2
 
@@ -654,18 +684,6 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 
 ---
 
-### 📌 [IMPROVEMENT] Código morto residual em `useAvaliacoes.ts`/`CardAvaliacao.tsx`/`types/avaliacao.ts`
-- **Área**: Frontend
-- **Prioridade**: 🟢 Baixo
-- **Esforço**: 1
-- **Descrição**: Achado em 03/11/2026 ao verificar o estado geral da feature de avaliações (sem pendências — model completo, vinculado a agendamento, 3 telas consumindo dados reais). Correção a um registro anterior deste Kanban: `useAvaliacoes.ts` não é 100% código morto como ficou registrado quando `HistoricoAvaliacoesScreen` foi reescrita (01/11/2026) — `PerfilScreen.tsx` ainda importa e usa `carregarMediaAvaliacoes`/`notaMedia`/`totalAvaliacoes` do hook (real, bate em `GET /avaliacoes/medico/:id/media`). O que de fato é código morto: `loadAvaliacoes` (tem um `// TODO: Integrar com API real` e retorna array vazio sempre), `calcularEstatisticas`, `avaliacoesMedico` e `criarAvaliacao` dentro do mesmo hook (nenhuma tela chama), além de `CardAvaliacao.tsx` (sem nenhum import em lugar nenhum) e as partes de `types/avaliacao.ts` usadas só por esse código morto.
-- **Critério de aceite**:
-  - [ ] Remover `loadAvaliacoes`/`calcularEstatisticas`/`avaliacoesMedico`/`criarAvaliacao` de `useAvaliacoes.ts`, mantendo só a parte real (`carregarMediaAvaliacoes`)
-  - [ ] Remover `CardAvaliacao.tsx`
-  - [ ] Revisar `types/avaliacao.ts` — manter só o que sobrar em uso
-
----
-
 ### 📌 [FEATURE] Notificações push reais (Development Build)
 - **Área**: Frontend + DevOps
 - **Prioridade**: 🟠 Alto
@@ -703,24 +721,15 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 
 ---
 
-### 📌 [IMPROVEMENT] `AgendamentosScreen` — floatingButton funcional
+### 📌 [IMPROVEMENT] Corrigir os 7 erros de TypeScript expostos pela remoção de `AgendamentosScreen.tsx`
 - **Área**: Frontend
 - **Prioridade**: 🟡 Médio
-- **Esforço**: 1
-- **Descrição**: Botão flutuante "+" chama `console.log` em vez de navegar para o fluxo de busca.
-- **Critério de aceite**:
-  - [ ] `navigation.navigate('Agendamentos', { screen: 'Busca' })` ao pressionar o botão
-
----
-
-### 📌 [IMPROVEMENT] `AgendamentosScreen` — dados reais da API
-- **Área**: Frontend
-- **Prioridade**: 🟠 Alto
 - **Esforço**: 3
-- **Descrição**: `AgendamentosScreen` tenta `GET /agendamentos` mas em caso de falha cai em dados simulados hardcoded. A exibição também não mostra o status corretamente (tipo `realizado` não existe no banco — é `concluido`).
-- **Critério de aceite**:
-  - [ ] Sem fallback para dados simulados em produção
-  - [ ] Status mapeado corretamente: `agendado`, `confirmado`, `concluido`, `cancelado`
+- **Descrição**: Achado em 03/11/2026, ao deletar `AgendamentosScreen.tsx` (código morto, ver Concluído 03/11/2026). O erro de sintaxe JSX desse arquivo estava **abortando o `tsc --noEmit` cedo**, mascarando 7 erros reais de tipo em arquivos que *são* usados em produção — `npx tsc --noEmit` rodava "limpo" (só o erro já conhecido) mas na verdade nunca chegava a checar o resto do projeto. Removido o arquivo morto, os seguintes erros ficaram visíveis: `components/LocalizacaoMedicoCard.tsx` (módulo `./MapaLocalizacao` não encontrado), `navigation/AgendamentoStack.tsx` (`headerBackTitleVisible` não existe no tipo de opções do Stack), `navigation/MainTabNavigation.tsx` (`navigation` possivelmente `undefined`, 6 ocorrências), `screens/Agendamento/ClinicaPerfilScreen.tsx` (tipo de `InfoField[]` incompatível com `null`), `screens/Agendamento/HistoricoAvaliacoesScreen.tsx` (prop `edges` não existe no `SafeAreaView` usado), `screens/Agendamento/MedicoDetalhesScreen.tsx` (propriedade `convenios` não existe no tipo `MedicoPerfil`), `screens/Main/MedicoDashboardScreen.tsx` (prop `yAxisSuffix` obrigatória faltando no gráfico de barras). Não corrigidos agora — não fazem parte do item que motivou a descoberta; alguns (`MedicoDetalhesScreen`/`MedicoPerfil` sem `convenios`) parecem só tipagem desatualizada e não bug de runtime, mas merecem triagem própria.
+- **Critério de aceite** (a refinar):
+  - [ ] Triar os 7 erros: tipagem desatualizada (não quebra em runtime) vs. bug real
+  - [ ] Corrigir cada um; `npx tsc --noEmit` deve terminar sem erros em `uaimed-front`
+  - [ ] Considerar adicionar o typecheck do frontend ao CI (`ci.yml` hoje só roda `tsc` do backend) para que isso não volte a ficar escondido
 
 ---
 
@@ -754,10 +763,10 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 | 🟢 Concluído — Mai–Out/2026 (consolidado) | 13 itens |
 | 🟢 Concluído — 30/10/2026 | 6 itens |
 | 🟢 Concluído — 01/11/2026 | 7 itens |
-| 🟢 Concluído — 03/11/2026 | 6 itens |
+| 🟢 Concluído — 03/11/2026 | 8 itens |
 | 🔴 Bug Conhecido | 0 itens |
 | 🔵 A Fazer (próxima sprint) | 0 itens |
-| 🗃️ Backlog | 7 itens |
+| 🗃️ Backlog | 5 itens |
 | ⏸️ Bloqueado | 2 itens |
 | **Total** | **60 itens** |
 
@@ -805,6 +814,7 @@ Sprint entrega PFC (atual)
 | 03/11/2026 | 1.23.0 | Implementado "Confirmação de pagamento — comprovante e e-mail" (último item em "A Fazer"). Correção de escopo: o critério "status do pagamento no card de agendamento" já estava satisfeito desde 01/11 (`MinhasConsultasScreen.tsx`); optado por tela formatada em vez de PDF (ambas válidas no critério original, PDF exigiria dependência nova sem necessidade real). Backend: `enviarEmailComprovantePagamento()` em `email.service.ts`. Frontend: nova tela `PagamentoSucessoScreen.tsx` com botão de compartilhar (API `Share` nativa, já usada em outro ponto do mesmo arquivo). **2 achados reais**: (1) rodar `npm test` localmente com uma `RESEND_API_KEY` real no `.env` disparava e-mails de verdade durante os testes — `.env.test` não define a variável, e o carregamento em cascata de `env.ts` preenchia a partir do `.env` real; corrigido com trava explícita por `NODE_ENV === 'test'`, com teste de regressão; (2) na própria verificação end-to-end, o desconto de "plano de saúde" não aparecia no comprovante (só o de cupom), deixando valor cobrado/pago sem explicação — corrigido expondo `descontoPlano` separado na API, e-mail e tela. 6 novos casos de teste (`unit/email.unit.test.ts`, 3 → 9). Verificado end-to-end no app rodando (achado adicional: Metro precisou reiniciar com `--clear` para pegar os edits do front, gotcha já documentado na skill `run-uaimed-front`): pagamento com plano de saúde ativo exibiu o desconto corretamente e o e-mail foi enviado de verdade. Suíte: 275 → 281 casos, mesmos 32 arquivos. Detalhes em `TESTES.md` v1.12.0. |
 | 03/11/2026 | 1.24.0 | Implementado "Filtro de busca por plano de saúde aceito" (convênio), resolvendo as 3 decisões de design que estavam em aberto: catálogo fixo (`src/constants/convenios.ts`), campo `Profissional.convenios: String[]` (array nativo, sem N:N) e autogestão pelo médico (`GET`/`PUT /professionals/me/convenios`, mesmo padrão de preço/disponibilidade). `GET /medicos?convenio=` filtra; `SearchScreen` ganhou `ConvenioDropdown`; nova tela `MedicoConveniosScreen` (checklist) com atalho em Perfil; convênios exibidos no card de resultado e na tela de detalhes do médico. Migração + seed com convênios realistas. Verificação do estado da feature de avaliações (sem pedido de implementação, já completa) corrigiu um registro anterior deste Kanban: `useAvaliacoes.ts` não é 100% código morto — a parte de `notaMedia` é usada de verdade por `PerfilScreen`; só `loadAvaliacoes`/`calcularEstatisticas`/`avaliacoesMedico`/`criarAvaliacao` são mortos, movidos para item de limpeza no Backlog. 17 novos casos de teste. Verificado end-to-end no app rodando: filtro por "Unimed" retornou os médicos certos; médico alternou e salvou convênios com persistência confirmada. Suíte: 281 → 294 casos, 32 → 34 arquivos. Detalhes em `TESTES.md` v1.13.0. |
 | 03/11/2026 | 1.25.0 | Implementado "HomeScreen — consumir dados reais" (último item em "A Fazer", agora zerada). Correção de escopo: metade do card já estava resolvida sem registro — `FeaturedProfessionalsCarousel` já consumia `GET /medicos/recomendados` (dado real, curado por admin via flag `destaque`), não simulado. O gap genuíno era só `NextAppointmentCard`: componente pronto, mas nunca importado pela `HomeScreen` — código morto nunca conectado. Resolvido buscando `GET /agendamentos` ao focar a Home, filtrando a consulta futura mais próxima (`agendado`/`confirmado`) do paciente logado. Verificado end-to-end no app rodando: card aparece com dados corretos para paciente com consulta futura, seção some por completo sem uma. **Quadro sem itens pendentes em "A Fazer"** — restam apenas Backlog (baixa prioridade) e Bloqueado (fora do escopo do PFC). |
+| 03/11/2026 | 1.26.0 | Limpeza de 2 itens de Backlog. (1) `AgendamentosScreen.tsx` deletado — código morto confirmado (sem import em nenhum navigator, erro de sintaxe JSX); os 2 itens de Backlog que miravam essa tela foram descartados em vez de implementados. **Achado real**: o erro de sintaxe estava abortando `tsc --noEmit` cedo, escondendo 7 erros de tipo reais em arquivos usados em produção (`LocalizacaoMedicoCard`, `AgendamentoStack`, `MainTabNavigation`, `ClinicaPerfilScreen`, `HistoricoAvaliacoesScreen`, `MedicoDetalhesScreen`, `MedicoDashboardScreen`) — registrado como novo item de Backlog, não corrigido agora. (2) Código morto residual de `useAvaliacoes.ts`/`CardAvaliacao.tsx`/`types/avaliacao.ts` removido: hook mantém só a parte real (`carregarMediaAvaliacoes`/`notaMedia`/`totalAvaliacoes`, consumida por `PerfilScreen`); `CardAvaliacao.tsx` e `types/avaliacao.ts` deletados por completo (sem uso restante após a limpeza do hook). Validado com `tsc --noEmit` (sem novos erros nos arquivos tocados) e suíte manual `tests/` (69/69). Backlog: 7 → 5 itens. |
 
 ---
 
