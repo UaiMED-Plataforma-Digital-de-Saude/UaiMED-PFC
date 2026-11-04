@@ -119,6 +119,7 @@ const MedicoDashboardScreen: React.FC = () => {
           width={chartWidth}
           height={180}
           yAxisLabel="R$"
+          yAxisSuffix=""
           fromZero
           chartConfig={{
             ...chartConfigBase,

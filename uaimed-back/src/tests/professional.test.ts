@@ -50,8 +50,14 @@ describe('Professional summary endpoint', () => {
       },
     });
 
+    // Meio-dia de hoje (não "agora + 1h"): evita que o teste rodando perto da
+    // meia-noite local empurre o agendamento pra amanhã, fora da janela dos
+    // "últimos 7 dias" (que vai até hoje, não inclui o dia seguinte).
+    const dataHojeMeioDia = new Date();
+    dataHojeMeioDia.setHours(12, 0, 0, 0);
+
     const a1 = await prisma.agendamento.create({
-      data: { usuarioId: patientUser.id, profissionalId: prof.id, dataHora: new Date(Date.now() + 3600000) },
+      data: { usuarioId: patientUser.id, profissionalId: prof.id, dataHora: dataHojeMeioDia },
     });
     await prisma.pagamento.create({
       data: { usuarioId: patientUser.id, agendamentoId: a1.id, valor: 100, desconto: 0, valorFinal: 100, metodo: 'pix', status: 'concluido' },

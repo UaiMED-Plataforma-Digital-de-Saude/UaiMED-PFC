@@ -54,6 +54,14 @@ const AdminHomeScreen: React.FC<Props> = ({ navigation }) => {
           </View>
           <Ionicons name="chevron-forward" size={20} color="#A4B0A7" />
         </TouchableOpacity>
+        <TouchableOpacity style={styles.card} accessibilityRole="button" onPress={() => navigation.navigate('AdminCupons')}>
+          <View style={styles.icon}><Ionicons name="pricetag-outline" size={26} color="#388E3C" /></View>
+          <View style={styles.cardText}>
+            <Text style={styles.cardTitle}>Cupons de desconto</Text>
+            <Text style={styles.cardDescription}>Crie, liste e desative cupons de pagamento.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#A4B0A7" />
+        </TouchableOpacity>
         <TouchableOpacity style={styles.card} accessibilityRole="button" onPress={() => navigation.navigate('Artigos')}>
           <View style={styles.icon}><Ionicons name="eye-outline" size={26} color="#388E3C" /></View>
           <View style={styles.cardText}>

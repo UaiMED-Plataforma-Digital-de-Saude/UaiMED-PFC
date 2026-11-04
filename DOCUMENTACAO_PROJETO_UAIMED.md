@@ -1,7 +1,7 @@
 # 📘 Documentação Completa do Projeto UaiMED
 
-**Versão**: 1.18.0  
-**Data**: 03 de Novembro de 2026  
+**Versão**: 1.21.0  
+**Data**: 04 de Novembro de 2026  
 **Classificação**: Documentação Técnica de Engenharia de Software  
 **Status**: Projeto em Desenvolvimento Avançado — Seção de Avaliação do Projeto (percurso, decisões técnicas, desafios, resultados e perspectivas) revisada com base no histórico real do Git (135 commits, 63 PRs, Fev–Out/2026)
 
@@ -192,7 +192,7 @@ Plataforma mobile-first que:
 | ID | Requisito | Prioridade | Status |
 |----|-----------|------------|--------|
 | RF13.1 | Gestão de destaques da Home | Média | ✅ Implementado |
-| RF13.2 | Painel administrativo (perfil, artigos, destaques) | Alta | ✅ Implementado |
+| RF13.2 | Painel administrativo (perfil, artigos, destaques, cupons) | Alta | ✅ Implementado |
 
 #### RF08 - Notificações e Confirmações
 | ID | Requisito | Prioridade | Status |
@@ -236,7 +236,7 @@ Plataforma mobile-first que:
 
 #### RNF05 - Manutenibilidade
 - **RNF05.1**: Padrões TypeScript ✅
-- **RNF05.2**: Cobertura de testes ≥ 294 casos automatizados (34 arquivos); cobertura de código medida em 03/11/2026 — 87.55% statements excluindo infraestrutura não testável (ver `uaimed-back/documents/TESTES.md`) ✅
+- **RNF05.2**: Cobertura de testes ≥ 303 casos automatizados (35 arquivos); cobertura de código medida em 03/11/2026 — 87.55% statements excluindo infraestrutura não testável, antes dos 9 casos de `cupons.test.ts` adicionados em 04/11 (percentual não remedido após, ver `uaimed-back/documents/TESTES.md`) ✅
 - **RNF05.3**: Documentação completa ✅
 
 ---
@@ -678,7 +678,7 @@ GET/PUT /api/admin/destaques
 GET /api/admin/summary   (Role: clinica)
 ```
 
-Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPerfilScreen`. Permite gerenciar destaques da Home e artigos de saúde publicados (acesso restrito por papel/e-mail de administrador).
+Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminCuponsScreen`, `AdminPerfilScreen`. Permite gerenciar destaques da Home, artigos de saúde publicados e cupons de desconto (acesso restrito por papel/e-mail de administrador).
 
 ### 7.4 Pipeline de Analytics
 
@@ -728,7 +728,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ Artigos de saúde (leitura pública + CRUD administrativo)
 - ✅ Geolocalização (geocodificação de endereço, busca por proximidade)
 - ✅ Chat/Conversas entre usuários (REST, sem WebSocket/tempo real)
-- ✅ **294 casos de teste automatizados** (34 arquivos) cobrindo os endpoints principais
+- ✅ **303 casos de teste automatizados** (35 arquivos) cobrindo os endpoints principais
 - ✅ Confirmação de agendamento por e-mail (Resend) e lembrete local 1h antes da consulta
 - ✅ Comprovante de pagamento por e-mail e tela de sucesso dedicada (`PagamentoSucessoScreen`)
 - ✅ Filtro de busca por convênio/plano de saúde aceito, com autogestão pelo médico
@@ -749,7 +749,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ Logo real do projeto na `LoginScreen`
 - ✅ Dashboard de clínica e painel do médico com KPIs, central de contatos, preço e disponibilidade (`MedicoDashboardScreen`, `MedicoContatosScreen`, `MedicoDisponibilidadeScreen`)
 - ✅ Telas de clínica: `ClinicaHomeScreen`, `ClinicaMedicosScreen`, `ClinicaPerfilScreen`
-- ✅ Telas de administração: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPerfilScreen`
+- ✅ Telas de administração: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminCuponsScreen`, `AdminPerfilScreen`
 - ✅ Artigos de saúde: `ArtigosListaScreen`, `ArtigoDetalhesScreen`, `ArtigoCadastroScreen` (admin)
 - ✅ Chat: `ConversasListaScreen`, `ConversaDetalhesScreen`
 - ✅ Geolocalização: `LocationModal` + `expo-location` em `MedicoDetalhesScreen`
@@ -765,6 +765,9 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 - ✅ **Confirmação de horário por e-mail (Resend) e lembrete local 1h antes**: `email.service.ts` novo no backend; `App.tsx` corrigido para solicitar permissão de notificação também no Expo Go (v1.22.0 do Kanban)
 - ✅ **Comprovante de pagamento por e-mail e tela de sucesso dedicada**: substitui o modal antigo; expõe separadamente o desconto de cupom e o desconto de plano de saúde, achado real durante a verificação end-to-end (v1.23.0 do Kanban)
 - ✅ **Filtro de busca por convênio/plano de saúde aceito**: catálogo fixo de convênios, campo `Profissional.convenios: String[]`, médico autogerencia via `PUT /professionals/me/convenios`, `GET /medicos` aceita `?convenio=` (v1.24.0 do Kanban)
+- ✅ **`HomeScreen` com "Próxima consulta" real**: `NextAppointmentCard` existia como componente mas nunca era importado pela tela — conectado a `GET /agendamentos`, exibindo a consulta futura mais próxima do paciente logado (sem seção quando não há nenhuma). Carrossel de profissionais em destaque já consumia dado real (`GET /medicos/recomendados`), confirmado na revisão (v1.25.0 do Kanban)
+- ✅ **Limpeza de código morto e saúde de tipos do frontend**: `AgendamentosScreen.tsx` (protótipo nunca conectado a nenhum navigator) e o residual de `useAvaliacoes.ts`/`CardAvaliacao.tsx`/`types/avaliacao.ts` removidos. A remoção do primeiro revelou que seu erro de sintaxe abortava `tsc --noEmit` antes de checar o resto do projeto, escondendo 7 erros de tipo reais em telas de produção — todos corrigidos (`npx tsc --noEmit` limpo pela primeira vez no frontend). Novo job `typecheck-frontend` no CI (`ci.yml`) impede que isso volte a passar despercebido (v1.26.0–v1.28.0 do Kanban)
+- ✅ **Painel admin de cupons de desconto**: `AdminCuponsScreen.tsx` novo, com lista (status Ativo/Inativo/Expirado, contagem de usos) e modal de criação; CRUD restrito à conta `admin@uaimed.com` (`GET`/`POST /admin/cupons`, `PUT /admin/cupons/:id`), com desativação em vez de exclusão física para preservar a rastreabilidade de cupons já usados em pagamentos concluídos (v1.31.0 do Kanban)
 
 #### ⚠️ Em Desenvolvimento
 
@@ -783,7 +786,7 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminPe
 ### 8.2 Métricas de Qualidade
 
 #### Cobertura de Testes
-- **Total de casos**: **294 testes automatizados** (34 arquivos) — todos passando ✅
+- **Total de casos**: **303 testes automatizados** (35 arquivos) — todos passando ✅
 - **Cobertura de código**: medida formalmente pela primeira vez em 03/11/2026 — 87.55% statements / 91.07% funções, excluindo infraestrutura não testável por desenho (seed, scripts, bootstrap) — ver `TESTES.md` seção 7
 - **Adições mais recentes**: `convenios.test.ts` (2 casos), `professionals_convenios.test.ts` (9 casos, filtro de convênio), `unit/email.unit.test.ts` ampliado (3→9 casos, comprovante de pagamento)
 - **Suítes unitárias**: `auth.schema.unit`, `hash.unit`, `jwt.unit`, `geocoding.unit`, `email.unit` — 108 casos
@@ -1193,7 +1196,7 @@ Ao todo, o percurso soma **135 commits e 63 pull requests** revisados e mesclado
 
 ### 13.4 Resultados Alcançados
 
-- Backend: API REST completa com autenticação JWT + refresh token, validação Zod em todos os endpoints, rate limiting contra brute-force, **294 testes automatizados (100% passando, ~87% de cobertura de código)** e CI executando a cada push/PR.
+- Backend: API REST completa com autenticação JWT + refresh token, validação Zod em todos os endpoints, rate limiting contra brute-force, **303 testes automatizados (100% passando, ~87% de cobertura de código)** e CI executando a cada push/PR (backend e frontend, desde 03/11).
 - Frontend: fluxo ponta-a-ponta de agendamento, telas de clínicas, profissionais, artigos de saúde, chat, geolocalização, recuperação de senha, central de ajuda e, mais recentemente, dashboard do médico (contatos, preço/disponibilidade) e tela de administração.
 - **63 pull requests** mesclados ao longo de ~8 meses de desenvolvimento ativo (Fev–Out/2026).
 - Postura de segurança evoluiu de forma incremental: de um MVP funcional (Abril) para um backend com rate limiting, refresh token e validação completa (Setembro–Outubro).
@@ -1211,7 +1214,7 @@ Ao todo, o percurso soma **135 commits e 63 pull requests** revisados e mesclado
 O projeto UaiMED está em **fase de desenvolvimento avançada**, com:
 - ✅ Backend completo e funcional
 - ✅ Frontend mobile implementado e integrado
-- ✅ **294 testes automatizados** cobrindo os endpoints críticos — todos passando, ~87% de cobertura de código
+- ✅ **303 testes automatizados** cobrindo os endpoints críticos — todos passando, ~87% de cobertura de código
 - ✅ **Fluxo de agendamento ponta-a-ponta**: busca → calendário → horário → confirmação → pagamento → avaliação
 - ✅ CI/CD com GitHub Actions configurado
 - ✅ Banco de dados migrado e populado com dados reais
@@ -1289,6 +1292,55 @@ Ver `KANBAN_MELHORIAS.md` v1.23.0 e `uaimed-back/documents/TESTES.md` v1.12.0 pa
 **Verificação:** 17 novos casos de teste; suíte de backend 281 → 294 casos (32 → 34 arquivos). Verificado end-to-end no app rodando: filtro por "Unimed" retornou os médicos certos; médico alternou e salvou convênios com persistência confirmada.
 
 Ver `KANBAN_MELHORIAS.md` v1.24.0 e `uaimed-back/documents/TESTES.md` v1.13.0 para o detalhamento completo.
+
+---
+
+### v1.19.0 — 03 de Novembro de 2026
+
+#### 🟢 Implementado
+
+**`HomeScreen` — "Próxima consulta" com dado real (último item em "A Fazer" do Kanban, agora zerada):**
+- Correção de escopo: metade do card já estava resolvida sem registro — `FeaturedProfessionalsCarousel` já consumia `GET /medicos/recomendados` (dado real, curado por admin via flag `Profissional.destaque`), não dado simulado
+- O gap genuíno era só `NextAppointmentCard`: o componente existia pronto mas nunca era importado pela `HomeScreen` — código morto, nunca conectado
+- `HomeScreen.tsx` passa a buscar `GET /agendamentos` ao focar a tela, filtrar a consulta futura mais próxima (`agendado`/`confirmado`) do paciente logado e renderizar o card; sem seção quando não há consulta futura
+
+**Verificação:** verificado end-to-end no app rodando (driver headless `run-uaimed-front`): paciente com consulta futura confirmada exibe o card com médico/especialidade/data/hora corretos; paciente sem consulta futura não exibe a seção; zero erros de console nos dois cenários.
+
+Ver `KANBAN_MELHORIAS.md` v1.25.0 para o detalhamento completo.
+
+---
+
+### v1.20.0 — 03 de Novembro de 2026
+
+#### 🟢 Implementado
+
+**Limpeza de código morto e correção da saúde de tipos do frontend:**
+- `AgendamentosScreen.tsx` deletado — protótipo com dados simulados hardcoded, nunca importado por nenhum navigator (a aba real usa `AgendamentoStack` → `MinhasConsultasScreen`). Resolve, ao mesmo tempo, os 2 itens de Backlog que miravam essa tela (descartados, não implementados, por mirarem um arquivo morto)
+- `useAvaliacoes.ts` reescrito mantendo só a parte real (`carregarMediaAvaliacoes`/`notaMedia`/`totalAvaliacoes`, consumida por `PerfilScreen`); `CardAvaliacao.tsx` e `types/avaliacao.ts` removidos por completo (sem uso restante)
+
+**Achado real**: o erro de sintaxe JSX do `AgendamentosScreen.tsx` estava abortando `npx tsc --noEmit` antes de checar o resto do projeto — o typecheck "passava" escondendo **7 erros de tipo reais** em telas de produção (`LocalizacaoMedicoCard`, `AgendamentoStack`, `MainTabNavigation`, `ClinicaPerfilScreen`, `HistoricoAvaliacoesScreen`, `MedicoDetalhesScreen`, `MedicoDashboardScreen`). Nenhum era bug de runtime (Metro/Babel não valida tipos) — todos eram lacunas ou desatualizações de tipagem, triados e corrigidos um a um: resolução de módulos por plataforma (`moduleSuffixes` no `tsconfig.json`), API de back button do React Navigation 7, optional chaining em `navigation.navigate`, tipo de array perdido antes de um `.filter()`, `SafeAreaView` importado de `react-native` em vez de `react-native-safe-area-context` (mesma classe de bug já corrigida em outras telas), campo `convenios` faltando na interface local `MedicoPerfil`, e prop obrigatória faltando num gráfico de barras. `npx tsc --noEmit` limpo (exit 0) pela primeira vez no frontend.
+
+**Fechamento do buraco**: novo job `typecheck-frontend` em `.github/workflows/ci.yml`, paralelo ao typecheck do backend — garante que um erro de sintaxe como esse não volte a passar despercebido.
+
+**Verificação:** verificado end-to-end no app rodando contra o backend real (driver headless `run-uaimed-front`): fluxo completo de agendamento (Busca → Resultados → Detalhes → Horários → Minhas Consultas) intacto após a remoção do arquivo morto; telas com mudança de comportamento real renderizando corretamente. Suíte manual `tests/` (69/69) e testes do backend (294/294) sem regressão.
+
+Ver `KANBAN_MELHORIAS.md` v1.26.0–v1.28.0 para o detalhamento completo.
+
+---
+
+### v1.21.0 — 04 de Novembro de 2026
+
+#### 🟢 Implementado
+
+**Parâmetro morto `insuranceProvider` removido de `PagamentosController`** (Kanban v1.29.0): desestruturado mas nunca referenciado, sem campo correspondente no model `Pagamento`. `insuranceCoveragePercent` mantido — diferente do outro, é funcional (sobrescreve o desconto padrão de 15% quando enviado) e testado, só não é exercitado pelo front atual.
+
+**Teste flaky de `professional.test.ts` corrigido** (Kanban v1.30.0): achado durante a verificação do item acima, não relacionado a ele (confirmado via `git stash`). O seed do teste criava o agendamento em "agora + 1h"; rodando perto da meia-noite local, isso cruzava pro dia seguinte, caindo fora da janela de "últimos 7 dias" do dashboard semanal do médico. Corrigido ancorando a data em "hoje ao meio-dia" em vez de relativa ao momento de execução.
+
+**Sistema de cupons — painel admin** (Kanban v1.31.0, maior item do Backlog, esforço 5): o backend já validava cupons no checkout (`PagamentosController.validarCupom`), mas não existia nenhum CRUD nem tela para criá-los — eram inseridos só via seed/banco direto. Implementado `cupons.controller.ts` + `cupom.schema.ts` + `cupons.routes.ts` (CRUD restrito à conta `admin@uaimed.com`, desativação em vez de exclusão física) e `AdminCuponsScreen.tsx` (lista com status visual, modal de criação, nova aba no painel admin). 9 novos casos de teste.
+
+**Verificação:** suíte de testes 294 → 303 casos (34 → 35 arquivos), 100% passando. Verificado end-to-end no app rodando contra o backend real: fluxo completo de cupons (criar, listar, desativar, reativar) testado como a conta `admin@uaimed.com`, zero erros de console.
+
+Ver `KANBAN_MELHORIAS.md` v1.29.0–v1.31.0 para o detalhamento completo.
 
 ---
 

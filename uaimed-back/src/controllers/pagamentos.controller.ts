@@ -53,7 +53,7 @@ class PagamentosController {
 
   async processar(req: Request, res: Response) {
     try {
-      const { agendamentoId, valor, metodo, cupom, usingPlan, insuranceProvider, insuranceCoveragePercent } = req.body;
+      const { agendamentoId, valor, metodo, cupom, usingPlan, insuranceCoveragePercent } = req.body;
       const usuarioId = (req as any).user?.id;
       if (!usuarioId) return res.status(401).json({ error: "Usuário não autenticado" });
 

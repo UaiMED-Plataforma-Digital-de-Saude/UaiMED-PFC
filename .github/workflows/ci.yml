@@ -8,10 +8,10 @@ on:
 
 jobs:
   # ─────────────────────────────────────────
-  # 1. Verificação de tipos TypeScript
+  # 1. Verificação de tipos TypeScript (backend)
   # ─────────────────────────────────────────
   typecheck:
-    name: TypeScript Check
+    name: TypeScript Check (Backend)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -39,7 +39,33 @@ jobs:
         run: npx tsc --noEmit
 
   # ─────────────────────────────────────────
-  # 2. Testes com PostgreSQL
+  # 2. Verificação de tipos TypeScript (frontend)
+  # ─────────────────────────────────────────
+  typecheck-frontend:
+    name: TypeScript Check (Frontend)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: uaimed-front
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: uaimed-front/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Checar tipos (tsc --noEmit)
+        run: npx tsc --noEmit
+
+  # ─────────────────────────────────────────
+  # 3. Testes com PostgreSQL
   # ─────────────────────────────────────────
   backend-tests:
     name: Backend Tests (Vitest)

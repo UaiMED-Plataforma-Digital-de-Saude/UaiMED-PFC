@@ -1,7 +1,7 @@
 # 🗂️ UaiMED — Kanban de Melhorias & TODOs
 
-**Versão**: 1.24.0  
-**Data**: 03 de Novembro de 2026  
+**Versão**: 1.31.0  
+**Data**: 04 de Novembro de 2026  
 **Metodologia**: Ágil — Kanban contínuo por sprint  
 **Responsável**: Time UaiMED-PFC
 
@@ -511,6 +511,124 @@ Verificado via driver headless (`run-uaimed-front`): login com conta sem consent
 
 ---
 
+### ✅ [IMPROVEMENT] `HomeScreen` — consumir dados reais (próxima consulta, médicos em destaque)
+**Área**: Frontend | **Prioridade**: 🟡 Médio | **Esforço**: 3
+
+**Descrição original**: a `HomeScreen` exibia `NextAppointmentCard` e `FeaturedProfessionalsCarousel` mas com dados simulados.
+
+**Correção de escopo (revisão antes de implementar)**: metade do card já estava resolvida e não documentada — `FeaturedProfessionalsCarousel.tsx` já consumia `GET /medicos/recomendados` (dado real, curado via flag `Profissional.destaque` administrada em `AdminDestaquesScreen`), não dado simulado. O gap genuíno era só o `NextAppointmentCard`: o componente existia pronto (`components/NextAppointmentCard.tsx`) mas **não era importado em lugar nenhum da `HomeScreen`** — código morto, nunca chegou a ser conectado.
+
+**Resolução**: `HomeScreen.tsx` busca `GET /agendamentos` (mesmo endpoint de `MinhasConsultasScreen`) ao focar a tela, filtra consultas com status `agendado`/`confirmado` e `data` no futuro, ordena pela mais próxima e renderiza `NextAppointmentCard` com o resultado — só para usuários `paciente`. Sem consulta futura, a seção "Próxima consulta" simplesmente não aparece (sem placeholder vazio). Toque no card navega para `MinhasConsultas`.
+
+**Critério de aceite**:
+- [x] `NextAppointmentCard` busca próximo agendamento real do paciente
+- [x] Carrossel de profissionais em destaque — já usava dado real (`GET /medicos/recomendados`), confirmado na revisão
+- [x] Verificado end-to-end no app rodando (driver headless `run-uaimed-front`): paciente com consulta futura confirmada exibe o card com médico/especialidade/data/hora corretos; paciente sem consulta futura não exibe a seção; zero erros de console nos dois cenários
+
+---
+
+### ✅ [IMPROVEMENT] Remoção de `AgendamentosScreen.tsx` (código morto)
+**Área**: Frontend | **Prioridade**: 🟢 Baixo | **Esforço**: 1
+
+**Descrição**: `AgendamentosScreen.tsx` não era importado por nenhum navigator (a aba real usa `AgendamentoStack` → `MinhasConsultasScreen`, já registrado neste Kanban desde 01/11/2026) e tinha um erro de sintaxe JSX real (`<View ...> />` sem fechar). Os dois itens de Backlog que miravam esse arquivo ("floatingButton funcional" e "dados reais da API") foram descartados em vez de implementados — consertar uma tela morta não tem valor.
+
+**Resolução**: arquivo deletado (`git rm`). Zero referências restantes no projeto (confirmado por busca textual antes da remoção).
+
+**Achado real na verificação**: o erro de sintaxe desse arquivo estava **abortando `tsc --noEmit` cedo**, escondendo 7 erros de tipo reais em arquivos usados em produção. Registrado como novo item de Backlog ("Corrigir os 7 erros de TypeScript expostos pela remoção de `AgendamentosScreen.tsx`") — não corrigidos agora, fora do escopo desta limpeza.
+
+**Critério de aceite**:
+- [x] Arquivo removido
+- [x] Nenhuma referência órfã (`grep` confirma)
+
+---
+
+### ✅ [IMPROVEMENT] Código morto residual em `useAvaliacoes.ts`/`CardAvaliacao.tsx`/`types/avaliacao.ts`
+**Área**: Frontend | **Prioridade**: 🟢 Baixo | **Esforço**: 1
+
+**Descrição original**: `useAvaliacoes.ts` tinha `loadAvaliacoes` (com `// TODO: Integrar com API real`, sempre retornava array vazio), `calcularEstatisticas`, `avaliacoesMedico` e `criarAvaliacao` sem nenhuma tela chamando; `CardAvaliacao.tsx` sem nenhum import em lugar nenhum; partes de `types/avaliacao.ts` usadas só por esse código morto.
+
+**Resolução**: `useAvaliacoes.ts` reescrito mantendo só a parte real — `carregarMediaAvaliacoes`/`notaMedia`/`totalAvaliacoes`/`loading`/`error` e o `useFocusEffect` que a aciona (é o que `PerfilScreen.tsx` de fato consome). `CardAvaliacao.tsx` removido. `types/avaliacao.ts` removido por completo — depois de tirar o código morto do hook, nenhum arquivo do projeto importava mais nada dele (`Avaliacao`, `EstatisticasAvaliacao`, `RespostaAvaliacao`, `ItemAvaliacao` — todos sem uso real).
+
+**Critério de aceite**:
+- [x] Remover `loadAvaliacoes`/`calcularEstatisticas`/`avaliacoesMedico`/`criarAvaliacao` de `useAvaliacoes.ts`, mantendo só a parte real (`carregarMediaAvaliacoes`)
+- [x] Remover `CardAvaliacao.tsx`
+- [x] Revisar `types/avaliacao.ts` — nada sobrou em uso, arquivo removido por completo
+- [x] `npx tsc --noEmit` sem novos erros nos arquivos tocados; suíte manual `tests/avaliacoesPerfil.test.cjs` (6 casos, exercita exatamente a parte mantida do hook) — 69/69 testes do diretório `tests/` passando
+
+---
+
+### ✅ [IMPROVEMENT] Corrigir os 7 erros de TypeScript expostos pela remoção de `AgendamentosScreen.tsx`
+**Área**: Frontend | **Prioridade**: 🟡 Médio | **Esforço**: 3
+
+**Descrição original**: ver item "Remoção de `AgendamentosScreen.tsx`" acima — o erro de sintaxe desse arquivo morto abortava `tsc --noEmit` cedo, escondendo 7 erros reais em arquivos de produção.
+
+**Triagem e resolução, um a um** (nenhum era bug de runtime visível — o app sempre rodou certo via Metro/Babel, que não valida tipos; mas todos eram lacunas reais de tipagem):
+1. `components/LocalizacaoMedicoCard.tsx` — módulo `./MapaLocalizacao` "não encontrado": falso positivo do `tsc`, que não resolve a convenção de arquivos por plataforma (`MapaLocalizacao.native.tsx`/`MapaLocalizacao.web.tsx`) por padrão. Corrigido com `"moduleSuffixes": [".native", ".ios", ".android", ".web", ""]` no `tsconfig.json` (opção oficial do TS 4.7+ para esse cenário) — conserta a resolução para qualquer import platform-specific do projeto, não só esse arquivo.
+2. `navigation/AgendamentoStack.tsx` — `headerBackTitleVisible: false` é API do React Navigation 5/6; o projeto está na v7, onde foi substituída por `headerBackButtonDisplayMode`. Trocado para `headerBackButtonDisplayMode: 'minimal'` (equivalente: esconde o texto, mantém só a seta).
+3. `navigation/MainTabNavigation.tsx` — `navigation` possivelmente `undefined` dentro dos callbacks `screenOptions`/`options` do Tab Navigator (quirk de tipagem do React Navigation v7, `navigation` sempre está definido em runtime nesse contexto). Corrigido com optional chaining (`navigation?.navigate(...)`) nos 8 call-sites flagados — comportamento idêntico em runtime, apenas satisfaz o strict mode.
+4. `screens/Agendamento/ClinicaPerfilScreen.tsx` — array de `InfoField` perdia o tipo contextual por causa do `.filter()` encadeado direto na declaração (`icon` era inferido como `string` solto, não a união literal esperada). Corrigido extraindo o array para uma variável intermediária com tipo explícito (`(InfoField | null)[]`) antes do `.filter()`.
+5. `screens/Agendamento/HistoricoAvaliacoesScreen.tsx` — `SafeAreaView` importado de `react-native` (não suporta a prop `edges`), mesma classe de bug já corrigida em outras telas no Kanban (v1.8.0, `PagamentoScreen`/`AvaliacaoScreen`). Trocado o import para `react-native-safe-area-context`.
+6. `screens/Agendamento/MedicoDetalhesScreen.tsx` — `convenios` não existia na interface local `MedicoPerfil`, mas `GET /medicos/:id` já retorna o campo (confirmado no controller) e a tela já o usava (`perfil.convenios`) desde o filtro de convênios (v1.24.0). Tipagem desatualizada, não bug — campo `convenios: string[]` adicionado à interface.
+7. `screens/Main/MedicoDashboardScreen.tsx` — `BarChart` exige `yAxisSuffix` (o `LineChart` logo acima no mesmo arquivo já tinha `yAxisSuffix=""`, só o `BarChart` ficou sem). Adicionado `yAxisSuffix=""`.
+
+**Verificação**: `npx tsc --noEmit` limpo (exit code 0, zero erros) pela primeira vez no frontend. Suíte manual `tests/` 69/69. Verificado end-to-end no app rodando contra o backend real: `HistoricoAvaliacoesScreen` (troca de `SafeAreaView`) renderiza normal; header do `AgendamentoStack` (back button) renderiza normal em `MedicoDetalhesScreen`, que também exibe "Convênios: Unimed, Bradesco Saúde, Particular" corretamente; `MedicoDashboardScreen` exibe o gráfico de barras "Receita nos últimos 6 meses" corretamente. Os 7 avisos de console vistos no dashboard (`onStartShouldSetResponder` etc.) são do `react-native-chart-kit` renderizando SVG/gestos no target web — confirmado pré-existentes (idênticos com e sem a correção do `yAxisSuffix`, testado revertendo o arquivo isoladamente), não uma regressão.
+
+**Critério de aceite**:
+- [x] Triar os 7 erros: tipagem desatualizada (não quebra em runtime) vs. bug real — nenhum era bug de runtime; todos eram lacunas/desatualizações de tipagem
+- [x] Corrigir cada um; `npx tsc --noEmit` termina sem erros em `uaimed-front`
+- [x] Adicionar o typecheck do frontend ao CI — feito em item próprio logo abaixo ("Adicionar typecheck do frontend ao CI")
+
+---
+
+### ✅ [DEVOPS] Adicionar typecheck do frontend ao CI
+**Área**: DevOps | **Prioridade**: 🟡 Médio | **Esforço**: 1
+
+**Descrição original**: `ci.yml` só rodava `tsc --noEmit` do backend. O frontend nunca teve typecheck automatizado — foi assim que `AgendamentosScreen.tsx` conseguiu existir com um erro de sintaxe sem ninguém notar, e como os 7 erros de tipo reais ficaram escondidos atrás dele por tempo indeterminado (ver itens acima).
+
+**Resolução**: novo job `typecheck-frontend` em `.github/workflows/ci.yml`, paralelo ao `typecheck` do backend (não depende dele — roda mais rápido, sem precisar do Prisma Client). Mesma estrutura do job do backend: `actions/setup-node@v4` (Node 22, cache npm), `npm ci` em `uaimed-front`, `npx tsc --noEmit`.
+
+**Critério de aceite**:
+- [x] Novo job no `ci.yml` rodando `npx tsc --noEmit` em `uaimed-front` a cada push/PR
+- [x] YAML validado (`python3 -c "import yaml; yaml.safe_load(...)"`) e comando do job confirmado passando localmente (`npx tsc --noEmit` → exit 0)
+
+---
+
+### ✅ [FIX] Parâmetro morto `insuranceProvider` em `PagamentosController`
+**Área**: Backend | **Prioridade**: 🟢 Baixo | **Esforço**: 2
+
+**Descrição original**: `PagamentosController.processar()` desestruturava `insuranceProvider` e `insuranceCoveragePercent` do corpo da requisição, mas nenhum caller real (`PagamentoScreen.tsx`) envia esses campos.
+
+**Investigação antes de decidir**: os dois campos **não são equivalentes**. `insuranceProvider` é 100% morto — desestruturado e nunca mais referenciado em lugar nenhum da função, sem campo correspondente no model `Pagamento` para persistir, sem nenhum teste cobrindo. `insuranceCoveragePercent`, por outro lado, **é funcional**: usado em `processar()` para sobrescrever o desconto padrão de 15% quando enviado (linha `if (insuranceCoveragePercent && typeof insuranceCoveragePercent === 'number') { planDiscount = (valor * insuranceCoveragePercent) / 100; }`), validado no schema Zod (`z.number().min(0).max(100)`) e coberto por teste (`pagamentos.test.ts`, rejeita valor fora de 0-100). Só não é exercitado pelo front atual — não é código morto, é um ponto de extensão já pronto.
+
+**Resolução**: removido só `insuranceProvider` — do destructuring em `pagamentos.controller.ts` e do schema `processarPagamentoSchema` (`pagamento.schema.ts`). `insuranceCoveragePercent` mantido como estava.
+
+**Achado real durante a verificação**: `npm run test` revelou 1 falha em `professional.test.ts` ("returns weekly and monthly series including the seeded appointment", linha 99: `expected 0 to be greater than or equal to 1`) — **não relacionada a este fix**. Confirmado isolando a mudança via `git stash`: o teste falha de forma idêntica com e sem a remoção do `insuranceProvider`. Provável sensibilidade a horário/fuso do teste (depende de um agendamento "de hoje" cair no último bucket da série semanal). Não corrigido agora — fora do escopo deste item; fica documentado para triagem própria.
+
+**Critério de aceite**:
+- [x] Remover `insuranceProvider` do controller e do schema (dead param) — `insuranceCoveragePercent` mantido por ser funcional e testado, não morto
+- [x] `npx tsc --noEmit` do backend limpo
+- [x] Suíte de testes: 293/294 na época — 1 falha pré-existente e não relacionada, confirmada via `git stash` (corrigida logo em seguida, item próprio abaixo)
+
+---
+
+### ✅ [FIX] Teste `professional.test.ts` flaky — "returns weekly and monthly series including the seeded appointment"
+**Área**: Backend | **Prioridade**: 🟡 Médio | **Esforço**: 2
+
+**Descrição original**: achado no item acima — `expect(hoje.count).toBeGreaterThanOrEqual(1)` falhava com `expected 0 to be greater than or equal to 1` em `src/tests/professional.test.ts:99`.
+
+**Causa raiz**: o teste criava o agendamento seed em `new Date(Date.now() + 3600000)` ("daqui a 1h" a partir do momento em que o teste roda). `getWeeklySeries()` (`src/services/dashboard.service.ts`) bucketiza "hoje" como `[00:00 local, 00:00 local do dia seguinte)`. Quando o teste roda perto da meia-noite local (ex.: 23:47), "agora + 1h" cai **no dia seguinte** — fora da janela dos "últimos 7 dias" (que vai até hoje, não inclui amanhã) — então o bucket de "hoje" fica vazio. Confirmado reproduzindo exatamente nesse horário.
+
+**Resolução**: `dataHora` do agendamento seed trocado de "agora + 1h" para "hoje ao meio-dia" (`new Date(); setHours(12, 0, 0, 0)`) — ancorado no dia corrente derivado de `new Date()`, não mais sensível a em que hora do dia o teste é executado. Nenhuma asserção do arquivo depende do agendamento estar no futuro (só de estar "no bucket de hoje"), então a mudança não quebra nenhum outro teste do arquivo.
+
+**Verificação**: reproduzido o bug e confirmado o fix rodando `professional.test.ts` isoladamente exatamente às 23:47 (horário que antes derrubava o teste) — 8/8 passando. Suíte completa: 294/294.
+
+**Critério de aceite**:
+- [x] Investigar a causa raiz — bug de fuso/horário no seed do teste (agendamento "agora + 1h" podia cair no dia seguinte perto da meia-noite), não bug no endpoint
+- [x] Corrigir o teste para não depender de quando ele roda — ancorado em "hoje ao meio-dia" em vez de "agora + 1h"
+- [x] Suíte completa: 294/294
+
+---
+
 ### ✅ [IMPROVEMENT] Testes automatizados — cobertura residual
 **Área**: Backend | **Prioridade**: 🟡 Médio | **Esforço**: 2
 
@@ -626,38 +744,42 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 
 ---
 
-## 🔵 A FAZER — Próxima Sprint
-
-> Itens refinados e prontos para desenvolvimento.
+## 🟢 CONCLUÍDO — 04/11/2026
 
 ---
 
-### 🎯 [IMPROVEMENT] `HomeScreen` — consumir dados reais (próxima consulta, médicos em destaque)
-- **Área**: Frontend
-- **Prioridade**: 🟡 Médio
-- **Esforço**: 3
-- **Descrição**: A `HomeScreen` exibe `NextAppointmentCard` e `FeaturedProfessionalsCarousel` mas com dados simulados.
-- **Critério de aceite**:
-  - [ ] `NextAppointmentCard` busca próximo agendamento real do paciente
-  - [ ] Carrossel busca profissionais com maior nota média via `GET /medicos?destaque=true`
+### ✅ [FEATURE] Sistema de cupons — painel admin para criar/gerenciar cupons
+**Área**: Frontend (Admin) + Backend | **Prioridade**: 🟢 Baixo | **Esforço**: 5
+
+**Descrição original**: backend tinha o modelo `Cupom` e `PagamentosController.validarCupom()` (validação no checkout), mas não existia nenhum endpoint de CRUD nem tela admin para criar, listar ou desativar cupons — eram criados só via seed/banco direto.
+
+**Resolução**:
+- **Backend**: `src/schemas/cupom.schema.ts` novo (`cupomSchema` para criação, `cupomAtivoSchema` para o toggle); `src/controllers/cupons.controller.ts` novo — `listar()` (`GET /admin/cupons`), `criar()` (`POST /admin/cupons`, normaliza código para maiúsculo, `409` em código duplicado via `P2002`), `atualizarAtivo()` (`PUT /admin/cupons/:id`, `404` se não existe). Rotas em `src/routes/cupons.routes.ts`, protegidas por `authMiddleware` + `requireAdmin` — mesmo padrão de acesso de artigos/destaques (conta `admin@uaimed.com`). **Decisão de design**: desativação em vez de exclusão física — um cupom já pode ter sido usado em pagamentos concluídos (`Pagamento.cupom` guarda o código como string solta, sem FK), então apagar o registro perderia a rastreabilidade do desconto aplicado.
+- **Frontend**: `AdminCuponsScreen.tsx` novo — lista cupons com badge Ativo/Inativo/Expirado, desconto, validade, contagem de usos (`atuais / limite` ou "sem limite"), e um `Switch` por card que já chama `PUT /admin/cupons/:id` (atualização otimista, reverte se a API falhar). Modal de criação com campos código/desconto/validade (`DD/MM/AAAA`, parseado e validado no cliente antes de enviar)/limite de usos opcional. Nova aba "Cupons" no `AdminTabNavigator` (mesmo nível de Artigos/Destaques) + atalho em `AdminHomeScreen`.
+- 9 novos casos de teste (`cupons.test.ts`): 401 sem auth, 403 não-admin, criação com sucesso (código normalizado para maiúsculo), 409 em código duplicado, 400 em desconto fora de 1-100, 400 em data inválida, listagem incluindo o criado (ordenado por mais recente), desativar+reativar, 404 em cupom inexistente.
+
+**Verificado end-to-end no app rodando** (driver headless `run-uaimed-front`, backend real): login como `admin@uaimed.com` → "Cupons de desconto" na home admin e na tab bar → lista real com os 3 cupons do seed (`UAIMED10`, `PRIMEIRACOMPRA`, `NATAL25`) → criado cupom de teste via modal (código minúsculo normalizado para maiúsculo na resposta) → desativado via `Switch` (badge mudou para "Inativo", label para "Reativar cupom") → reativado → zero erros de console em todas as etapas. Cupom de teste removido do banco de dev após a verificação.
+
+**Critério de aceite**:
+- [x] CRUD de cupons no backend (criar, listar, desativar/reativar) restrito à conta admin
+- [x] Tela admin para criar cupons (código, desconto, validade, limite de usos opcional)
+- [x] Lista de cupons com status visual (Ativo/Inativo/Expirado) e contagem de usos
+- [x] Desativar/reativar sem excluir fisicamente (preserva rastreabilidade de cupons já usados)
+- [x] 9 novos casos de teste, suíte backend 303/303
+- [x] `npx tsc --noEmit` limpo nos dois projetos
+- [x] Verificado end-to-end no app rodando contra o backend real
+
+---
+
+## 🔵 A FAZER — Próxima Sprint
+
+> Nenhum item no momento — ver Backlog para itens de baixa prioridade.
 
 ---
 
 ## 🗃️ BACKLOG — Identificado / Aguardando Refinamento
 
 > Itens levantados mas sem priorização final para sprint.
-
----
-
-### 📌 [IMPROVEMENT] Código morto residual em `useAvaliacoes.ts`/`CardAvaliacao.tsx`/`types/avaliacao.ts`
-- **Área**: Frontend
-- **Prioridade**: 🟢 Baixo
-- **Esforço**: 1
-- **Descrição**: Achado em 03/11/2026 ao verificar o estado geral da feature de avaliações (sem pendências — model completo, vinculado a agendamento, 3 telas consumindo dados reais). Correção a um registro anterior deste Kanban: `useAvaliacoes.ts` não é 100% código morto como ficou registrado quando `HistoricoAvaliacoesScreen` foi reescrita (01/11/2026) — `PerfilScreen.tsx` ainda importa e usa `carregarMediaAvaliacoes`/`notaMedia`/`totalAvaliacoes` do hook (real, bate em `GET /avaliacoes/medico/:id/media`). O que de fato é código morto: `loadAvaliacoes` (tem um `// TODO: Integrar com API real` e retorna array vazio sempre), `calcularEstatisticas`, `avaliacoesMedico` e `criarAvaliacao` dentro do mesmo hook (nenhuma tela chama), além de `CardAvaliacao.tsx` (sem nenhum import em lugar nenhum) e as partes de `types/avaliacao.ts` usadas só por esse código morto.
-- **Critério de aceite**:
-  - [ ] Remover `loadAvaliacoes`/`calcularEstatisticas`/`avaliacoesMedico`/`criarAvaliacao` de `useAvaliacoes.ts`, mantendo só a parte real (`carregarMediaAvaliacoes`)
-  - [ ] Remover `CardAvaliacao.tsx`
-  - [ ] Revisar `types/avaliacao.ts` — manter só o que sobrar em uso
 
 ---
 
@@ -670,24 +792,6 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 
 ---
 
-### 📌 [FIX] Parâmetros mortos `insuranceProvider`/`insuranceCoveragePercent` em `PagamentosController`
-- **Área**: Backend
-- **Prioridade**: 🟢 Baixo
-- **Esforço**: 2
-- **Descrição**: Achado em 03/11/2026 investigando o fluxo de pagamento do toggle "Plano de saúde" (desconto fixo de 15%, sem relação com o filtro de convênios implementado — ver Concluído 03/11/2026). `PagamentosController.processar()` (`uaimed-back/src/controllers/pagamentos.controller.ts`) desestrutura `insuranceProvider` e `insuranceCoveragePercent` do corpo da requisição, mas **nenhum caller real envia esses campos** — `PagamentoScreen.tsx` só envia `usingPlan: boolean`. São parâmetros mortos, provavelmente de uma versão mais detalhada do fluxo de "plano de saúde" (distinto de convênio) que nunca foi finalizada no front. `insuranceCoveragePercent` ainda é lido e usado se enviado (define o % de desconto em vez do padrão de 15%), mas `insuranceProvider` não seria persistido de qualquer forma — o model `Pagamento` não tem campo para isso.
-- **Critério de aceite** (a refinar):
-  - [ ] Remover `insuranceProvider` do controller (dead param), ou implementar de fato o envio pelo front se fizer sentido guardar qual seguradora cobriu o desconto
-
----
-
-### 📌 [FEATURE] Sistema de cupons — painel admin para criar/gerenciar cupons
-- **Área**: Frontend (Admin) + Backend
-- **Prioridade**: 🟢 Baixo
-- **Esforço**: 5
-- **Descrição**: Backend tem modelo `Cupom` e controller de validação, mas não existe tela admin para criar, listar e desativar cupons.
-
----
-
 ### 📌 [IMPROVEMENT] `ContatoProfissionalScreen` — marginTop no topo
 - **Área**: Frontend
 - **Prioridade**: 🟢 Baixo
@@ -695,27 +799,6 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 - **Descrição**: Conteúdo colado no topo da tela sem `SafeAreaView` ou `marginTop` adequado.
 - **Critério de aceite**:
   - [ ] Padding/margin adequado para não colidir com a status bar do dispositivo
-
----
-
-### 📌 [IMPROVEMENT] `AgendamentosScreen` — floatingButton funcional
-- **Área**: Frontend
-- **Prioridade**: 🟡 Médio
-- **Esforço**: 1
-- **Descrição**: Botão flutuante "+" chama `console.log` em vez de navegar para o fluxo de busca.
-- **Critério de aceite**:
-  - [ ] `navigation.navigate('Agendamentos', { screen: 'Busca' })` ao pressionar o botão
-
----
-
-### 📌 [IMPROVEMENT] `AgendamentosScreen` — dados reais da API
-- **Área**: Frontend
-- **Prioridade**: 🟠 Alto
-- **Esforço**: 3
-- **Descrição**: `AgendamentosScreen` tenta `GET /agendamentos` mas em caso de falha cai em dados simulados hardcoded. A exibição também não mostra o status corretamente (tipo `realizado` não existe no banco — é `concluido`).
-- **Critério de aceite**:
-  - [ ] Sem fallback para dados simulados em produção
-  - [ ] Status mapeado corretamente: `agendado`, `confirmado`, `concluido`, `cancelado`
 
 ---
 
@@ -749,12 +832,13 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 | 🟢 Concluído — Mai–Out/2026 (consolidado) | 13 itens |
 | 🟢 Concluído — 30/10/2026 | 6 itens |
 | 🟢 Concluído — 01/11/2026 | 7 itens |
-| 🟢 Concluído — 03/11/2026 | 5 itens |
+| 🟢 Concluído — 03/11/2026 | 12 itens |
+| 🟢 Concluído — 04/11/2026 | 1 item |
 | 🔴 Bug Conhecido | 0 itens |
-| 🔵 A Fazer (próxima sprint) | 1 item |
-| 🗃️ Backlog | 7 itens |
+| 🔵 A Fazer (próxima sprint) | 0 itens |
+| 🗃️ Backlog | 2 itens |
 | ⏸️ Bloqueado | 2 itens |
-| **Total** | **60 itens** |
+| **Total** | **62 itens** |
 
 ---
 
@@ -763,16 +847,12 @@ Suíte: 256 → 272 casos, 29 → 31 arquivos. Cobertura total: 71.4% → 73.36%
 ```
 Sprints Fev–Nov/2026 ──────────────── CONCLUÍDAS (ver seções Concluído acima)
 
-Sprint atual (próxima, ~1 semana)
-  Foco: ResultadosScreen + SearchScreen busca real, HistoricoAvaliacoesScreen
-        (consumir GET /avaliacoes/minhas, já pronto no backend), Status de
-        pagamento visível
+"A Fazer" zerada em 03/11/2026 — todo o escopo funcional planejado para o
+PFC está implementado e testado.
 
-Sprint seguinte (~1 semana)
-  Foco: E-mail de confirmação de agendamento/pagamento
-
-Sprint entrega PFC
-  Foco: Polimento visual, documentação final, apresentação
+Sprint entrega PFC (atual)
+  Foco: documentação final e apresentação/defesa. Itens de Backlog restantes
+  são polimento/débito técnico de baixa prioridade, não bloqueantes.
 ```
 
 ---
@@ -803,6 +883,13 @@ Sprint entrega PFC
 | 03/11/2026 | 1.22.0 | Implementado "Confirmação de horário por notificação/e-mail" (único item 🔴 Crítico restante em "A Fazer"). Backend: `email.service.ts` novo, integrado via Resend (chave gerada pelo usuário, decisão tomada em conjunto antes de codar) — envia e-mail HTML com logo ao paciente e ao médico na criação do agendamento, sem nunca bloquear a resposta da API se o envio falhar ou a chave não estiver configurada. Frontend: `utils/notificacoesConsulta.ts` novo — agenda notificação local 1h antes da consulta (criar/remarcar) e cancela ao cancelar. **Bug real corrigido no processo**: `App.tsx` pulava a solicitação de permissão de notificação inteira no Expo Go, mas notificações *locais* (diferente de push remota) funcionam normalmente nele — sem a correção, o lembrete de 1h nunca apareceria em quem testa via Expo Go. 3 novos casos de teste (`unit/email.unit.test.ts`). Verificado end-to-end no app rodando via driver headless contra o backend real com a chave do Resend de verdade: agendamento criado, e-mails efetivamente enviados (confirmado nos logs do container), zero erros de console. Suíte: 272 → 275 casos, 31 → 32 arquivos. Detalhes em `TESTES.md` v1.11.0. |
 | 03/11/2026 | 1.23.0 | Implementado "Confirmação de pagamento — comprovante e e-mail" (último item em "A Fazer"). Correção de escopo: o critério "status do pagamento no card de agendamento" já estava satisfeito desde 01/11 (`MinhasConsultasScreen.tsx`); optado por tela formatada em vez de PDF (ambas válidas no critério original, PDF exigiria dependência nova sem necessidade real). Backend: `enviarEmailComprovantePagamento()` em `email.service.ts`. Frontend: nova tela `PagamentoSucessoScreen.tsx` com botão de compartilhar (API `Share` nativa, já usada em outro ponto do mesmo arquivo). **2 achados reais**: (1) rodar `npm test` localmente com uma `RESEND_API_KEY` real no `.env` disparava e-mails de verdade durante os testes — `.env.test` não define a variável, e o carregamento em cascata de `env.ts` preenchia a partir do `.env` real; corrigido com trava explícita por `NODE_ENV === 'test'`, com teste de regressão; (2) na própria verificação end-to-end, o desconto de "plano de saúde" não aparecia no comprovante (só o de cupom), deixando valor cobrado/pago sem explicação — corrigido expondo `descontoPlano` separado na API, e-mail e tela. 6 novos casos de teste (`unit/email.unit.test.ts`, 3 → 9). Verificado end-to-end no app rodando (achado adicional: Metro precisou reiniciar com `--clear` para pegar os edits do front, gotcha já documentado na skill `run-uaimed-front`): pagamento com plano de saúde ativo exibiu o desconto corretamente e o e-mail foi enviado de verdade. Suíte: 275 → 281 casos, mesmos 32 arquivos. Detalhes em `TESTES.md` v1.12.0. |
 | 03/11/2026 | 1.24.0 | Implementado "Filtro de busca por plano de saúde aceito" (convênio), resolvendo as 3 decisões de design que estavam em aberto: catálogo fixo (`src/constants/convenios.ts`), campo `Profissional.convenios: String[]` (array nativo, sem N:N) e autogestão pelo médico (`GET`/`PUT /professionals/me/convenios`, mesmo padrão de preço/disponibilidade). `GET /medicos?convenio=` filtra; `SearchScreen` ganhou `ConvenioDropdown`; nova tela `MedicoConveniosScreen` (checklist) com atalho em Perfil; convênios exibidos no card de resultado e na tela de detalhes do médico. Migração + seed com convênios realistas. Verificação do estado da feature de avaliações (sem pedido de implementação, já completa) corrigiu um registro anterior deste Kanban: `useAvaliacoes.ts` não é 100% código morto — a parte de `notaMedia` é usada de verdade por `PerfilScreen`; só `loadAvaliacoes`/`calcularEstatisticas`/`avaliacoesMedico`/`criarAvaliacao` são mortos, movidos para item de limpeza no Backlog. 17 novos casos de teste. Verificado end-to-end no app rodando: filtro por "Unimed" retornou os médicos certos; médico alternou e salvou convênios com persistência confirmada. Suíte: 281 → 294 casos, 32 → 34 arquivos. Detalhes em `TESTES.md` v1.13.0. |
+| 03/11/2026 | 1.25.0 | Implementado "HomeScreen — consumir dados reais" (último item em "A Fazer", agora zerada). Correção de escopo: metade do card já estava resolvida sem registro — `FeaturedProfessionalsCarousel` já consumia `GET /medicos/recomendados` (dado real, curado por admin via flag `destaque`), não simulado. O gap genuíno era só `NextAppointmentCard`: componente pronto, mas nunca importado pela `HomeScreen` — código morto nunca conectado. Resolvido buscando `GET /agendamentos` ao focar a Home, filtrando a consulta futura mais próxima (`agendado`/`confirmado`) do paciente logado. Verificado end-to-end no app rodando: card aparece com dados corretos para paciente com consulta futura, seção some por completo sem uma. **Quadro sem itens pendentes em "A Fazer"** — restam apenas Backlog (baixa prioridade) e Bloqueado (fora do escopo do PFC). |
+| 03/11/2026 | 1.26.0 | Limpeza de 2 itens de Backlog. (1) `AgendamentosScreen.tsx` deletado — código morto confirmado (sem import em nenhum navigator, erro de sintaxe JSX); os 2 itens de Backlog que miravam essa tela foram descartados em vez de implementados. **Achado real**: o erro de sintaxe estava abortando `tsc --noEmit` cedo, escondendo 7 erros de tipo reais em arquivos usados em produção (`LocalizacaoMedicoCard`, `AgendamentoStack`, `MainTabNavigation`, `ClinicaPerfilScreen`, `HistoricoAvaliacoesScreen`, `MedicoDetalhesScreen`, `MedicoDashboardScreen`) — registrado como novo item de Backlog, não corrigido agora. (2) Código morto residual de `useAvaliacoes.ts`/`CardAvaliacao.tsx`/`types/avaliacao.ts` removido: hook mantém só a parte real (`carregarMediaAvaliacoes`/`notaMedia`/`totalAvaliacoes`, consumida por `PerfilScreen`); `CardAvaliacao.tsx` e `types/avaliacao.ts` deletados por completo (sem uso restante após a limpeza do hook). Validado com `tsc --noEmit` (sem novos erros nos arquivos tocados) e suíte manual `tests/` (69/69). Backlog: 7 → 5 itens. |
+| 03/11/2026 | 1.27.0 | Corrigidos os 7 erros de TypeScript levantados na v1.26.0. Nenhum era bug de runtime (o Metro/Babel do Expo não valida tipos, então o app sempre rodou certo) — todos eram lacunas ou desatualizações de tipagem: `tsconfig.json` ganhou `moduleSuffixes` (resolve `.native`/`.web` como o Metro já fazia, mas o `tsc` não); `headerBackTitleVisible` (API do React Navigation 5/6) trocado por `headerBackButtonDisplayMode: 'minimal'` (projeto está na v7); 8 call-sites de `navigation.navigate(...)` em `MainTabNavigation.tsx` protegidos com optional chaining (quirk de tipagem do RN v7, sempre definido em runtime); array de `InfoField` em `ClinicaPerfilScreen` recebeu tipo explícito antes do `.filter()` (perdia o tipo contextual); `SafeAreaView` de `HistoricoAvaliacoesScreen` trocado de `react-native` para `react-native-safe-area-context` (mesma classe de bug já corrigida em outras telas na v1.8.0); campo `convenios: string[]` adicionado à interface `MedicoPerfil` (o backend já retornava, a tela já usava, só a interface local estava desatualizada); `yAxisSuffix=""` adicionado ao `BarChart` de `MedicoDashboardScreen` (o `LineChart` do mesmo arquivo já tinha). `npx tsc --noEmit` limpo (exit 0) pela primeira vez no frontend. Verificado end-to-end no app rodando: as 3 telas com mudança de comportamento real (`HistoricoAvaliacoesScreen`, header do `AgendamentoStack`, `MedicoDashboardScreen`) renderizam corretamente; os 7 avisos de console do gráfico de barras são do `react-native-chart-kit` no target web, confirmados pré-existentes (testado revertendo o arquivo isoladamente). Novo item de Backlog aberto: adicionar typecheck do frontend ao CI (hoje só roda no backend — foi assim que isso ficou escondido). Backlog: 5 → 5 itens (1 fechado, 1 novo aberto). |
+| 03/11/2026 | 1.28.0 | Implementado "Adicionar typecheck do frontend ao CI" (último achado da v1.26.0/v1.27.0). Novo job `typecheck-frontend` em `.github/workflows/ci.yml`, paralelo ao job de typecheck do backend (não depende dele): `npm ci` + `npx tsc --noEmit` em `uaimed-front`, mesma estrutura do job já existente. Fecha o buraco que permitiu o `AgendamentosScreen.tsx` morto (com erro de sintaxe) e os 7 erros de tipo reais ficarem escondidos sem detecção automatizada. YAML validado e comando confirmado passando localmente. **Contagem total do quadro corrigida nesta versão**: a linha "Total" estava desatualizada (60) desde edições anteriores; recontada item a item via grep — 61 itens reais (55 Concluído + 0 A Fazer + 4 Backlog + 2 Bloqueado). Backlog: 5 → 4 itens. |
+| 03/11/2026 | 1.29.0 | Removido o parâmetro morto `insuranceProvider` de `PagamentosController.processar()` e de `processarPagamentoSchema` — desestruturado mas nunca referenciado, sem campo correspondente no model `Pagamento`, sem teste cobrindo. **Investigação antes de decidir**: `insuranceCoveragePercent` (o outro campo citado no card original) **não é morto** — sobrescreve o desconto padrão de 15% quando enviado, validado no schema e coberto por teste; só não é exercitado pelo front atual. Mantido como estava. **Achado real durante a verificação**: `npm run test` revelou 1 falha pré-existente em `professional.test.ts` (série semanal do dashboard do médico, provável sensibilidade a horário/fuso), confirmada não relacionada a este fix via `git stash` isolando a mudança. Registrada como novo item de Backlog, não corrigida agora. Suíte: 293/294 (1 falha pré-existente documentada). Backlog: 4 → 4 itens (1 fechado, 1 novo aberto). |
+| 03/11/2026 | 1.30.0 | Corrigido o teste flaky de `professional.test.ts` levantado na v1.29.0. **Causa raiz**: o seed do teste criava o agendamento em "agora + 1h"; rodando perto da meia-noite local, isso cruzava pra o dia seguinte, caindo fora da janela de "últimos 7 dias" que `getWeeklySeries()` calcula (vai até hoje, não inclui amanhã) — bucket de "hoje" ficava vazio. Não era bug no endpoint, só no seed do teste. **Resolução**: `dataHora` trocada de "agora + 1h" para "hoje ao meio-dia" (ancorada no dia corrente, não mais sensível à hora de execução). Reproduzido e confirmado o fix exatamente às 23:47 (horário que antes derrubava o teste) — 8/8 passando isolado, 294/294 na suíte completa. Backlog: 4 → 3 itens. |
+| 04/11/2026 | 1.31.0 | Implementado "Sistema de cupons — painel admin para criar/gerenciar cupons" (maior item do Backlog, esforço 5). Backend: `cupons.controller.ts` + `cupom.schema.ts` + `cupons.routes.ts` novos — CRUD restrito à conta `admin@uaimed.com` (mesmo padrão de artigos/destaques), com desativação em vez de exclusão física (preserva rastreabilidade de cupons já usados em pagamentos concluídos). Frontend: `AdminCuponsScreen.tsx` novo, com lista (badge Ativo/Inativo/Expirado, contagem de usos) e modal de criação; nova aba "Cupons" no `AdminTabNavigator` + atalho em `AdminHomeScreen`. 9 novos casos de teste (`cupons.test.ts`). Verificado end-to-end no app rodando contra o backend real: lista com os 3 cupons do seed, criação, desativação e reativação via `Switch`, tudo persistindo de verdade, zero erros de console. Suíte: 294 → 303 casos, 34 → 35 arquivos. **Nova seção datada "Concluído — 04/11/2026"** criada (sessão cruzou a meia-noite) — mantém a precisão de data já estabelecida neste documento em vez de agrupar sob 03/11. Backlog: 3 → 2 itens. |
 
 ---
 

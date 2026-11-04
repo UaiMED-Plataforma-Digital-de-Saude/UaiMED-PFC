@@ -39,7 +39,7 @@ const AgendamentoStack: React.FC = () => {
           fontSize: 17,
           color: '#333',
         },
-        headerBackTitleVisible: false,
+        headerBackButtonDisplayMode: 'minimal',
       }}
     >
       <Stack.Screen
