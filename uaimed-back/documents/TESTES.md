@@ -563,6 +563,10 @@ Os testes E2E validam o **fluxo completo** do ponto de vista do usuário final, 
 # Banco de dados deve estar rodando via Docker
 docker-compose up -d
 
+# .env.test não é versionado (só valores de teste, mas evitamos commitar
+# qualquer .env) — copie o exemplo antes de rodar os testes pela primeira vez
+cp .env.test.example .env.test
+
 # O banco uaimed_test é criado automaticamente pelo globalSetup.ts
 # O arquivo .env.test define DATABASE_URL apontando para uaimed_test
 ```
