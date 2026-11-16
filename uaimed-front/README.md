@@ -35,14 +35,14 @@ uaimed-front/
 
 ## Telas
 
-O app tem **40 telas** distribuídas em 5 stacks:
+O app tem **43 telas** distribuídas em 5 stacks:
 
 | Stack | Telas | Exemplos |
 |---|---|---|
-| Auth | 5 | Login, Cadastro, Recuperação de senha, Seleção de tipo de usuário |
-| Main | 14 | Home, Agendamentos, Perfil, Ajuda, Artigos, Dashboard/Contatos/Disponibilidade do médico, Home/Médicos da clínica |
-| Agendamento | 13 | Busca, Resultados, Detalhes do médico, Seleção de horário, Confirmação, Pagamento, Avaliação, Minhas Consultas/Pagamentos |
-| Admin | 6 | Home, Perfil, Artigos, Cadastro de artigo, Destaques, Dashboard da clínica |
+| Auth | 6 | Login, Cadastro, Recuperação de senha, Confirmar código, Consentimento LGPD, Seleção de tipo de usuário |
+| Main | 14 | Home, Perfil, Ajuda, Artigos, Dashboard/Contatos/Disponibilidade/Convênios do médico, Home/Médicos da clínica |
+| Agendamento | 14 | Busca, Resultados, Detalhes do médico, Seleção de horário, Confirmação, Pagamento, Avaliação, Minhas Consultas/Pagamentos, Contato com profissional |
+| Admin | 7 | Home, Perfil, Artigos, Cadastro de artigo, Destaques, Cupons, Dashboard da clínica |
 | Conversas | 2 | Lista de conversas, Detalhes da conversa |
 
 ## Como rodar localmente
@@ -71,8 +71,6 @@ A URL do backend é resolvida automaticamente por plataforma em [`config/index.t
 
 ## Documentação Relacionada
 
-- [`ESTRUTURA_PROJETO.md`](./ESTRUTURA_PROJETO.md) — arquitetura, fluxo de autenticação, sistema de design
-- [`GUIA_RAPIDO.md`](./GUIA_RAPIDO.md) — como adicionar telas, dados de teste, debugging
 - [`BACKEND_SETUP_COMPLETO.md`](./BACKEND_SETUP_COMPLETO.md) — como rodar o backend para desenvolver o frontend, exemplos de cURL para testar a API manualmente
 - [`IMAGES_GUIDE.md`](./IMAGES_GUIDE.md) — onde e como adicionar imagens
 - [`documents/CONTACT_GUIDE.md`](./documents/CONTACT_GUIDE.md), [`documents/PAYMENTS_GUIDE.md`](./documents/PAYMENTS_GUIDE.md), [`documents/SISTEMA_AVALIACAO.md`](./documents/SISTEMA_AVALIACAO.md) — guias de features específicas

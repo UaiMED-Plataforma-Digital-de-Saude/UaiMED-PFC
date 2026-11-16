@@ -20,11 +20,13 @@ docker compose up -d
 2. Sincronize Prisma e rode testes:
 
 ```powershell
-npx prisma db push
+npx prisma migrate deploy
 npm run test
 # ou para o modo CI (sem interface):
 npm run test:ci
 ```
+
+(`npm run test:ci` já cuida de sincronizar o banco de teste descartável com `db push` internamente — não precisa rodar à parte; `migrate deploy` acima é só para o banco de dev local, já que o projeto usa migrations versionadas.)
 
 Boas práticas para testes que já aplicamos
 
@@ -71,10 +73,10 @@ jobs:
         run: sleep 10
       - name: Set DATABASE_URL
         run: echo "DATABASE_URL=postgresql://docker:docker@localhost:5432/uaimed" >> uaimed-back/.env
-      - name: Prisma push
+      - name: Prisma migrate
         run: |
           cd uaimed-back
-          npx prisma db push
+          npx prisma migrate deploy
       - name: Run tests
         run: |
           cd uaimed-back

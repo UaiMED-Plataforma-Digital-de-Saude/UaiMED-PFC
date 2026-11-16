@@ -29,7 +29,7 @@ O UaiMED é uma plataforma digital de saúde composta por backend (Node.js/TypeS
 - Banco de dados seed e migrações automatizadas
 - Dashboards para clínica e profissionais
 - KPIs monitorados: usuários, agendamentos, receita, avaliações
-- Segurança: senhas criptografadas, JWT, validação Zod, CORS
+- Segurança: senhas e refresh token com hash (nunca em texto puro), JWT rotativo e revogável, criptografia de CPF/CNPJ/dados bancários em repouso, validação Zod, CORS, helmet, rate limiting
 
 ---
 
@@ -85,4 +85,4 @@ Este projeto é proprietário — todos os direitos reservados. Consulte o arqui
 
 ---
 
-> Relatório técnico atualizado em 13/10/2026 — Equipe UaiMED
+> Relatório técnico atualizado em 16/11/2026 — Equipe UaiMED
