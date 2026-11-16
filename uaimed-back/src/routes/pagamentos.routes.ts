@@ -2,12 +2,13 @@ import { Router, Request, Response } from "express";
 import PagamentosController from "../controllers/pagamentos.controller";
 import authMiddleware from "../middleware/auth";
 import { validateBody } from "../middleware/validate";
+import { createAuthRateLimit } from "../middleware/rateLimit";
 import { validarCupomSchema, processarPagamentoSchema } from "../schemas/pagamento.schema";
 
 const router = Router();
 
-// POST /api/cupons/validar
-router.post("/cupons/validar", validateBody(validarCupomSchema), (req: Request, res: Response) => PagamentosController.validarCupom(req, res));
+// POST /api/cupons/validar — rota pública; rate limit evita adivinhação de códigos por força bruta
+router.post("/cupons/validar", createAuthRateLimit(), validateBody(validarCupomSchema), (req: Request, res: Response) => PagamentosController.validarCupom(req, res));
 
 // GET /api/pagamentos — lista pagamentos do usuário autenticado
 router.get("/pagamentos", authMiddleware, (req: Request, res: Response) => PagamentosController.listar(req, res));
