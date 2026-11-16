@@ -32,8 +32,9 @@ export interface SignInData {
   senha: string;
 }
 
-// Campos do profissional seguros para expor no payload de autenticação
-// (exclui dados bancários: pixKey, banco, agencia, conta, tipoConta)
+// Campos do profissional devolvidos no payload de login/cadastro.
+// Não cobre as rotas públicas de listagem (/medicos, /clinicas) — a exclusão
+// de dados bancários nessas rotas é feita nos controllers correspondentes.
 const PROFISSIONAL_PUBLIC_SELECT = {
   id: true,
   especialidade: true,

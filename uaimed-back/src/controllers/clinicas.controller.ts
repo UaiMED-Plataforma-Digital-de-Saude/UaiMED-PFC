@@ -47,11 +47,6 @@ class ClinicasController {
           cidade: true,
           estado: true,
           avatar: true,
-          pixKey: true,
-          banco: true,
-          agencia: true,
-          conta: true,
-          tipoConta: true,
           _count: {
             select: {
               medicosClinica: { where: { status: StatusVinculoClinica.aceito } },
@@ -68,11 +63,6 @@ class ClinicasController {
         localizacao: clinica.cidade && clinica.estado
           ? `${clinica.cidade}, ${clinica.estado}`
           : clinica.cidade || clinica.estado || null,
-        pixKey: clinica.pixKey ?? null,
-        banco: clinica.banco ?? null,
-        agencia: clinica.agencia ?? null,
-        conta: clinica.conta ?? null,
-        tipoConta: clinica.tipoConta ?? null,
         totalMedicos: clinica._count.medicosClinica,
         nota: 5.0,
       })));
@@ -93,7 +83,6 @@ class ClinicasController {
           cidade: true,
           estado: true,
           avatar: true,
-          pixKey: true,
           criado_em: true,
           _count: {
             select: {
@@ -142,7 +131,6 @@ class ClinicasController {
         localizacao: clinica.cidade && clinica.estado
           ? `${clinica.cidade}, ${clinica.estado}`
           : clinica.cidade || clinica.estado || null,
-        pixKey: clinica.pixKey ?? null,
         nota: 5.0,
         medicos: clinica.medicosClinica.map((vinculo) => medicoPublico(vinculo.profissional)),
       });
