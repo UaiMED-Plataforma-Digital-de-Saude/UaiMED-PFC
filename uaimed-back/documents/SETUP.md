@@ -17,7 +17,7 @@ npm install
 
 ```powershell
 npx prisma generate
-npx prisma migrate dev --name init
+npx prisma migrate deploy
 npm run db:seed
 ```
 

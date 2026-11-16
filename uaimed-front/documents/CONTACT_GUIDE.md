@@ -6,20 +6,20 @@ Este guia descreve como o front-end gerencia mensagens de contato entre paciente
 
 - Formulário simples (assunto + mensagem)
 - Validação de campos obrigatórios
-- Envio simulado ou real (via API)
+- Envio real via API (`POST /contatos`)
 - Encapsulamento em hook `useContatos` para facilitar integração
 
 Como funciona (front-end)
 
 1. A tela `ContatoProfissionalScreen` é acessível via navegação com parâmetro `{ medicoId: string }`.
 2. O usuário preenche assunto e mensagem (ambos obrigatórios).
-3. O hook `useContatos` encapsula a chamada `enviarContato(dados)`.
-4. A mensagem é enviada (simulada ou para API real) e um alert de confirmação é exibido.
+3. O hook `useContatos` encapsula a chamada `enviarContato(dados)`, que mapeia `medicoId` (nome usado no front) para `profissionalId` (nome esperado pelo backend) antes de enviar.
+4. A mensagem é enviada à API real e um alert de confirmação é exibido.
 5. Após sucesso, a tela volta à anterior.
 
 Integração com API
 
-Arquivo do hook: `src/hooks/useContatos.ts`
+Arquivo do hook: `hooks/useContatos.ts`
 
 Função principal:
 
@@ -41,7 +41,7 @@ Headers:
 
 Body:
 {
-  "medicoId": "med-001",
+  "profissionalId": "med-001",
   "assunto": "Dúvida sobre preparo",
   "mensagem": "Qual é o preparo recomendado?"
 }
@@ -49,11 +49,12 @@ Body:
 Response (sucesso):
 {
   "id": "contato-123",
-  "medicoId": "med-001",
+  "usuarioId": "user-456",
+  "profissionalId": "med-001",
   "assunto": "Dúvida sobre preparo",
   "mensagem": "Qual é o preparo recomendado?",
-  "status": "enviado",
-  "dataCriacao": "2025-11-11T10:30:00Z"
+  "status": "nao_lido",
+  "criado_em": "2026-11-11T10:30:00Z"
 }
 ```
 
@@ -69,9 +70,9 @@ Casos de uso
 
 Fluxo no código
 
-- `src/screens/Agendamento/ContatoProfissionalScreen.tsx` — UI + validação
-- `src/hooks/useContatos.ts` — lógica de envio encapsulada
-- `src/components/FeaturedProfessionalsCarousel.tsx` — botão "Contato" que navega com `medicoId`
+- `screens/Agendamento/ContatoProfissionalScreen.tsx` — UI + validação
+- `hooks/useContatos.ts` — lógica de envio encapsulada (mapeia `medicoId` → `profissionalId`)
+- `components/FeaturedProfessionalsCarousel.tsx` — botão "Contato" que navega com `medicoId`
 
 Próximos passos sugeridos
 
@@ -81,10 +82,7 @@ Próximos passos sugeridos
 - Adicionar suporte a anexos (imagens, documentos).
 - Persistir mensagens em banco de dados no backend.
 
-Testes simulados
+Integração real
 
-- A tela e o hook funcionam em simulação (sem backend).
-- Para integrar com API real, basta substituir o delay simulado por:
-  ```typescript
-  const response = await uaiMedApi.post<ContatoResponse>("/contatos", dados);
-  ```
+- A tela e o hook já estão integrados com a API real (`POST /contatos`), sem simulação.
+- Cobertura de teste: `uaimed-back/src/__tests__/contatos.test.ts` (backend).

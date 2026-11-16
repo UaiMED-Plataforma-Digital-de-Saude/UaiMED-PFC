@@ -31,7 +31,7 @@ docker compose up -d
 
 ```powershell
 npm install
-npx prisma db push
+npx prisma migrate deploy
 ```
 
 5. Rode em modo dev:
@@ -46,14 +46,16 @@ Principais scripts (package.json)
 
 - `dev` / `start:dev`: start da aplicação com ts-node-dev/tsup
 - `build`: build de produção
-- `test:ci`: `npx prisma db push && vitest --run` — garante schema sync e roda testes
+- `test:ci`: sincroniza o schema no banco de teste (`db push`, sem gerar migration — é um banco descartável) e roda a suíte
 
 Prisma
 
 - Schema: `prisma/schema.prisma` (provider: postgresql)
+- O projeto usa migrations versionadas (`prisma/migrations/`), não `db push`, para o banco de dev/produção
 - Comandos úteis:
-  - `npx prisma migrate dev` (quando migrar)
-  - `npx prisma db push` (sincroniza sem gerar migration)
+  - `npx prisma migrate deploy` (aplica as migrations existentes — uso normal ao clonar o repo)
+  - `npx prisma migrate dev --name <nome>` (ao criar uma nova migration)
+  - `npx prisma db push` (só para sincronizar o banco de teste descartável, usado pelo script `test:ci`)
   - `npx prisma studio` (abrir Prisma Studio)
 
 Estrutura relevante
@@ -76,7 +78,7 @@ Autenticação
 Endpoints principais (resumo)
 
 - POST `/api/usuarios` — Cadastro (recebe `tipo`. Se `medico`, aceita dados profissionais `crm`, `especialidade`, etc.)
-- POST `/api/auth/login` — Login (email + senha) retorna token
+- POST `/api/sessions` — Login (email + senha) retorna token
 - GET `/api/agendamentos` — Lista agendamentos do usuário autenticado
 - POST `/api/agendamentos` — Criar agendamento
 - POST `/api/pagamentos` — Criar pagamento (aceita `usingPlan`, `insuranceCoveragePercent`, `cupom`)

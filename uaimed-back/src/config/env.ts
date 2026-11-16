@@ -15,6 +15,10 @@ const envSchema = z.object({
   JWT_EXPIRE_IN: z.string().default("1h"),
   REFRESH_TOKEN_SECRET: z.string().default("dev-refresh-secret"),
   REFRESH_TOKEN_EXPIRE_IN: z.string().default("30d"),
+  // Chave raiz (32 bytes em base64) usada para derivar as chaves de
+  // criptografia de campos sensíveis (CPF, CNPJ, dados bancários). Default
+  // só serve para dev local — produção exige uma chave própria (ver guard abaixo).
+  ENCRYPTION_KEY: z.string().default("BjLcVpmBkcvtm8wP8v0wXGHx6+n4Aoyz+iYhCR5ZL2o="),
   BCRYPT_ROUNDS: z.string().optional().default("10"),
   FRONTEND_URL: z.string().optional().default("http://localhost:19000"),
   // Opcional: sem a chave, o envio de e-mail é pulado (logado), não falha o fluxo.
@@ -22,6 +26,18 @@ const envSchema = z.object({
 });
 
 const parsed = envSchema.parse(process.env);
+
+if (parsed.NODE_ENV === "production") {
+  if (parsed.JWT_SECRET === "dev-secret" || parsed.JWT_SECRET.length < 32) {
+    throw new Error("JWT_SECRET ausente ou fraco para NODE_ENV=production (mínimo 32 caracteres, sem usar o valor padrão de dev).");
+  }
+  if (parsed.REFRESH_TOKEN_SECRET === "dev-refresh-secret" || parsed.REFRESH_TOKEN_SECRET.length < 32) {
+    throw new Error("REFRESH_TOKEN_SECRET ausente ou fraco para NODE_ENV=production (mínimo 32 caracteres, sem usar o valor padrão de dev).");
+  }
+  if (parsed.ENCRYPTION_KEY === "BjLcVpmBkcvtm8wP8v0wXGHx6+n4Aoyz+iYhCR5ZL2o=" || Buffer.from(parsed.ENCRYPTION_KEY, "base64").length !== 32) {
+    throw new Error("ENCRYPTION_KEY ausente ou inválida para NODE_ENV=production (precisa ser 32 bytes em base64, sem usar o valor padrão de dev).");
+  }
+}
 
 export const ENV = {
   NODE_ENV: parsed.NODE_ENV,
@@ -31,6 +47,7 @@ export const ENV = {
   JWT_EXPIRE_IN: parsed.JWT_EXPIRE_IN,
   REFRESH_TOKEN_SECRET: parsed.REFRESH_TOKEN_SECRET,
   REFRESH_TOKEN_EXPIRE_IN: parsed.REFRESH_TOKEN_EXPIRE_IN,
+  ENCRYPTION_KEY: parsed.ENCRYPTION_KEY,
   BCRYPT_ROUNDS: Number(parsed.BCRYPT_ROUNDS),
   FRONTEND_URL: parsed.FRONTEND_URL,
   RESEND_API_KEY: parsed.RESEND_API_KEY,

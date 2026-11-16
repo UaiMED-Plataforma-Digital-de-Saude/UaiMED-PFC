@@ -85,4 +85,4 @@ Se quiser, posso:
 
 ---
 
-Data: 11 de Novembro de 2025
+Data: 11 de Novembro de 2026

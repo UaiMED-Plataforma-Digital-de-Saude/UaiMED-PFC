@@ -109,6 +109,19 @@ export const refreshSchema = z.object({
   refreshToken: z.string().min(1),
 });
 
+export const passwordRecoverySchema = z.object({
+  email: z.string().trim().email('Informe um e-mail válido'),
+});
+
+export const passwordRecoveryConfirmSchema = z.object({
+  email: z.string().trim().email('Informe um e-mail válido'),
+  codigo: z.string().trim().regex(/^\d{6}$/, 'Código deve conter 6 dígitos'),
+  novaSenha: z.string().min(6, 'A senha deve ter pelo menos 6 caracteres').max(72, 'A senha é muito longa')
+    .refine((valor) => Buffer.byteLength(valor, 'utf8') <= 72, 'A senha é muito longa; reduza o número de caracteres'),
+});
+
 export type SignupInput = z.infer<typeof signupSchema>;
 export type SigninInput = z.infer<typeof signinSchema>;
 export type RefreshInput = z.infer<typeof refreshSchema>;
+export type PasswordRecoveryInput = z.infer<typeof passwordRecoverySchema>;
+export type PasswordRecoveryConfirmInput = z.infer<typeof passwordRecoveryConfirmSchema>;

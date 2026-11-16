@@ -10,7 +10,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTabletMode": true,
       "infoPlist": {
@@ -31,7 +33,9 @@
       [
         "expo-notifications",
         {
-          "icons": ["./assets/icon.png"]
+          "icons": [
+            "./assets/icon.png"
+          ]
         }
       ],
       [
@@ -39,8 +43,8 @@
         {
           "locationWhenInUsePermission": "Usamos sua localização para mostrar a distância até o local da consulta."
         }
-      ]
+      ],
+      "expo-secure-store"
     ]
   }
 }
-

@@ -294,9 +294,9 @@ Os testes de integração são a **camada principal** de validação automatizad
 
 | # | Caso de Teste | Endpoint | Resultado Esperado |
 |---|---------------|----------|--------------------|
-| 1 | Atualiza dados bancários com dados válidos | `PUT /api/usuarios/me/conta-bancaria` | 200 dados atualizados |
-| 2 | Rejeita `tipoConta` inválido | `PUT /api/usuarios/me/conta-bancaria` | 400 Bad Request |
-| 3 | Rejeita atualização sem autenticação | `PUT /api/usuarios/me/conta-bancaria` | 401 Unauthorized |
+| 1 | Atualiza dados bancários com dados válidos | `PUT /api/conta-bancaria` | 200 dados atualizados |
+| 2 | Rejeita `tipoConta` inválido | `PUT /api/conta-bancaria` | 400 Bad Request |
+| 3 | Rejeita atualização sem autenticação | `PUT /api/conta-bancaria` | 401 Unauthorized |
 
 ---
 
@@ -533,11 +533,13 @@ Os testes E2E validam o **fluxo completo** do ponto de vista do usuário final, 
 ```
 [1]  Tela de Login → "Esqueci a senha"
        ↓
-[2]  RecuperarSenhaScreen → informa e-mail
+[2]  RecuperarSenhaScreen → informa e-mail → POST /password-recovery
        ↓
-[3]  EmailEnviadoScreen → confirmação visual
+[3]  ConfirmarCodigoScreen → código de 6 dígitos recebido por e-mail + nova senha
        ↓
-[4]  Botão "Voltar ao login"
+[4]  POST /password-recovery/confirmar → senha redefinida
+       ↓
+[5]  Botão "Ir para o login"
 ```
 
 ### Status Atual de E2E
@@ -545,7 +547,7 @@ Os testes E2E validam o **fluxo completo** do ponto de vista do usuário final, 
 | Fluxo | Método | Status |
 |-------|--------|--------|
 | Agendamento completo (ponta a ponta) | Teste manual | ✅ Verificado |
-| Recuperação de senha | Teste manual | ✅ UI verificada |
+| Recuperação de senha (código OTP, ponta a ponta) | Teste manual (curl + Playwright headless) | ✅ Verificado |
 | Dashboard de clínica | Teste manual | ✅ Verificado |
 | Dashboard de médico | Teste manual | ✅ Verificado |
 | Minhas Consultas / Meus Pagamentos | Teste manual | ✅ Verificado |
@@ -560,6 +562,10 @@ Os testes E2E validam o **fluxo completo** do ponto de vista do usuário final, 
 ```bash
 # Banco de dados deve estar rodando via Docker
 docker-compose up -d
+
+# .env.test não é versionado (só valores de teste, mas evitamos commitar
+# qualquer .env) — copie o exemplo antes de rodar os testes pela primeira vez
+cp .env.test.example .env.test
 
 # O banco uaimed_test é criado automaticamente pelo globalSetup.ts
 # O arquivo .env.test define DATABASE_URL apontando para uaimed_test
@@ -658,7 +664,7 @@ npx vitest run --coverage
 | Integração (API) | 186 | ✅ |
 | Unitários | 108 | ✅ |
 | E2E automatizado | 0 | ⚠️ Planejado |
-| **Total** | **294** | **✅ 294/294** (executado em 03/11/2026, 34 arquivos) |
+| **Total** | **303** | **✅ 303/303** (34 arquivos .test.ts + 2 .spec.ts legados = 35) |
 
 ### Cobertura de Código (`vitest run --coverage`, provider v8)
 
@@ -712,7 +718,7 @@ Pontos restantes abaixo de 80% (sem exclusão), não cobertos nesta sessão — 
 | `/api/users/me` | PUT | ✅ |
 | `/api/users/me/avatar` | PUT | ✅ |
 | `/api/users/me/notifications` | POST | ✅ |
-| `/api/usuarios/me/conta-bancaria` | PUT | ✅ |
+| `/api/conta-bancaria` | PUT | ✅ |
 | `/api/contatos` | POST + GET | ✅ |
 | `/api/contatos/:id` | PATCH | ✅ |
 | `/api/conversas` | POST | ✅ |

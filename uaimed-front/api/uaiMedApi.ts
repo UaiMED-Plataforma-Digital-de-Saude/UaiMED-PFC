@@ -2,6 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CONFIG, { getApiBaseUrl, logNetwork, logError } from '../config/index';
 import { emitForceLogout } from './authEvents';
+import { getSecureItem, setSecureItem, removeSecureItem, SECURE_STORAGE_KEYS } from '../utils/secureStorage';
 
 // 2. Cria a instância do Axios com URL dinâmica
 const API_BASE_URL = getApiBaseUrl();
@@ -45,10 +46,10 @@ function onRefreshFailed(err: unknown) {
 }
 
 async function clearAuthStorage() {
-  await AsyncStorage.multiRemove([
-    CONFIG.STORAGE_KEYS.token,
-    CONFIG.STORAGE_KEYS.refreshToken,
-    CONFIG.STORAGE_KEYS.user,
+  await Promise.all([
+    removeSecureItem(SECURE_STORAGE_KEYS.token),
+    removeSecureItem(SECURE_STORAGE_KEYS.refreshToken),
+    AsyncStorage.removeItem(CONFIG.STORAGE_KEYS.user),
   ]).catch(() => {});
 }
 
@@ -64,8 +65,8 @@ uaiMedApi.interceptors.request.use(
     
     logNetwork(`📤 ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
     
-    // Busca o token salvo no AsyncStorage
-    const token = await AsyncStorage.getItem(CONFIG.STORAGE_KEYS.token);
+    // Busca o token salvo no armazenamento seguro (Keychain/Keystore nativo)
+    const token = await getSecureItem(SECURE_STORAGE_KEYS.token);
 
     // Se o token existir, ele é anexado ao cabeçalho 'Authorization'
     if (token) {
@@ -121,7 +122,7 @@ uaiMedApi.interceptors.response.use(
                 return Promise.reject(error);
             }
 
-            const refreshToken = await AsyncStorage.getItem(CONFIG.STORAGE_KEYS.refreshToken);
+            const refreshToken = await getSecureItem(SECURE_STORAGE_KEYS.refreshToken);
 
             if (!refreshToken) {
                 logError('Sessão expirada (401) — sem refresh token, limpando credenciais');
@@ -157,8 +158,15 @@ uaiMedApi.interceptors.response.use(
                     { refreshToken }
                 );
                 newToken = refreshResponse.data.token;
+                const newRefreshToken = refreshResponse.data.refreshToken;
 
-                await AsyncStorage.setItem(CONFIG.STORAGE_KEYS.token, newToken);
+                // O backend rotaciona o refresh token a cada uso — o antigo
+                // deixa de ser válido, então o novo precisa ser persistido
+                // aqui ou o próximo refresh vai falhar.
+                await setSecureItem(SECURE_STORAGE_KEYS.token, newToken);
+                if (newRefreshToken) {
+                    await setSecureItem(SECURE_STORAGE_KEYS.refreshToken, newRefreshToken);
+                }
                 uaiMedApi.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
 
                 isRefreshing = false;

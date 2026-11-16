@@ -18,7 +18,7 @@ npm install
 # yarn
 ```
 
-3. Configure `app.json` e variáveis se necessário. O arquivo `src/api/uaiMedApi.ts` já aponta para o backend (ex.: `http://10.0.2.2:3333/api` para emulador Android). Ajuste a `baseURL` se necessário.
+3. Configure `app.json` e variáveis se necessário. O arquivo `api/uaiMedApi.ts` já aponta para o backend (ex.: `http://10.0.2.2:3333/api` para emulador Android). Ajuste a `baseURL` se necessário.
 
 Rodando a aplicação
 

@@ -6,42 +6,14 @@
 
 **Visão geral do frontend**
 
-- Stack, estrutura de pastas, telas (40, em 5 stacks), como rodar localmente, URL da API por ambiente
+- Stack, estrutura de pastas, telas (43, em 5 stacks), como rodar localmente, URL da API por ambiente
 
 📍 **Localização**: `../README.md`
 🎯 **Para quem**: Todos (ponto de entrada)
 
 ---
 
-### 2. ESTRUTURA_PROJETO.md
-
-**Documentação de arquitetura**
-
-- Estrutura de pastas
-- Fluxo de autenticação
-- Estrutura de dados e sistema de design
-- Convenções de código
-
-📍 **Localização**: `../ESTRUTURA_PROJETO.md`
-🎯 **Para quem**: Novos desenvolvedores, arquitetos
-
----
-
-### 3. GUIA_RAPIDO.md
-
-**Guia prático de uso**
-
-- Início rápido (instalação e execução)
-- Fluxos principais e dados de teste
-- Como adicionar uma nova tela
-- Debugging e dúvidas comuns
-
-📍 **Localização**: `../GUIA_RAPIDO.md`
-🎯 **Para quem**: Desenvolvedores, contribuidores
-
----
-
-### 4. BACKEND_SETUP_COMPLETO.md
+### 2. BACKEND_SETUP_COMPLETO.md
 
 **Setup do backend para desenvolvimento do frontend**
 
@@ -53,7 +25,7 @@
 
 ---
 
-### 5. IMAGES_GUIDE.md
+### 3. IMAGES_GUIDE.md
 
 **Guia de imagens de profissionais**
 
@@ -65,7 +37,7 @@
 
 ---
 
-### 6. CONTACT_GUIDE.md
+### 4. CONTACT_GUIDE.md
 
 **Sistema de contatos (paciente ↔ profissional/clínica)**
 
@@ -78,7 +50,7 @@
 
 ---
 
-### 7. PAYMENTS_GUIDE.md
+### 5. PAYMENTS_GUIDE.md
 
 **Sistema de pagamentos**
 
@@ -91,7 +63,7 @@
 
 ---
 
-### 8. SISTEMA_AVALIACAO.md
+### 6. SISTEMA_AVALIACAO.md
 
 **Sistema de avaliação de consultas**
 
@@ -109,15 +81,15 @@
 ### Para entender o projeto
 
 ```
-1. GUIA_RAPIDO.md       ← como rodar
+1. README.md            ← como rodar, visão geral
    ↓
-2. ESTRUTURA_PROJETO.md ← como funciona
+2. DOCUMENTACAO_PROJETO_UAIMED.md (raiz do monorepo) ← arquitetura completa, requisitos, telas
 ```
 
 ### Para contribuir com uma feature específica
 
 ```
-1. ESTRUTURA_PROJETO.md
+1. README.md / DOCUMENTACAO_PROJETO_UAIMED.md
    ↓
 2. Guia da feature (CONTACT_GUIDE.md / PAYMENTS_GUIDE.md / SISTEMA_AVALIACAO.md)
 ```
@@ -128,9 +100,8 @@
 
 | Pergunta | Onde buscar |
 |---|---|
-| Como rodar o projeto? | `GUIA_RAPIDO.md` — "Início Rápido" |
-| Qual é a estrutura de pastas? | `ESTRUTURA_PROJETO.md` |
-| Como adicionar uma nova tela? | `GUIA_RAPIDO.md` — "Como Adicionar uma Nova Tela" |
+| Como rodar o projeto? | `../README.md` — "Como rodar localmente" |
+| Qual é a estrutura de pastas e arquitetura? | `DOCUMENTACAO_PROJETO_UAIMED.md` (raiz do monorepo) |
 | Como funciona o fluxo de pagamento? | `PAYMENTS_GUIDE.md` |
 | Como funciona o fluxo de avaliação? | `SISTEMA_AVALIACAO.md` |
 | Como funciona o contato paciente↔profissional? | `CONTACT_GUIDE.md` |
@@ -141,9 +112,9 @@
 
 ## Nota sobre esta revisão
 
-Esta versão do índice remove as referências a `SUMARIO_EXECUTIVO.md`, `CHECKLIST_VERIFICACAO.md` e `MELHORIAS_REALIZADAS.md` — documentos de log de uma sessão de organização passada, não documentação de produto, e que estão fora do escopo final do projeto. Também corrige os caminhos (`📍 Localização`), que apontavam para `/` quando a maioria dos arquivos está em `documents/` ou na raiz do `uaimed-front`.
+Esta versão do índice remove as referências a `ESTRUTURA_PROJETO.md` e `GUIA_RAPIDO.md` — ambos apagados por estarem desatualizados (descreviam uma versão esqueleto do projeto, com telas, endpoints e pendências que não refletem mais o estado atual). A arquitetura e as telas que eles cobriam já estão documentadas, corretamente, em `../README.md` e em `DOCUMENTACAO_PROJETO_UAIMED.md` (raiz do monorepo). Revisões anteriores já haviam removido `SUMARIO_EXECUTIVO.md`, `CHECKLIST_VERIFICACAO.md` e `MELHORIAS_REALIZADAS.md` pelo mesmo motivo.
 
 ---
 
-**Versão**: 2.0.0
-**Última atualização**: 13 de Outubro de 2026
+**Versão**: 3.0.0
+**Última atualização**: 16 de Novembro de 2026

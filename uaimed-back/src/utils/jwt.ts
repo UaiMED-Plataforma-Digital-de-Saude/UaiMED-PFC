@@ -45,4 +45,10 @@ export function verifyRefreshToken(token: string): TokenPayload | null {
   }
 }
 
-export default { generateToken, verifyToken, generateRefreshToken, verifyRefreshToken };
+/** Data de expiração (claim `exp`) de um token já assinado — usada para persistir junto do hash do refresh token. */
+export function getTokenExpiry(token: string): Date | null {
+  const decoded = jwt.decode(token) as { exp?: number } | null;
+  return decoded?.exp ? new Date(decoded.exp * 1000) : null;
+}
+
+export default { generateToken, verifyToken, generateRefreshToken, verifyRefreshToken, getTokenExpiry };

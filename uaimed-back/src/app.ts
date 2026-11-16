@@ -1,11 +1,14 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
+import helmet from "helmet";
 import routes from "./routes";
 import errorHandler from "./middleware/errorHandler";
 import logger from "./utils/logger";
 import ENV from "./config/env";
 
-const app = express(); 
+const app = express();
+
+app.use(helmet());
 
 const corsOptions = {
   origin: (origin: any, callback: any) => {

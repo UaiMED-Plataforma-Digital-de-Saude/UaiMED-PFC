@@ -23,7 +23,7 @@ cp .env.example .env
 docker-compose up -d        # sobe o Postgres
 npm install
 npx prisma generate
-npx prisma migrate dev --name init
+npx prisma migrate deploy
 npm run db:seed
 npm run dev                 # servidor em http://localhost:3333
 ```
@@ -91,4 +91,4 @@ curl http://localhost:3333/api/avaliacoes/medico/id-do-profissional/media
 
 ---
 
-**Última atualização**: 13 de Outubro de 2026
+**Última atualização**: 16 de Novembro de 2026

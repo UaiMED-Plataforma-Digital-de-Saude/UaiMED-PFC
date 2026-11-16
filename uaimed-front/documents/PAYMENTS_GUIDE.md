@@ -6,7 +6,7 @@ Este guia descreve como o front-end gerencia pagamentos na aplicação UaiMED. I
 
 - Tela de pagamento (`PagamentoScreen`) com seleção de método
 - Hook `usePayments` para encapsular lógica de processamento e validação de cupons
-- Métodos: Pix, Cartão de crédito/débito, Dinheiro
+- Métodos: Pix, Cartão de crédito/débito, Boleto Bancário
 - Descontos: plano de saúde (15%), cupom promocional (ex.: UAIMED10 = 10%)
 - Cálculo automático do valor final no cliente
 - Processamento simulado ou real (via API)
@@ -14,7 +14,7 @@ Este guia descreve como o front-end gerencia pagamentos na aplicação UaiMED. I
 Como funciona (front-end)
 
 1. A tela `PagamentoScreen` aceita um `amount` opcional (ex.: valor do agendamento).
-2. O usuário escolhe a forma de pagamento (Pix, Cartão, Dinheiro).
+2. O usuário escolhe a forma de pagamento (Pix, Cartão, Boleto Bancário).
 3. Se escolher cartão, insere os dados básicos (não são armazenados aqui).
 4. Pode aplicar desconto de convênio (toggle) e inserir cupom promocional.
 5. Clica "Aplicar" para validar o cupom (usa hook `validarCupom`).
@@ -124,7 +124,7 @@ Segurança e boas práticas
 - **Nunca** envie dados de cartão direto para seu backend sem cumprir PCI-DSS.
 - **Prefira tokenização**: Use SDKs de gateways (Stripe, Pagar.me) para gerar tokens e envie apenas o token ao backend.
 - **Pix**: Gere a cobrança no backend (retorne BRCode/QR), apresente ao usuário e confirme recebimento via webhook.
-- **Dinheiro**: Marque como "a pagar em espécie" no backend e processe manualmente quando confirmado.
+- **Boleto Bancário**: Gere o boleto no backend (ou via gateway) e confirme a liquidação via webhook, como no Pix.
 
 Integração com gateway real (recomendações)
 
