@@ -43,10 +43,42 @@ class AuthController {
     try {
       const { refreshToken } = req.body;
       const result = await AuthService.refresh(refreshToken);
-      return res.json({ token: result.token });
+      return res.json({ token: result.token, refreshToken: result.refreshToken });
     } catch (err: any) {
       logger.error("Erro ao renovar token", err);
       return res.status(401).json({ error: err?.message || "Erro ao renovar token" });
+    }
+  }
+
+  async changePassword(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+      const { oldPassword, newPassword } = req.body;
+      if (!oldPassword || !newPassword) {
+        return res.status(400).json({ error: "oldPassword e newPassword são obrigatórios" });
+      }
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: "A nova senha deve ter no mínimo 6 caracteres" });
+      }
+
+      await AuthService.changePassword(userId, oldPassword, newPassword, req.ip);
+      return res.json({ message: "Senha alterada com sucesso" });
+    } catch (err: any) {
+      logger.error("Erro ao alterar senha", err);
+      if (err?.message === "Senha atual incorreta") return res.status(400).json({ error: err.message });
+      if (err?.message === "Usuário não encontrado") return res.status(404).json({ error: err.message });
+      return res.status(500).json({ error: "Erro ao alterar senha" });
+    }
+  }
+
+  async logout(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+      await AuthService.logout(userId);
+      return res.status(204).send();
+    } catch (err) {
+      logger.error("Erro ao encerrar sessão", err);
+      return res.status(500).json({ error: "Erro ao encerrar sessão" });
     }
   }
 

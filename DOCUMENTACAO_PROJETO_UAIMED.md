@@ -206,8 +206,8 @@ Plataforma mobile-first que:
 | ID | Requisito | Prioridade | Status |
 |----|-----------|------------|--------|
 | RF09.1 | Tela de Ajuda (FAQ e suporte) | Baixa | ✅ Implementado |
-| RF09.2 | Recuperação de senha por e-mail | Média | ✅ Implementado (UI) |
-| RF09.3 | Tela de confirmação de e-mail enviado | Média | ✅ Implementado |
+| RF09.2 | Recuperação de senha por código enviado por e-mail | Média | ✅ Implementado (UI + backend) |
+| RF09.3 | Tela de confirmação de código e nova senha | Média | ✅ Implementado |
 
 ### 3.2 Requisitos Não Funcionais
 
@@ -218,7 +218,7 @@ Plataforma mobile-first que:
 
 #### RNF02 - Segurança
 - **RNF02.1**: Senhas criptografadas (bcrypt) ✅
-- **RNF02.2**: JWT com expiração (7 dias) ✅
+- **RNF02.2**: JWT com expiração (access token: 1h; refresh token: 30 dias, rotacionado a cada uso e revogável) ✅
 - **RNF02.3**: Proteção LGPD ✅ (consentimento + reconsentimento de contas antigas, auditoria de acesso a dados de pacientes e de 9 operações críticas de escrita, relatório de pacientes anonimizado, exportação/exclusão dos próprios dados, retenção do log de auditoria)
 - **RNF02.4**: Validação de entrada (Zod) ✅ (cobertura ampla via `validateBody` em praticamente todas as rotas de escrita)
 - **RNF02.5**: Refresh automático de token ✅ (`POST /api/sessions/refresh` implementado e funcional desde Set/2026)
@@ -408,7 +408,7 @@ Plataforma mobile-first que:
 - ✅ Valida email e senha
 - ✅ Retorna erro 401 para credenciais inválidas
 - ✅ Retorna token JWT válido
-- ✅ Token expira em 7 dias
+- ✅ Token expira em 1 hora (refresh token válido por 30 dias, rotacionado a cada renovação)
 - ✅ Retorna dados do usuário
 
 ### 5.2 Agendamento
@@ -494,7 +494,7 @@ Plataforma mobile-first que:
 - **Linguagem**: TypeScript 5.9
 - **Navegação**: React Navigation 7
 - **HTTP**: Axios 1.13
-- **Storage**: AsyncStorage 2.2
+- **Storage**: expo-secure-store (JWT + refresh token, Keychain/Keystore nativo) + AsyncStorage 2.2 (cache de perfil/tema/idioma; também fallback do secure-store no target web)
 
 ### 6.3 Telas do Aplicativo
 
@@ -504,8 +504,8 @@ Plataforma mobile-first que:
 | Login | `LoginScreen.tsx` | Login com e-mail e senha, logo do projeto |
 | Cadastro | `CadastroScreen.tsx` | Formulário de cadastro de usuário |
 | Tipo de Usuário | `TipoSelecaoScreen.tsx` | Seleção de tipo (paciente/médico/clínica) |
-| Recuperar Senha | `RecuperarSenhaScreen.tsx` | Solicitar link de recuperação por e-mail |
-| E-mail Enviado | `EmailEnviadoScreen.tsx` | Confirmação visual pós-envio de recuperação |
+| Recuperar Senha | `RecuperarSenhaScreen.tsx` | Solicitar código de recuperação por e-mail |
+| Confirmar Código | `ConfirmarCodigoScreen.tsx` | Inserir código de 6 dígitos e definir nova senha |
 
 #### Main Stack / Tabs
 | Tela | Arquivo | Descrição |
@@ -740,9 +740,9 @@ Telas: `AdminHomeScreen`, `AdminArtigosScreen`, `AdminDestaquesScreen`, `AdminCu
 **Frontend:**
 - ✅ Aplicativo React Native funcional
 - ✅ Navegação completa por stack e tabs
-- ✅ Autenticação integrada (JWT + AsyncStorage)
+- ✅ Autenticação integrada (JWT + expo-secure-store)
 - ✅ **Fluxo de agendamento completo**: Busca → Calendário → Horário → Confirmação → Pagamento → Avaliação
-- ✅ **Recuperação de senha**: `RecuperarSenhaScreen` + `EmailEnviadoScreen`
+- ✅ **Recuperação de senha**: `RecuperarSenhaScreen` + `ConfirmarCodigoScreen` (código de 6 dígitos por e-mail, com backend próprio em `/password-recovery`)
 - ✅ **Tela de Ajuda**: `HelpScreen` disponível no menu
 - ✅ **Seleção de tipo de usuário**: `TipoSelecaoScreen` no fluxo de cadastro
 - ✅ Telas `MinhasConsultasScreen` e `MeusPagamentosScreen` com dados reais
@@ -1179,7 +1179,7 @@ Ao todo, o percurso soma **135 commits e 63 pull requests** revisados e mesclado
 | Monorepo (em vez de submódulos Git) | Reduzir fricção de sincronização entre os desenvolvedores trabalhando em paralelo no front e no back |
 | Prisma + PostgreSQL | Migrations versionadas e tipagem gerada automaticamente, reduzindo erros de schema |
 | Validação com Zod em toda a API | Padronizar validação de entrada; reforçada em Set/2026 após bugs em endpoints que só validavam manualmente |
-| JWT com refresh token | Evitar reautenticação forçada a cada 7 dias sem abrir mão da expiração do token original |
+| JWT com refresh token (rotativo e revogável) | Evitar reautenticação forçada a cada 1h (expiração do access token) sem abrir mão de poder revogar a sessão (logout, troca de senha) |
 | Rate limiting nos endpoints de autenticação | Mitigação proativa de brute-force, aplicada seletivamente (`skipSuccessfulRequest`) para não penalizar logins legítimos |
 | Expo managed workflow | Velocidade de desenvolvimento mobile multiplataforma — trade-off aceito: push notifications remotas ficam bloqueadas sob Expo Go SDK 53+ |
 | Vitest + Supertest para testes de integração | Integração nativa com TypeScript e execução rápida, viabilizando os 32+ casos de teste do backend |

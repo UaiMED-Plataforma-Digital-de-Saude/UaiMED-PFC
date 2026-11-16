@@ -47,6 +47,8 @@ model Usuario {
   resetCodeHash      String?
   resetCodeExpiresAt DateTime?
   resetCodeAttempts  Int                @default(0)
+  refreshTokenHash      String?
+  refreshTokenExpiresAt DateTime?
   criado_em      DateTime              @default(now())
   atualizado_em  DateTime              @updatedAt
   agendamentos   Agendamento[]

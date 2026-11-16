@@ -294,9 +294,9 @@ Os testes de integração são a **camada principal** de validação automatizad
 
 | # | Caso de Teste | Endpoint | Resultado Esperado |
 |---|---------------|----------|--------------------|
-| 1 | Atualiza dados bancários com dados válidos | `PUT /api/usuarios/me/conta-bancaria` | 200 dados atualizados |
-| 2 | Rejeita `tipoConta` inválido | `PUT /api/usuarios/me/conta-bancaria` | 400 Bad Request |
-| 3 | Rejeita atualização sem autenticação | `PUT /api/usuarios/me/conta-bancaria` | 401 Unauthorized |
+| 1 | Atualiza dados bancários com dados válidos | `PUT /api/conta-bancaria` | 200 dados atualizados |
+| 2 | Rejeita `tipoConta` inválido | `PUT /api/conta-bancaria` | 400 Bad Request |
+| 3 | Rejeita atualização sem autenticação | `PUT /api/conta-bancaria` | 401 Unauthorized |
 
 ---
 
@@ -712,7 +712,7 @@ Pontos restantes abaixo de 80% (sem exclusão), não cobertos nesta sessão — 
 | `/api/users/me` | PUT | ✅ |
 | `/api/users/me/avatar` | PUT | ✅ |
 | `/api/users/me/notifications` | POST | ✅ |
-| `/api/usuarios/me/conta-bancaria` | PUT | ✅ |
+| `/api/conta-bancaria` | PUT | ✅ |
 | `/api/contatos` | POST + GET | ✅ |
 | `/api/contatos/:id` | PATCH | ✅ |
 | `/api/conversas` | POST | ✅ |

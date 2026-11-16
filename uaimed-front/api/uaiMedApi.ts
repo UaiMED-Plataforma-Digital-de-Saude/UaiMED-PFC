@@ -158,8 +158,15 @@ uaiMedApi.interceptors.response.use(
                     { refreshToken }
                 );
                 newToken = refreshResponse.data.token;
+                const newRefreshToken = refreshResponse.data.refreshToken;
 
+                // O backend rotaciona o refresh token a cada uso — o antigo
+                // deixa de ser válido, então o novo precisa ser persistido
+                // aqui ou o próximo refresh vai falhar.
                 await setSecureItem(SECURE_STORAGE_KEYS.token, newToken);
+                if (newRefreshToken) {
+                    await setSecureItem(SECURE_STORAGE_KEYS.refreshToken, newRefreshToken);
+                }
                 uaiMedApi.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
 
                 isRefreshing = false;

@@ -8,7 +8,7 @@ Aplicativo mobile do UaiMED, construído em React Native (Expo), responsável pe
 - **TypeScript** 5.9
 - **React Navigation** 7 (stacks + bottom tabs)
 - **Axios** para comunicação com a API
-- **AsyncStorage** para persistência de sessão (JWT + refresh token)
+- **expo-secure-store** para persistência de JWT + refresh token (Keychain/Keystore nativo; cai para AsyncStorage só no target web, que não tem Keychain/Keystore); **AsyncStorage** para o restante do cache local (perfil, tema, idioma)
 - `expo-location` para geolocalização, `expo-image-picker` para upload de avatar/artigos
 
 ## Estrutura de Pastas

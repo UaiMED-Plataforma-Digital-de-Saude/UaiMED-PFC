@@ -10,11 +10,6 @@ import {
 import { validateBody } from "../middleware/validate";
 import authMiddleware from "../middleware/auth";
 import { createAuthRateLimit } from "../middleware/rateLimit";
-import { prisma } from "../config/database";
-import bcrypt from "bcryptjs";
-import ENV from "../config/env";
-import AuditoriaService from "../services/auditoria.service";
-import logger from "../utils/logger";
 
 const router = Router();
 
@@ -24,8 +19,11 @@ router.post("/usuarios", createAuthRateLimit(), validateBody(signupSchema), (req
 // POST /api/sessions
 router.post("/sessions", createAuthRateLimit({ skipSuccessfulRequests: true }), validateBody(signinSchema), (req: Request, res: Response) => AuthController.signin(req, res));
 
-// POST /api/sessions/refresh
-router.post("/sessions/refresh", validateBody(refreshSchema), (req: Request, res: Response) => AuthController.refresh(req, res));
+// POST /api/sessions/refresh — rotaciona o refresh token a cada uso
+router.post("/sessions/refresh", createAuthRateLimit(), validateBody(refreshSchema), (req: Request, res: Response) => AuthController.refresh(req, res));
+
+// POST /api/sessions/logout — revoga o refresh token do usuário autenticado
+router.post("/sessions/logout", authMiddleware, (req: Request, res: Response) => AuthController.logout(req, res));
 
 // POST /api/password-recovery
 router.post("/password-recovery", createAuthRateLimit(), validateBody(passwordRecoverySchema), (req: Request, res: Response) => AuthController.solicitarRecuperacaoSenha(req, res));
@@ -33,43 +31,7 @@ router.post("/password-recovery", createAuthRateLimit(), validateBody(passwordRe
 // POST /api/password-recovery/confirmar
 router.post("/password-recovery/confirmar", createAuthRateLimit(), validateBody(passwordRecoveryConfirmSchema), (req: Request, res: Response) => AuthController.confirmarRecuperacaoSenha(req, res));
 
-// POST /api/auth/change-password — protegido por authMiddleware
-router.post("/auth/change-password", authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const { oldPassword, newPassword } = req.body;
-    if (!oldPassword || !newPassword) {
-      return res.status(400).json({ error: "oldPassword e newPassword são obrigatórios" });
-    }
-    if (newPassword.length < 6) {
-      return res.status(400).json({ error: "A nova senha deve ter no mínimo 6 caracteres" });
-    }
-
-    const userId = (req as any).user?.id;
-    const user = await prisma.usuario.findUnique({ where: { id: userId } });
-    if (!user) return res.status(404).json({ error: "Usuário não encontrado" });
-
-    const match = await bcrypt.compare(oldPassword, user.senha);
-    if (!match) return res.status(400).json({ error: "Senha atual incorreta" });
-
-    const hashed = await bcrypt.hash(newPassword, ENV.BCRYPT_ROUNDS);
-    await prisma.usuario.update({ where: { id: user.id }, data: { senha: hashed } });
-
-    logger.info(`Senha alterada para usuário: ${user.email}`);
-
-    await AuditoriaService.registrarAcesso({
-      ator: { id: user.id, tipo: (req as any).user?.tipo },
-      acao: "TROCAR_SENHA",
-      recurso: "Usuario",
-      recursoId: user.id,
-      pacientes: [{ id: user.id, nome: user.nome }],
-      ip: req.ip,
-    });
-
-    return res.json({ message: "Senha alterada com sucesso" });
-  } catch (err) {
-    logger.error("Erro ao alterar senha", err);
-    return res.status(500).json({ error: "Erro ao alterar senha" });
-  }
-});
+// POST /api/auth/change-password
+router.post("/auth/change-password", authMiddleware, (req: Request, res: Response) => AuthController.changePassword(req, res));
 
 export default router;

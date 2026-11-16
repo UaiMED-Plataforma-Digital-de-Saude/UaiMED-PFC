@@ -206,6 +206,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    */
   const signOut = useCallback(async () => {
     try {
+      // Best-effort: revoga o refresh token no servidor. Se falhar (rede,
+      // sessão já expirada), o logout local prossegue do mesmo jeito.
+      await uaiMedApi.post('/sessions/logout').catch(() => {});
+
       await removeSecureItem(SECURE_STORAGE_KEYS.token);
       await removeSecureItem(SECURE_STORAGE_KEYS.refreshToken);
       await AsyncStorage.removeItem(CONFIG.STORAGE_KEYS.user);

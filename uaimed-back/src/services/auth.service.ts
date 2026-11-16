@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { prisma } from "../config/database";
 import { hashPassword, comparePassword } from "../utils/hash";
-import { generateToken, generateRefreshToken, verifyRefreshToken } from "../utils/jwt";
+import { generateToken, generateRefreshToken, verifyRefreshToken, getTokenExpiry } from "../utils/jwt";
 import { geocodeEndereco } from "./geocoding.service";
 import { enviarEmailRecuperacaoSenha } from "./email.service";
 import AuditoriaService from "./auditoria.service";
@@ -13,6 +13,30 @@ import { LGPD_POLICY_VERSION } from '../constants/lgpd';
 
 const RESET_CODE_EXPIRATION_MINUTES = 15;
 const RESET_CODE_MAX_ATTEMPTS = 5;
+
+// Hash do refresh token p/ comparação em refresh()/revogação. SHA-256, não
+// bcrypt: bcrypt trunca a entrada em 72 bytes, e um JWT passa disso fácil —
+// tokens diferentes do mesmo usuário (id/email/tipo iguais, só iat/exp
+// mudam, que ficam depois do byte 72) colidiriam no mesmo hash. Refresh
+// token já tem alta entropia própria (é um JWT assinado), não é segredo
+// de baixa entropia como senha — não precisa do custo computacional do
+// bcrypt, só precisa não caber em texto puro no banco.
+function hashRefreshToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+// Guarda só o hash do último refresh token emitido (não o valor em si) —
+// emitir um novo sempre sobrescreve o anterior, o que já implementa rotação
+// (o token antigo nunca mais bate com o hash) e revogação (basta zerar).
+async function persistRefreshToken(
+  client: { usuario: { update: typeof prisma.usuario.update } },
+  userId: string,
+  refreshToken: string,
+): Promise<void> {
+  const refreshTokenHash = hashRefreshToken(refreshToken);
+  const refreshTokenExpiresAt = getTokenExpiry(refreshToken);
+  await client.usuario.update({ where: { id: userId }, data: { refreshTokenHash, refreshTokenExpiresAt } });
+}
 
 export interface SignUpData {
   nome: string;
@@ -165,6 +189,7 @@ class AuthService {
 
       const token = generateToken({ id: usuario.id, email: usuario.email, tipo: usuario.tipo });
       const refreshToken = generateRefreshToken({ id: usuario.id, email: usuario.email, tipo: usuario.tipo });
+      await persistRefreshToken(tx, usuario.id, refreshToken);
       return { usuario, profissional, token, refreshToken };
     });
 
@@ -182,6 +207,7 @@ class AuthService {
 
     const token = generateToken({ id: usuario.id, email: usuario.email, tipo: usuario.tipo });
     const refreshToken = generateRefreshToken({ id: usuario.id, email: usuario.email, tipo: usuario.tipo });
+    await persistRefreshToken(prisma, usuario.id, refreshToken);
 
     const profissional = usuario.tipo === TipoUsuario.medico
       ? await prisma.profissional.findUnique({
@@ -223,8 +249,54 @@ class AuthService {
     if (!usuario) throw new Error("Usuário não encontrado");
     if (!usuario.ativo) throw new Error("Usuário inativo");
 
+    // Confere contra o hash do último refresh token emitido: se não bater
+    // (já foi rotacionado por outro uso, foi revogado no logout/troca de
+    // senha, ou nunca existiu), a sessão não deve continuar.
+    if (!usuario.refreshTokenHash || !usuario.refreshTokenExpiresAt || usuario.refreshTokenExpiresAt < new Date()) {
+      throw new Error("Refresh token inválido ou expirado");
+    }
+    const valido = usuario.refreshTokenHash === hashRefreshToken(refreshToken);
+    if (!valido) throw new Error("Refresh token inválido ou expirado");
+
     const token = generateToken({ id: usuario.id, email: usuario.email, tipo: usuario.tipo });
-    return { token };
+    const novoRefreshToken = generateRefreshToken({ id: usuario.id, email: usuario.email, tipo: usuario.tipo });
+    await persistRefreshToken(prisma, usuario.id, novoRefreshToken);
+
+    return { token, refreshToken: novoRefreshToken };
+  }
+
+  async changePassword(userId: string, oldPassword: string, newPassword: string, ip?: string): Promise<void> {
+    const usuario = await prisma.usuario.findUnique({ where: { id: userId } });
+    if (!usuario) throw new Error("Usuário não encontrado");
+
+    const match = await comparePassword(oldPassword, usuario.senha);
+    if (!match) throw new Error("Senha atual incorreta");
+
+    const senhaHash = await hashPassword(newPassword);
+    // Zera o refresh token: troca de senha precisa encerrar sessões
+    // existentes, não só a atual (dispositivo perdido/comprometido).
+    await prisma.usuario.update({
+      where: { id: usuario.id },
+      data: { senha: senhaHash, refreshTokenHash: null, refreshTokenExpiresAt: null },
+    });
+
+    logger.info(`Senha alterada para usuário: ${usuario.email}`);
+
+    await AuditoriaService.registrarAcesso({
+      ator: { id: usuario.id, tipo: usuario.tipo },
+      acao: "TROCAR_SENHA",
+      recurso: "Usuario",
+      recursoId: usuario.id,
+      pacientes: [{ id: usuario.id, nome: usuario.nome }],
+      ip,
+    });
+  }
+
+  async logout(userId: string): Promise<void> {
+    await prisma.usuario.update({
+      where: { id: userId },
+      data: { refreshTokenHash: null, refreshTokenExpiresAt: null },
+    });
   }
 
   async solicitarRecuperacaoSenha(email: string): Promise<void> {
