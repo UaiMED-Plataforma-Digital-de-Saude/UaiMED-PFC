@@ -5,6 +5,7 @@ import uaiMedApi from '../api/uaiMedApi';
 import { onForceLogout } from '../api/authEvents';
 import CONFIG from '../config';
 import { TipoUsuario } from '../types/usuario';
+import { getSecureItem, setSecureItem, removeSecureItem, SECURE_STORAGE_KEYS } from '../utils/secureStorage';
 
 // ===== TIPOS E INTERFACES =====
 
@@ -83,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const loadStorageData = async () => {
       try {
-        const storedToken = await AsyncStorage.getItem(CONFIG.STORAGE_KEYS.token);
+        const storedToken = await getSecureItem(SECURE_STORAGE_KEYS.token);
         const storedUser = await AsyncStorage.getItem(CONFIG.STORAGE_KEYS.user);
 
         if (storedToken && storedUser) {
@@ -132,8 +133,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const mockRefreshToken = 'mock-refresh-token-dev';
 
       setUser(mockUser);
-      await AsyncStorage.setItem(CONFIG.STORAGE_KEYS.token, mockToken);
-      await AsyncStorage.setItem(CONFIG.STORAGE_KEYS.refreshToken, mockRefreshToken);
+      await setSecureItem(SECURE_STORAGE_KEYS.token, mockToken);
+      await setSecureItem(SECURE_STORAGE_KEYS.refreshToken, mockRefreshToken);
       await AsyncStorage.setItem(CONFIG.STORAGE_KEYS.user, JSON.stringify(mockUser));
       uaiMedApi.defaults.headers.common['Authorization'] = `Bearer ${mockToken}`;
       setLoading(false);
@@ -150,8 +151,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setUser(userData);
 
-      await AsyncStorage.setItem(CONFIG.STORAGE_KEYS.token, authToken);
-      await AsyncStorage.setItem(CONFIG.STORAGE_KEYS.refreshToken, refreshToken);
+      await setSecureItem(SECURE_STORAGE_KEYS.token, authToken);
+      await setSecureItem(SECURE_STORAGE_KEYS.refreshToken, refreshToken);
       await AsyncStorage.setItem(CONFIG.STORAGE_KEYS.user, JSON.stringify(userData));
 
       uaiMedApi.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
@@ -205,8 +206,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    */
   const signOut = useCallback(async () => {
     try {
-      await AsyncStorage.removeItem(CONFIG.STORAGE_KEYS.token);
-      await AsyncStorage.removeItem(CONFIG.STORAGE_KEYS.refreshToken);
+      await removeSecureItem(SECURE_STORAGE_KEYS.token);
+      await removeSecureItem(SECURE_STORAGE_KEYS.refreshToken);
       await AsyncStorage.removeItem(CONFIG.STORAGE_KEYS.user);
 
       setUser(null);
