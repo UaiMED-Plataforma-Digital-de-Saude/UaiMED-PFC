@@ -6,7 +6,7 @@ export type AuthStackParamList = {
   TipoSelecao: undefined;
   Cadastro: { tipoUsuario?: TipoCadastro };
   RecuperarSenha: undefined;
-  EmailEnviado: { email: string };
+  ConfirmarCodigo: { email: string };
 };
 
 // 2. Tipagem para as Abas Principais (Main Tabs)

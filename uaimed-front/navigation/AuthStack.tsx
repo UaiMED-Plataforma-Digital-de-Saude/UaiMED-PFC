@@ -7,7 +7,7 @@ import LoginScreen from '../screens/Auth/LoginScreen';
 import TipoSelecaoScreen from '../screens/Auth/TipoSelecaoScreen';
 import CadastroScreen from '../screens/Auth/CadastroScreen';
 import RecuperarSenhaScreen from '../screens/Auth/RecuperarSenhaScreen';
-import EmailEnviadoScreen from '../screens/Auth/EmailEnviadoScreen';
+import ConfirmarCodigoScreen from '../screens/Auth/ConfirmarCodigoScreen';
 
 // Cria o Navigator com a tipagem
 const AuthStack = createStackNavigator<AuthStackParamList>();
@@ -27,7 +27,7 @@ const AuthNavigator: React.FC = () => {
       <AuthStack.Screen name="TipoSelecao" component={TipoSelecaoScreen} />
       <AuthStack.Screen name="Cadastro" component={CadastroScreen} />
       <AuthStack.Screen name="RecuperarSenha" component={RecuperarSenhaScreen} />
-      <AuthStack.Screen name="EmailEnviado" component={EmailEnviadoScreen} />
+      <AuthStack.Screen name="ConfirmarCodigo" component={ConfirmarCodigoScreen} />
     </AuthStack.Navigator>
   );
 };

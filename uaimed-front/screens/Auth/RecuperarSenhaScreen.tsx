@@ -48,22 +48,19 @@ const RecuperarSenhaScreen: React.FC<RecuperarSenhaScreenProps> = ({ navigation 
     setLoading(true);
 
     try {
-      // Chamada à API para solicitar recuperação
-      const response = await uaiMedApi.post('/password-recovery', {
+      // Chamada à API para solicitar recuperação. A resposta é sempre a
+      // mesma (com ou sem conta cadastrada), então sempre seguimos para a
+      // tela de confirmação do código.
+      await uaiMedApi.post('/password-recovery', {
         email: email.trim(),
       });
 
-      if (response.status === 200 || response.status === 201) {
-        // Navega para tela de confirmação de envio
-        navigation.navigate('EmailEnviado', { email: email.trim() });
-      }
+      navigation.navigate('ConfirmarCodigo', { email: email.trim() });
     } catch (error: any) {
       let errorMessage = 'Não foi possível processar sua solicitação.';
 
-      if (error.response?.status === 404) {
-        errorMessage = 'Este e-mail não está cadastrado no sistema.';
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
       } else if (error.message === 'Network Error') {
         errorMessage = 'Erro de conexão. Verifique sua internet.';
       }
