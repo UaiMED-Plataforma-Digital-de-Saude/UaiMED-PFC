@@ -17,7 +17,7 @@ O UaiMED é uma plataforma digital de saúde composta por backend (Node.js/TypeS
 ## Status Atual
 
 - Backend e frontend funcionais e integrados, com os fluxos principais implementados
-- Testes automatizados no backend (Vitest); frontend ainda sem suíte de testes própria
+- Testes automatizados no backend (Vitest) e no frontend (69 testes)
 - Cobertura de requisitos essenciais: autenticação, agendamento, pagamentos, dashboards, avaliações
 - Documentação técnica detalhada (`DOCUMENTACAO_PROJETO_UAIMED.md`)
 
