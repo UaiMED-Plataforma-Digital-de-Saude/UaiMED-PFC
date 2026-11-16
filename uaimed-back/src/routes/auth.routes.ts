@@ -1,6 +1,12 @@
 import { Router, Request, Response } from "express";
 import AuthController from "../controllers/auth.controller";
-import { signupSchemaValidated as signupSchema, signinSchema, refreshSchema } from "../schemas/auth.schema";
+import {
+  signupSchemaValidated as signupSchema,
+  signinSchema,
+  refreshSchema,
+  passwordRecoverySchema,
+  passwordRecoveryConfirmSchema,
+} from "../schemas/auth.schema";
 import { validateBody } from "../middleware/validate";
 import authMiddleware from "../middleware/auth";
 import { createAuthRateLimit } from "../middleware/rateLimit";
@@ -20,6 +26,12 @@ router.post("/sessions", createAuthRateLimit({ skipSuccessfulRequests: true }), 
 
 // POST /api/sessions/refresh
 router.post("/sessions/refresh", validateBody(refreshSchema), (req: Request, res: Response) => AuthController.refresh(req, res));
+
+// POST /api/password-recovery
+router.post("/password-recovery", createAuthRateLimit(), validateBody(passwordRecoverySchema), (req: Request, res: Response) => AuthController.solicitarRecuperacaoSenha(req, res));
+
+// POST /api/password-recovery/confirmar
+router.post("/password-recovery/confirmar", createAuthRateLimit(), validateBody(passwordRecoveryConfirmSchema), (req: Request, res: Response) => AuthController.confirmarRecuperacaoSenha(req, res));
 
 // POST /api/auth/change-password — protegido por authMiddleware
 router.post("/auth/change-password", authMiddleware, async (req: Request, res: Response) => {

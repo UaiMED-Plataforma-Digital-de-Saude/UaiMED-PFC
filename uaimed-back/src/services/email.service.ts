@@ -180,4 +180,39 @@ export async function enviarEmailComprovantePagamento({ paciente, pagamentoId, v
   await enviarUm(client, email, paciente.email);
 }
 
-export default { enviarEmailConfirmacaoAgendamento, enviarEmailComprovantePagamento };
+interface DadosRecuperacaoSenha {
+  nome: string;
+  email: string;
+  codigo: string;
+}
+
+/**
+ * Envia o código de recuperação de senha. Mesma política de resiliência das
+ * demais notificações: nunca lança — falha de e-mail não deve travar o fluxo.
+ */
+export async function enviarEmailRecuperacaoSenha({ nome, email, codigo }: DadosRecuperacaoSenha): Promise<void> {
+  const client = getClient();
+  if (!client) {
+    logger.info(`[email] RESEND_API_KEY não configurada — pulando envio de código de recuperação (${email})`);
+    return;
+  }
+
+  const mensagem = {
+    from: REMETENTE,
+    to: email,
+    subject: "Código de recuperação de senha — UaiMED",
+    html: templateBase(
+      "Recuperação de senha",
+      `
+        <p style="color:#333; font-size:15px;">Olá, ${nome}!</p>
+        <p style="color:#333; font-size:15px;">Use o código abaixo para redefinir sua senha. Ele expira em 15 minutos:</p>
+        <p style="font-size:28px; font-weight:bold; letter-spacing:4px; text-align:center; color:#1B5E20; margin:24px 0;">${codigo}</p>
+        <p style="color:#333; font-size:15px;">Se você não solicitou essa recuperação, ignore este e-mail — sua senha continua a mesma.</p>
+      `
+    ),
+  };
+
+  await enviarUm(client, mensagem, email);
+}
+
+export default { enviarEmailConfirmacaoAgendamento, enviarEmailComprovantePagamento, enviarEmailRecuperacaoSenha };

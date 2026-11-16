@@ -1,12 +1,18 @@
+import crypto from "crypto";
 import { prisma } from "../config/database";
 import { hashPassword, comparePassword } from "../utils/hash";
 import { generateToken, generateRefreshToken, verifyRefreshToken } from "../utils/jwt";
 import { geocodeEndereco } from "./geocoding.service";
+import { enviarEmailRecuperacaoSenha } from "./email.service";
+import AuditoriaService from "./auditoria.service";
 import logger from "../utils/logger";
 import { TipoUsuario } from "@prisma/client";
 import { especialidadeMedicaValida } from "../constants/especialidades";
 import { ARTICLE_ADMIN_EMAIL } from '../constants/articleAdmin';
 import { LGPD_POLICY_VERSION } from '../constants/lgpd';
+
+const RESET_CODE_EXPIRATION_MINUTES = 15;
+const RESET_CODE_MAX_ATTEMPTS = 5;
 
 export interface SignUpData {
   nome: string;
@@ -219,6 +225,64 @@ class AuthService {
 
     const token = generateToken({ id: usuario.id, email: usuario.email, tipo: usuario.tipo });
     return { token };
+  }
+
+  async solicitarRecuperacaoSenha(email: string): Promise<void> {
+    const usuario = await prisma.usuario.findUnique({ where: { email: email.trim().toLowerCase() } });
+    // Não revela se o e-mail existe: a rota sempre responde sucesso, com ou
+    // sem conta encontrada, pra não permitir enumeração de usuários.
+    if (!usuario) return;
+
+    const codigo = crypto.randomInt(100000, 1000000).toString();
+    const resetCodeHash = await hashPassword(codigo);
+    const resetCodeExpiresAt = new Date(Date.now() + RESET_CODE_EXPIRATION_MINUTES * 60 * 1000);
+
+    await prisma.usuario.update({
+      where: { id: usuario.id },
+      data: { resetCodeHash, resetCodeExpiresAt, resetCodeAttempts: 0 },
+    });
+
+    await enviarEmailRecuperacaoSenha({ nome: usuario.nome, email: usuario.email, codigo });
+  }
+
+  async confirmarRecuperacaoSenha(data: { email: string; codigo: string; novaSenha: string; ip?: string }): Promise<void> {
+    const ERRO_GENERICO = "Código inválido ou expirado";
+    const usuario = await prisma.usuario.findUnique({ where: { email: data.email.trim().toLowerCase() } });
+    if (!usuario || !usuario.resetCodeHash || !usuario.resetCodeExpiresAt) {
+      throw new Error(ERRO_GENERICO);
+    }
+    if (usuario.resetCodeExpiresAt < new Date()) {
+      throw new Error(ERRO_GENERICO);
+    }
+    if (usuario.resetCodeAttempts >= RESET_CODE_MAX_ATTEMPTS) {
+      throw new Error("Número máximo de tentativas excedido. Solicite um novo código.");
+    }
+
+    const codigoValido = await comparePassword(data.codigo, usuario.resetCodeHash);
+    if (!codigoValido) {
+      await prisma.usuario.update({
+        where: { id: usuario.id },
+        data: { resetCodeAttempts: usuario.resetCodeAttempts + 1 },
+      });
+      throw new Error(ERRO_GENERICO);
+    }
+
+    const senhaHash = await hashPassword(data.novaSenha);
+    await prisma.usuario.update({
+      where: { id: usuario.id },
+      data: { senha: senhaHash, resetCodeHash: null, resetCodeExpiresAt: null, resetCodeAttempts: 0 },
+    });
+
+    logger.info(`Senha redefinida via recuperação para usuário: ${usuario.email}`);
+
+    await AuditoriaService.registrarAcesso({
+      ator: { id: usuario.id, tipo: usuario.tipo },
+      acao: "RECUPERAR_SENHA",
+      recurso: "Usuario",
+      recursoId: usuario.id,
+      pacientes: [{ id: usuario.id, nome: usuario.nome }],
+      ip: data.ip,
+    });
   }
 }
 
