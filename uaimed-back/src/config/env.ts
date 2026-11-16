@@ -23,6 +23,15 @@ const envSchema = z.object({
 
 const parsed = envSchema.parse(process.env);
 
+if (parsed.NODE_ENV === "production") {
+  if (parsed.JWT_SECRET === "dev-secret" || parsed.JWT_SECRET.length < 32) {
+    throw new Error("JWT_SECRET ausente ou fraco para NODE_ENV=production (mínimo 32 caracteres, sem usar o valor padrão de dev).");
+  }
+  if (parsed.REFRESH_TOKEN_SECRET === "dev-refresh-secret" || parsed.REFRESH_TOKEN_SECRET.length < 32) {
+    throw new Error("REFRESH_TOKEN_SECRET ausente ou fraco para NODE_ENV=production (mínimo 32 caracteres, sem usar o valor padrão de dev).");
+  }
+}
+
 export const ENV = {
   NODE_ENV: parsed.NODE_ENV,
   PORT: Number(parsed.PORT),
