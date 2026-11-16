@@ -4,6 +4,7 @@ import { hashPassword } from "../utils/hash";
 import logger from "../utils/logger";
 import { ESPECIALIDADES_MEDICAS } from "../constants/especialidades";
 import { CONVENIOS_ACEITOS } from "../constants/convenios";
+import { ENV } from "../config/env";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -73,6 +74,10 @@ const ESTADOS_CIDADES: Record<string, string> = {
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
+  if (ENV.NODE_ENV === "production") {
+    throw new Error("Seed de desenvolvimento não pode ser executado com NODE_ENV=production.");
+  }
+
   logger.info("🌱 Iniciando seed com Faker (pt_BR)...");
 
   // Limpa tudo respeitando ordem de FK
@@ -88,7 +93,8 @@ async function main() {
   await prisma.usuario.deleteMany();
   await prisma.cupom.deleteMany();
 
-  const senha = await hashPassword("senha123");
+  const senhaPlana = process.env.SEED_ADMIN_PASSWORD ?? "senha123";
+  const senha = await hashPassword(senhaPlana);
   let cpfIdx = 1; // contador global para CPFs únicos
 
   // ── Cupons ─────────────────────────────────────────────────────────────────
@@ -557,7 +563,7 @@ async function main() {
   logger.info(`   → ${tc} contatos`);
   logger.info(`   → ${tcup} cupons`);
   logger.info(`   → ${tart} artigos`);
-  logger.info(`\n🔑 Credenciais (senha: senha123):`);
+  logger.info(`\n🔑 Credenciais (senha: ${senhaPlana}):`);
   logger.info(`   Admin    → admin@uaimed.com`);
   logger.info(`   Paciente → joao@example.com`);
   logger.info(`   Médico   → carlos.mendes@uaimed.com`);
